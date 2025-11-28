@@ -1,4 +1,4 @@
--- NullHub V2.lua - WITH FLY SYSTEM
+-- NullHub V2.lua 
 -- Created by Debbhai
 
 local Players = game:GetService("Players")
@@ -38,7 +38,7 @@ local CONFIG = {
     TELEPORT_SPEED = 80,
     
     KILLAURA_KEY = Enum.KeyCode.K,
-    KILLAURA_RANGE = 500,
+    KILLAURA_RANGE = 20,
     KILLAURA_DELAY = 0.15,
     
     FASTM1_KEY = Enum.KeyCode.M,
@@ -46,6 +46,9 @@ local CONFIG = {
     
     FLY_KEY = Enum.KeyCode.F,
     FLY_SPEED = 50,
+    
+    -- NEW: GUI Toggle Key
+    GUI_TOGGLE_KEY = Enum.KeyCode.Insert,
 }
 
 -- ============================================
@@ -76,8 +79,13 @@ local flyConnection = nil
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
 
+-- NEW: GUI Visibility State
+local guiVisible = true
+local mainFrameRef = nil
+local toggleBtnRef = nil
+
 -- ============================================
--- MODERN GUI CREATION (WITH FLY)
+-- MODERN GUI CREATION
 -- ============================================
 local function createModernGUI()
     -- Main ScreenGui
@@ -110,6 +118,23 @@ local function createModernGUI()
     toggleStroke.Thickness = 2
     toggleStroke.Transparency = 0.5
     toggleStroke.Parent = toggleBtn
+    
+    -- Keybind hint on toggle button
+    local keybindHint = Instance.new("TextLabel")
+    keybindHint.Size = UDim2.new(0, 80, 0, 20)
+    keybindHint.Position = UDim2.new(0, -15, 1, 5)
+    keybindHint.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    keybindHint.BackgroundTransparency = 0.3
+    keybindHint.BorderSizePixel = 0
+    keybindHint.Text = "[Insert]"
+    keybindHint.TextColor3 = Color3.fromRGB(200, 200, 200)
+    keybindHint.TextSize = 11
+    keybindHint.Font = Enum.Font.Gotham
+    keybindHint.Parent = toggleBtn
+    
+    local hintCorner = Instance.new("UICorner")
+    hintCorner.CornerRadius = UDim.new(0, 6)
+    hintCorner.Parent = keybindHint
     
     -- Main Frame (Modern Black Translucent)
     local mainFrame = Instance.new("Frame")
@@ -220,7 +245,7 @@ local function createModernGUI()
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = scrollFrame
     
-    -- Feature buttons data (ADDED FLY)
+    -- Feature buttons data
     local features = {
         {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯"},
         {name = "ESP", key = "T", state = "esp", icon = "👁️"},
@@ -559,13 +584,11 @@ local function performFastM1()
     end
 end
 
--- NEW: Fly System
 local function updateFly()
     if not state.fly or not rootPart then return end
     
     local moveDirection = Vector3.new(0, 0, 0)
     
-    -- Get movement input
     if UserInputService:IsKeyDown(Enum.KeyCode.W) then
         moveDirection = moveDirection + (camera.CFrame.LookVector * CONFIG.FLY_SPEED)
     end
@@ -585,12 +608,10 @@ local function updateFly()
         moveDirection = moveDirection - Vector3.new(0, CONFIG.FLY_SPEED, 0)
     end
     
-    -- Apply velocity
     if flyBodyVelocity then
         flyBodyVelocity.Velocity = moveDirection
     end
     
-    -- Keep upright
     if flyBodyGyro then
         flyBodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector)
     end
@@ -867,12 +888,10 @@ local function toggleFastM1()
     print("[NullHub] Fast M1:", state.fastm1 and "ON" or "OFF")
 end
 
--- NEW: Fly Toggle
 local function toggleFly()
     state.fly = not state.fly
     
     if state.fly then
-        -- Create BodyVelocity
         if not flyBodyVelocity then
             flyBodyVelocity = Instance.new("BodyVelocity")
             flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
@@ -880,7 +899,6 @@ local function toggleFly()
             flyBodyVelocity.Parent = rootPart
         end
         
-        -- Create BodyGyro
         if not flyBodyGyro then
             flyBodyGyro = Instance.new("BodyGyro")
             flyBodyGyro.MaxTorque = Vector3.new(100000, 100000, 100000)
@@ -888,37 +906,31 @@ local function toggleFly()
             flyBodyGyro.Parent = rootPart
         end
         
-        -- Start fly loop
         if flyConnection then
             flyConnection:Disconnect()
         end
         
         flyConnection = RunService.RenderStepped:Connect(updateFly)
         
-        -- Set humanoid state
         if humanoid then
             humanoid:ChangeState(Enum.HumanoidStateType.Flying)
         end
     else
-        -- Stop fly
         if flyConnection then
             flyConnection:Disconnect()
             flyConnection = nil
         end
         
-        -- Remove BodyVelocity
         if flyBodyVelocity then
             flyBodyVelocity:Destroy()
             flyBodyVelocity = nil
         end
         
-        -- Remove BodyGyro
         if flyBodyGyro then
             flyBodyGyro:Destroy()
             flyBodyGyro = nil
         end
         
-        -- Reset humanoid state
         if humanoid then
             humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
         end
@@ -965,21 +977,30 @@ local function toggleGodMode()
     print("[NullHub] God Mode:", state.godmode and "ON" or "OFF")
 end
 
+-- NEW: GUI Toggle Function
+local function toggleGUI()
+    guiVisible = not guiVisible
+    if mainFrameRef then
+        mainFrameRef.Visible = guiVisible
+    end
+    if toggleBtnRef then
+        TweenService:Create(toggleBtnRef, TweenInfo.new(0.3), {
+            Rotation = guiVisible and 0 or 180
+        }):Play()
+    end
+    print("[NullHub] GUI:", guiVisible and "VISIBLE" or "HIDDEN")
+end
+
 -- ============================================
 -- GUI INITIALIZATION
 -- ============================================
 local mainFrame, toggleBtn, closeBtn, buttons = createModernGUI()
 guiButtons = buttons
+mainFrameRef = mainFrame
+toggleBtnRef = toggleBtn
 
 -- Toggle button functionality
-local guiVisible = true
-toggleBtn.MouseButton1Click:Connect(function()
-    guiVisible = not guiVisible
-    mainFrame.Visible = guiVisible
-    TweenService:Create(toggleBtn, TweenInfo.new(0.3), {
-        Rotation = guiVisible and 0 or 180
-    }):Play()
-end)
+toggleBtn.MouseButton1Click:Connect(toggleGUI)
 
 -- Close button
 closeBtn.MouseButton1Click:Connect(function()
@@ -987,7 +1008,7 @@ closeBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
--- Button click handlers (ADDED FLY)
+-- Button click handlers
 buttons.aimbot.button.MouseButton1Click:Connect(toggleAimbot)
 buttons.esp.button.MouseButton1Click:Connect(toggleESP)
 buttons.killaura.button.MouseButton1Click:Connect(toggleKillAura)
@@ -1032,12 +1053,15 @@ if buttons.teleport.dropdown then
 end
 
 -- ============================================
--- KEYBIND INPUT HANDLING (ADDED FLY KEY)
+-- KEYBIND INPUT HANDLING (ADDED INSERT KEY)
 -- ============================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
-    if input.KeyCode == CONFIG.AIMBOT_KEY then
+    -- NEW: Insert key to toggle GUI visibility
+    if input.KeyCode == CONFIG.GUI_TOGGLE_KEY then
+        toggleGUI()
+    elseif input.KeyCode == CONFIG.AIMBOT_KEY then
         toggleAimbot()
     elseif input.KeyCode == CONFIG.ESP_KEY then
         toggleESP()
@@ -1123,7 +1147,6 @@ player.CharacterAdded:Connect(function(newChar)
         updateESP()
     end
     
-    -- Restart KillAura if enabled
     if state.killaura then
         local wasEnabled = state.killaura
         state.killaura = false
@@ -1133,7 +1156,6 @@ player.CharacterAdded:Connect(function(newChar)
         toggleKillAura()
     end
     
-    -- Restart Fast M1 if enabled
     if state.fastm1 then
         local wasEnabled = state.fastm1
         state.fastm1 = false
@@ -1143,7 +1165,6 @@ player.CharacterAdded:Connect(function(newChar)
         toggleFastM1()
     end
     
-    -- Restart Fly if enabled
     if state.fly then
         local wasEnabled = state.fly
         state.fly = false
@@ -1165,7 +1186,9 @@ originalSpeed = humanoid.WalkSpeed
 print("========================================")
 print("⚡ NullHub V2 Loaded Successfully!")
 print("========================================")
-print("📱 GUI: Drag header to move | 'N' button to toggle")
+print("📱 GUI: Press [INSERT] to toggle visibility")
+print("   • Click 'N' button or press Insert")
+print("   • Drag header to reposition")
 print("🎯 COMBAT:")
 print("  • Aimbot [E] | ESP [T]")
 print("  • KillAura [K] - Auto attack nearby")
