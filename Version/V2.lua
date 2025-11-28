@@ -1,6 +1,30 @@
 -- NullHub V2.lua 
 -- Created by Debbhai
 
+-- ============================================
+-- LOAD THEME (ADD THIS NEW SECTION)
+-- ============================================
+local Theme
+local themeLoaded = false
+
+pcall(function()
+    Theme = loadstring(game:HttpGet("https://raw.githubusercontent.com/Debbhai/NullHub/main/Theme.lua"))()
+    themeLoaded = true
+    print("[NullHub] Theme loaded successfully!")
+end)
+
+-- Fallback if theme fails to load
+if not themeLoaded then
+    warn("[NullHub] Theme failed to load, using defaults")
+    Theme = {
+        Colors = {
+            MainBackground = Color3.fromRGB(15, 15, 20),
+            HeaderBackground = Color3.fromRGB(20, 20, 28),
+            -- ... add fallback colors
+        }
+    }
+end
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
