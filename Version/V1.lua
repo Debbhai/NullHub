@@ -1,11 +1,12 @@
--- Ultimate All-in-One Script v1.0
--- Aimbot | ESP | NoClip | InfJump | Speed | FullBright | GodMode | Teleport
+-- NullHub V1.lua - Complete Script with GUI
+-- Created by Debbhai
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -14,36 +15,23 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = Workspace.CurrentCamera
 
 -- ============================================
--- CONFIG - CUSTOMIZE HERE
+-- CONFIG
 -- ============================================
 local CONFIG = {
-    -- Aimbot
     AIMBOT_KEY = Enum.KeyCode.E,
     AIMBOT_FOV = 200,
     AIMBOT_SMOOTHNESS = 0.2,
     
-    -- ESP
     ESP_KEY = Enum.KeyCode.T,
     ESP_COLOR = Color3.fromRGB(255, 0, 0),
     ESP_SHOW_DISTANCE = true,
     
-    -- NoClip
     NOCLIP_KEY = Enum.KeyCode.N,
-    
-    -- Infinite Jump
     INFJUMP_KEY = Enum.KeyCode.J,
-    
-    -- Speed Hack
     SPEED_KEY = Enum.KeyCode.X,
     SPEED_VALUE = 100,
-    
-    -- Full Bright
     FULLBRIGHT_KEY = Enum.KeyCode.B,
-    
-    -- God Mode
     GODMODE_KEY = Enum.KeyCode.V,
-    
-    -- Teleport
     TELEPORT_TO_PLAYER_KEY = Enum.KeyCode.Z,
 }
 
@@ -64,10 +52,149 @@ local espObjects = {}
 local originalSpeed = 16
 local noclipConnection = nil
 local originalLightingSettings = {}
+local godmodeConnection = nil
 
 -- ============================================
--- AIMBOT FUNCTIONS
+-- GUI CREATION
 -- ============================================
+local function createGUI()
+    -- Main ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NullHubGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Main Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 450, 0, 380)
+    mainFrame.Position = UDim2.new(0.5, -225, 0.5, -190)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 12)
+    mainCorner.Parent = mainFrame
+    
+    -- Header
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 50)
+    header.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    header.BorderSizePixel = 0
+    header.Parent = mainFrame
+    
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 12)
+    headerCorner.Parent = header
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -100, 1, 0)
+    title.Position = UDim2.new(0, 15, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "🎯 NullHub V1"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 20
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = header
+    
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseButton"
+    closeBtn.Size = UDim2.new(0, 40, 0, 40)
+    closeBtn.Position = UDim2.new(1, -45, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "×"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 24
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = header
+    
+    local closeBtnCorner = Instance.new("UICorner")
+    closeBtnCorner.CornerRadius = UDim.new(0, 8)
+    closeBtnCorner.Parent = closeBtn
+    
+    -- Content Frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -20, 1, -70)
+    contentFrame.Position = UDim2.new(0, 10, 0, 60)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = mainFrame
+    
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 8)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = contentFrame
+    
+    -- Feature buttons data
+    local features = {
+        {name = "Aimbot", key = "E", state = "aimbot"},
+        {name = "ESP", key = "T", state = "esp"},
+        {name = "NoClip", key = "N", state = "noclip"},
+        {name = "Infinite Jump", key = "J", state = "infjump"},
+        {name = "Speed Hack", key = "X", state = "speed"},
+        {name = "Full Bright", key = "B", state = "fullbright"},
+        {name = "God Mode", key = "V", state = "godmode"},
+        {name = "Teleport", key = "Z", state = "teleport", isAction = true},
+    }
+    
+    local buttons = {}
+    
+    -- Create feature buttons
+    for i, feature in ipairs(features) do
+        local featureBtn = Instance.new("TextButton")
+        featureBtn.Name = feature.state .. "Btn"
+        featureBtn.Size = UDim2.new(1, 0, 0, 35)
+        featureBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+        featureBtn.BorderSizePixel = 0
+        featureBtn.Text = "  " .. feature.name .. " [" .. feature.key .. "]"
+        featureBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        featureBtn.TextSize = 16
+        featureBtn.Font = Enum.Font.Gotham
+        featureBtn.TextXAlignment = Enum.TextXAlignment.Left
+        featureBtn.Parent = contentFrame
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 8)
+        btnCorner.Parent = featureBtn
+        
+        -- Status indicator
+        local statusIndicator = Instance.new("Frame")
+        statusIndicator.Name = "StatusIndicator"
+        statusIndicator.Size = UDim2.new(0, 10, 0, 10)
+        statusIndicator.Position = UDim2.new(1, -20, 0.5, -5)
+        statusIndicator.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        statusIndicator.BorderSizePixel = 0
+        statusIndicator.Parent = featureBtn
+        
+        local indicatorCorner = Instance.new("UICorner")
+        indicatorCorner.CornerRadius = UDim.new(1, 0)
+        indicatorCorner.Parent = statusIndicator
+        
+        buttons[feature.state] = {
+            button = featureBtn,
+            indicator = statusIndicator,
+            isAction = feature.isAction or false
+        }
+    end
+    
+    -- Attach to player
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+    
+    return mainFrame, closeBtn, buttons
+end
+
+-- ============================================
+-- FEATURE FUNCTIONS (Same as your original)
+-- ============================================
+
 local function getClosestPlayerToMouse()
     local closestPlayer = nil
     local shortestDistance = CONFIG.AIMBOT_FOV
@@ -97,21 +224,16 @@ end
 
 local function aimAtTarget(target)
     if not target or not target.Character then return end
-    
     local targetHead = target.Character:FindFirstChild("Head")
     if not targetHead then return end
     
     local targetPos = targetHead.Position
     local cameraPos = camera.CFrame.Position
     local direction = (targetPos - cameraPos).Unit
-    
     local newCFrame = CFrame.new(cameraPos, targetPos)
     camera.CFrame = camera.CFrame:Lerp(newCFrame, CONFIG.AIMBOT_SMOOTHNESS)
 end
 
--- ============================================
--- ESP FUNCTIONS
--- ============================================
 local function createESP(targetPlayer)
     if espObjects[targetPlayer] then return end
     
@@ -143,7 +265,6 @@ local function createESP(targetPlayer)
     
     espObjects[targetPlayer] = {highlight = highlight, billboard = billboardGui, label = textLabel}
     
-    -- Update distance
     local updateConnection
     updateConnection = RunService.RenderStepped:Connect(function()
         if not state.esp or not targetPlayer.Character or not rootPart then
@@ -185,12 +306,8 @@ local function updateESP()
     end
 end
 
--- ============================================
--- NOCLIP FUNCTIONS
--- ============================================
 local function updateNoClip()
     if not state.noclip then return end
-    
     for _, part in pairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
@@ -198,18 +315,12 @@ local function updateNoClip()
     end
 end
 
--- ============================================
--- INFINITE JUMP FUNCTIONS
--- ============================================
 local function onJumpRequest()
     if state.infjump and humanoid then
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end
 
--- ============================================
--- SPEED HACK FUNCTIONS
--- ============================================
 local function updateSpeed()
     if humanoid then
         if state.speed then
@@ -220,9 +331,6 @@ local function updateSpeed()
     end
 end
 
--- ============================================
--- FULL BRIGHT FUNCTIONS
--- ============================================
 local function saveOriginalLighting()
     originalLightingSettings = {
         Ambient = Lighting.Ambient,
@@ -253,11 +361,6 @@ local function disableFullBright()
     end
 end
 
--- ============================================
--- GOD MODE FUNCTIONS
--- ============================================
-local godmodeConnection = nil
-
 local function updateGodMode()
     if state.godmode then
         if humanoid then
@@ -276,9 +379,6 @@ local function updateGodMode()
     end
 end
 
--- ============================================
--- TELEPORT FUNCTIONS
--- ============================================
 local function teleportToPlayer()
     local target = getClosestPlayerToMouse()
     if target and target.Character then
@@ -293,33 +393,55 @@ local function teleportToPlayer()
 end
 
 -- ============================================
--- TOGGLE FUNCTIONS
+-- TOGGLE FUNCTIONS WITH GUI UPDATE
 -- ============================================
+local guiButtons = {}
+
+local function updateButtonVisual(stateName)
+    if guiButtons[stateName] and not guiButtons[stateName].isAction then
+        local btn = guiButtons[stateName]
+        local isEnabled = state[stateName]
+        
+        TweenService:Create(btn.indicator, TweenInfo.new(0.3), {
+            BackgroundColor3 = isEnabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+        }):Play()
+        
+        TweenService:Create(btn.button, TweenInfo.new(0.3), {
+            BackgroundColor3 = isEnabled and Color3.fromRGB(55, 55, 60) or Color3.fromRGB(45, 45, 50)
+        }):Play()
+    end
+end
+
 local function toggleAimbot()
     state.aimbot = not state.aimbot
+    updateButtonVisual("aimbot")
     print("Aimbot:", state.aimbot and "ENABLED" or "DISABLED")
 end
 
 local function toggleESP()
     state.esp = not state.esp
     updateESP()
+    updateButtonVisual("esp")
     print("ESP:", state.esp and "ENABLED" or "DISABLED")
 end
 
 local function toggleNoClip()
     state.noclip = not state.noclip
+    updateButtonVisual("noclip")
     print("NoClip:", state.noclip and "ENABLED" or "DISABLED")
 end
 
 local function toggleInfJump()
     state.infjump = not state.infjump
+    updateButtonVisual("infjump")
     print("Infinite Jump:", state.infjump and "ENABLED" or "DISABLED")
 end
 
 local function toggleSpeed()
     state.speed = not state.speed
     updateSpeed()
-    print("Speed Hack:", state.speed and "ENABLED" or "DISABLED", "Speed:", CONFIG.SPEED_VALUE)
+    updateButtonVisual("speed")
+    print("Speed Hack:", state.speed and "ENABLED" or "DISABLED")
 end
 
 local function toggleFullBright()
@@ -329,17 +451,40 @@ local function toggleFullBright()
     else
         disableFullBright()
     end
+    updateButtonVisual("fullbright")
     print("Full Bright:", state.fullbright and "ENABLED" or "DISABLED")
 end
 
 local function toggleGodMode()
     state.godmode = not state.godmode
     updateGodMode()
+    updateButtonVisual("godmode")
     print("God Mode:", state.godmode and "ENABLED" or "DISABLED")
 end
 
 -- ============================================
--- INPUT HANDLING
+-- GUI INITIALIZATION
+-- ============================================
+local mainFrame, closeBtn, buttons = createGUI()
+guiButtons = buttons
+
+-- Close button
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Parent.Enabled = false
+end)
+
+-- Button click handlers
+buttons.aimbot.button.MouseButton1Click:Connect(toggleAimbot)
+buttons.esp.button.MouseButton1Click:Connect(toggleESP)
+buttons.noclip.button.MouseButton1Click:Connect(toggleNoClip)
+buttons.infjump.button.MouseButton1Click:Connect(toggleInfJump)
+buttons.speed.button.MouseButton1Click:Connect(toggleSpeed)
+buttons.fullbright.button.MouseButton1Click:Connect(toggleFullBright)
+buttons.godmode.button.MouseButton1Click:Connect(toggleGodMode)
+buttons.teleport.button.MouseButton1Click:Connect(teleportToPlayer)
+
+-- ============================================
+-- KEYBIND INPUT HANDLING
 -- ============================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -369,7 +514,6 @@ end)
 -- MAIN UPDATE LOOPS
 -- ============================================
 RunService.RenderStepped:Connect(function()
-    -- Aimbot
     if state.aimbot then
         local target = getClosestPlayerToMouse()
         if target then
@@ -377,7 +521,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- NoClip
     if state.noclip then
         updateNoClip()
     end
@@ -412,10 +555,8 @@ player.CharacterAdded:Connect(function(newChar)
     humanoid = character:WaitForChild("Humanoid")
     rootPart = character:WaitForChild("HumanoidRootPart")
     
-    -- Save original speed
     originalSpeed = humanoid.WalkSpeed
     
-    -- Reapply features if enabled
     if state.speed then
         task.wait(0.2)
         updateSpeed()
@@ -439,16 +580,12 @@ saveOriginalLighting()
 originalSpeed = humanoid.WalkSpeed
 
 print("========================================")
-print("🎯 ULTIMATE ALL-IN-ONE SCRIPT LOADED 🎯")
+print("🎯 NullHub V1 LOADED 🎯")
 print("========================================")
-print("AIMBOT    [E] - Auto-aim at enemies")
-print("ESP       [T] - See all players")
-print("NOCLIP    [N] - Walk through walls")
-print("INF JUMP  [J] - Unlimited jumps")
-print("SPEED     [X] - Super speed (" .. CONFIG.SPEED_VALUE .. ")")
-print("FULLBRIGHT[B] - Maximum brightness")
-print("GODMODE   [V] - Invincibility")
-print("TELEPORT  [Z] - TP to player (aim at them)")
+print("GUI: Drag to move | Click features to toggle")
+print("AIMBOT    [E] | ESP       [T]")
+print("NOCLIP    [N] | INF JUMP  [J]")
+print("SPEED     [X] | FULLBRIGHT[B]")
+print("GODMODE   [V] | TELEPORT  [Z]")
 print("========================================")
-print("✅ All systems ready!")
-print("========================================")
+
