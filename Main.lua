@@ -1,4 +1,5 @@
--- null Main loader
+-- NullHub Main Loader
+-- Created by Debbhai
 local _ENV = (getgenv and getgenv()) or _G
 local CURRENT_VERSION = _ENV.Version or "V1"
 
@@ -7,43 +8,57 @@ local Versions = {
     V2 = "https://raw.githubusercontent.com/Debbhai/NullHub/refs/heads/main/Version/V2.lua",
 }
 
--- simple anti-spam
+-- Anti-spam debounce
 do
-    local last_exec = _ENV.null_execute_debounce
+    local last_exec = _ENV.nullhub_execute_debounce
     if last_exec and (tick() - last_exec) <= 5 then
-        return nil
+        return warn("[NullHub] Please wait 5 seconds between executions")
     end
-    _ENV.null_execute_debounce = tick()
+    _ENV.nullhub_execute_debounce = tick()
+end
+
+-- Queue on teleport (auto-reexecute when joining new server)
+do
+    local executor = syn or fluxus
+    local queueteleport = queue_on_teleport or (executor and executor.queue_on_teleport)
+
+    if not _ENV.nullhub_teleport_queue and type(queueteleport) == "function" then
+        _ENV.nullhub_teleport_queue = true
+        local SourceCode = ("loadstring(game:HttpGet('%s'))()"):format(Versions[CURRENT_VERSION] or Versions.V1)
+        pcall(queueteleport, SourceCode)
+    end
 end
 
 local function CreateMessageError(text)
-    if _ENV.null_error_message then
-        _ENV.null_error_message:Destroy()
+    if _ENV.nullhub_error_message then
+        _ENV.nullhub_error_message:Destroy()
     end
     local Message = Instance.new("Message", workspace)
     Message.Text = text
-    _ENV.null_error_message = Message
+    _ENV.nullhub_error_message = Message
     error(text, 2)
 end
 
-local function http_get(url)
-    local ok, result = pcall(function()
+local function httpGet(url)
+    local success, response = pcall(function()
         return game:HttpGet(url)
     end)
-    if not ok then
-        CreateMessageError("[null Fetch Error] " .. tostring(result))
+    if success then
+        return response
+    else
+        CreateMessageError("[NullHub Fetch Error] Failed to get: " .. url)
     end
-    return result
 end
 
-local function load_from(url)
-    local source = http_get(url)
-    local func, err = loadstring(source)
-    if not func then
-        CreateMessageError("[null Load Error] " .. tostring(err))
+local function loadFromUrl(url)
+    local raw = httpGet(url)
+    local func, err = loadstring(raw)
+    if type(func) ~= "function" then
+        CreateMessageError("[NullHub Load Error] Syntax error: " .. tostring(err))
+    else
+        return func
     end
-    return func()
 end
 
 local versionUrl = Versions[CURRENT_VERSION] or Versions.V1
-return load_from(versionUrl)
+return loadFromUrl(versionUrl)()
