@@ -4,7 +4,7 @@
 
 return {
     -- Background Image Settings
-    BackgroundImage = "rbxassetid://YOUR_ASSET_ID", -- Replace after uploading your geometric image
+    BackgroundImage = "rbxassetid://110435551666217", -- Replace after uploading your geometric image
     BackgroundTransparency = 0.3,
     BackgroundTileSize = UDim2.new(0, 300, 0, 300),
     
