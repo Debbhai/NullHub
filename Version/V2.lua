@@ -1,4 +1,4 @@
--- NullHub V1.lua - Modern Black Theme with Advanced Features
+-- NullHub V2.lua - FIXED VERSION
 -- Created by Debbhai
 
 local Players = game:GetService("Players")
@@ -52,14 +52,13 @@ local state = {
 
 local espObjects = {}
 local originalSpeed = 16
-local noclipConnection = nil
 local originalLightingSettings = {}
 local godmodeConnection = nil
 local isTeleporting = false
 local selectedTeleportPlayer = nil
 
 -- ============================================
--- MODERN GUI CREATION
+-- MODERN GUI CREATION (FIXED)
 -- ============================================
 local function createModernGUI()
     -- Main ScreenGui
@@ -142,7 +141,7 @@ local function createModernGUI()
     title.Size = UDim2.new(1, -110, 1, 0)
     title.Position = UDim2.new(0, 20, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ NullHub V1"
+    title.Text = "⚡ NullHub V2"
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.TextSize = 22
     title.Font = Enum.Font.GothamBold
@@ -237,19 +236,23 @@ local function createModernGUI()
         containerStroke.Transparency = 0.7
         containerStroke.Parent = container
         
-        -- Feature Button
+        -- Feature Button (FIXED - removed TextXOffset)
         local featureBtn = Instance.new("TextButton")
         featureBtn.Name = feature.state .. "Btn"
         featureBtn.Size = UDim2.new(1, -10, 0, 40)
         featureBtn.Position = UDim2.new(0, 5, 0, 2.5)
         featureBtn.BackgroundTransparency = 1
-        featureBtn.Text = feature.icon .. "  " .. feature.name .. "  [" .. feature.key .. "]"
+        featureBtn.Text = "  " .. feature.icon .. "  " .. feature.name .. "  [" .. feature.key .. "]"
         featureBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         featureBtn.TextSize = 15
         featureBtn.Font = Enum.Font.GothamSemibold
         featureBtn.TextXAlignment = Enum.TextXAlignment.Left
-        featureBtn.TextXOffset = 10
         featureBtn.Parent = container
+        
+        -- Add padding instead of TextXOffset
+        local btnPadding = Instance.new("UIPadding")
+        btnPadding.PaddingLeft = UDim.new(0, 10)
+        btnPadding.Parent = featureBtn
         
         -- Status indicator
         local statusIndicator = Instance.new("Frame")
@@ -314,11 +317,6 @@ local function createModernGUI()
             dropCorner.CornerRadius = UDim.new(0, 8)
             dropCorner.Parent = dropdown
             
-            local dropLayout = Instance.new("UIListLayout")
-            dropLayout.Padding = UDim.new(0, 2)
-            dropLayout.SortOrder = Enum.SortOrder.Name
-            dropLayout.Parent = dropdown
-            
             buttons[feature.state].dropdown = dropdown
         end
     end
@@ -332,6 +330,8 @@ end
 -- PLAYER DROPDOWN UPDATE
 -- ============================================
 local function updatePlayerDropdown(dropdown)
+    if not dropdown then return end
+    
     dropdown:ClearAllChildren()
     
     local layout = Instance.new("UIListLayout")
@@ -464,10 +464,10 @@ end
 local function removeESP(targetPlayer)
     if espObjects[targetPlayer] then
         if espObjects[targetPlayer].highlight then
-            espObjects[targetPlayer].highlight:Destroy()
+            pcall(function() espObjects[targetPlayer].highlight:Destroy() end)
         end
         if espObjects[targetPlayer].billboard then
-            espObjects[targetPlayer].billboard:Destroy()
+            pcall(function() espObjects[targetPlayer].billboard:Destroy() end)
         end
         espObjects[targetPlayer] = nil
     end
@@ -532,13 +532,18 @@ end
 
 local function disableFullBright()
     for setting, value in pairs(originalLightingSettings) do
-        Lighting[setting] = value
+        pcall(function()
+            Lighting[setting] = value
+        end)
     end
 end
 
 local function updateGodMode()
     if state.godmode then
         if humanoid then
+            if godmodeConnection then
+                godmodeConnection:Disconnect()
+            end
             godmodeConnection = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
                 if humanoid.Health < humanoid.MaxHealth then
                     humanoid.Health = humanoid.MaxHealth
@@ -556,18 +561,18 @@ end
 
 local function teleportToPlayer()
     if isTeleporting then
-        print("[NullHub] Already teleporting!")
+        warn("[NullHub] Already teleporting!")
         return
     end
     
     if not selectedTeleportPlayer or not selectedTeleportPlayer.Character then
-        print("[NullHub] No player selected! Select from dropdown.")
+        warn("[NullHub] No player selected! Select from dropdown.")
         return
     end
     
     local targetRoot = selectedTeleportPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not targetRoot or not rootPart then
-        print("[NullHub] Target unavailable!")
+        warn("[NullHub] Target unavailable!")
         return
     end
     
@@ -694,32 +699,36 @@ buttons.godmode.button.MouseButton1Click:Connect(toggleGodMode)
 buttons.teleport.button.MouseButton1Click:Connect(teleportToPlayer)
 
 -- Speed input handler
-buttons.speed.input.FocusLost:Connect(function(enterPressed)
-    local value = tonumber(buttons.speed.input.Text)
-    if value and value >= 10 and value <= CONFIG.MAX_SPEED then
-        CONFIG.SPEED_VALUE = value
-        if state.speed then
-            updateSpeed()
+if buttons.speed.input then
+    buttons.speed.input.FocusLost:Connect(function(enterPressed)
+        local value = tonumber(buttons.speed.input.Text)
+        if value and value >= 10 and value <= CONFIG.MAX_SPEED then
+            CONFIG.SPEED_VALUE = value
+            if state.speed then
+                updateSpeed()
+            end
+            print("[NullHub] Speed set to:", value)
+        else
+            buttons.speed.input.Text = tostring(CONFIG.SPEED_VALUE)
+            warn("[NullHub] Invalid speed! Use 10-500")
         end
-        print("[NullHub] Speed set to:", value)
-    else
-        buttons.speed.input.Text = tostring(CONFIG.SPEED_VALUE)
-        warn("[NullHub] Invalid speed! Use 10-500")
-    end
-end)
+    end)
+end
 
 -- Initialize teleport dropdown
-updatePlayerDropdown(buttons.teleport.dropdown)
-
--- Update dropdown when players join/leave
-Players.PlayerAdded:Connect(function()
-    task.wait(0.5)
+if buttons.teleport.dropdown then
     updatePlayerDropdown(buttons.teleport.dropdown)
-end)
-
-Players.PlayerRemoving:Connect(function()
-    updatePlayerDropdown(buttons.teleport.dropdown)
-end)
+    
+    -- Update dropdown when players join/leave
+    Players.PlayerAdded:Connect(function()
+        task.wait(0.5)
+        updatePlayerDropdown(buttons.teleport.dropdown)
+    end)
+    
+    Players.PlayerRemoving:Connect(function()
+        updatePlayerDropdown(buttons.teleport.dropdown)
+    end)
+end
 
 -- ============================================
 -- KEYBIND INPUT HANDLING
@@ -817,7 +826,7 @@ saveOriginalLighting()
 originalSpeed = humanoid.WalkSpeed
 
 print("========================================")
-print("⚡ NullHub V1 Loaded Successfully!")
+print("⚡ NullHub V2 Loaded Successfully!")
 print("========================================")
 print("📱 GUI: Drag header to move | 'N' button to toggle")
 print("🎯 Features: Click buttons or use keybinds")
