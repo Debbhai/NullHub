@@ -1,7 +1,7 @@
 -- NullHub Main Loader
 -- Created by Debbhai
 local _ENV = (getgenv and getgenv()) or _G
-local CURRENT_VERSION = _ENV.Version or "V1"
+local CURRENT_VERSION = _ENV.Version or "V2"
 
 local Versions = {
     V1 = "https://raw.githubusercontent.com/Debbhai/NullHub/refs/heads/main/Version/V1.lua",
