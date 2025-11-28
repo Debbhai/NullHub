@@ -1,4 +1,4 @@
--- NullHub V2.lua - FIXED VERSION
+-- NullHub V2.lua - COMPLETE FIXED VERSION
 -- Created by Debbhai
 
 local Players = game:GetService("Players")
@@ -58,7 +58,7 @@ local isTeleporting = false
 local selectedTeleportPlayer = nil
 
 -- ============================================
--- MODERN GUI CREATION (FIXED)
+-- MODERN GUI CREATION (FULLY FIXED)
 -- ============================================
 local function createModernGUI()
     -- Main ScreenGui
@@ -217,9 +217,17 @@ local function createModernGUI()
     
     -- Create feature buttons
     for i, feature in ipairs(features) do
+        -- Determine container height
+        local containerHeight = 48  -- default
+        if feature.hasInput then
+            containerHeight = 98  -- for speed input
+        elseif feature.hasDropdown then
+            containerHeight = 115  -- for player dropdown
+        end
+        
         local container = Instance.new("Frame")
         container.Name = feature.state .. "Container"
-        container.Size = UDim2.new(1, 0, 0, feature.hasInput or feature.hasDropdown and 90 or 45)
+        container.Size = UDim2.new(1, 0, 0, containerHeight)
         container.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
         container.BackgroundTransparency = 0.3
         container.BorderSizePixel = 0
@@ -236,7 +244,7 @@ local function createModernGUI()
         containerStroke.Transparency = 0.7
         containerStroke.Parent = container
         
-        -- Feature Button (FIXED - removed TextXOffset)
+        -- Feature Button
         local featureBtn = Instance.new("TextButton")
         featureBtn.Name = feature.state .. "Btn"
         featureBtn.Size = UDim2.new(1, -10, 0, 40)
@@ -249,7 +257,7 @@ local function createModernGUI()
         featureBtn.TextXAlignment = Enum.TextXAlignment.Left
         featureBtn.Parent = container
         
-        -- Add padding instead of TextXOffset
+        -- Add padding
         local btnPadding = Instance.new("UIPadding")
         btnPadding.PaddingLeft = UDim.new(0, 10)
         btnPadding.Parent = featureBtn
@@ -279,14 +287,15 @@ local function createModernGUI()
         if feature.hasInput then
             local speedInput = Instance.new("TextBox")
             speedInput.Name = "SpeedInput"
-            speedInput.Size = UDim2.new(1, -20, 0, 35)
-            speedInput.Position = UDim2.new(0, 10, 0, 50)
+            speedInput.Size = UDim2.new(1, -20, 0, 42)
+            speedInput.Position = UDim2.new(0, 10, 0, 52)
             speedInput.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
             speedInput.BackgroundTransparency = 0.3
             speedInput.BorderSizePixel = 0
             speedInput.Text = tostring(CONFIG.SPEED_VALUE)
             speedInput.PlaceholderText = "Enter speed (10-500)"
             speedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+            speedInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
             speedInput.TextSize = 14
             speedInput.Font = Enum.Font.Gotham
             speedInput.ClearTextOnFocus = false
@@ -296,6 +305,10 @@ local function createModernGUI()
             inputCorner.CornerRadius = UDim.new(0, 8)
             inputCorner.Parent = speedInput
             
+            local inputPadding = Instance.new("UIPadding")
+            inputPadding.PaddingLeft = UDim.new(0, 8)
+            inputPadding.Parent = speedInput
+            
             buttons[feature.state].input = speedInput
         end
         
@@ -303,12 +316,14 @@ local function createModernGUI()
         if feature.hasDropdown then
             local dropdown = Instance.new("ScrollingFrame")
             dropdown.Name = "PlayerDropdown"
-            dropdown.Size = UDim2.new(1, -20, 0, 35)
-            dropdown.Position = UDim2.new(0, 10, 0, 50)
+            dropdown.Size = UDim2.new(1, -20, 0, 58)
+            dropdown.Position = UDim2.new(0, 10, 0, 52)
             dropdown.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
             dropdown.BackgroundTransparency = 0.3
             dropdown.BorderSizePixel = 0
             dropdown.ScrollBarThickness = 4
+            dropdown.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 255)
+            dropdown.ScrollBarImageTransparency = 0.5
             dropdown.CanvasSize = UDim2.new(0, 0, 0, 0)
             dropdown.AutomaticCanvasSize = Enum.AutomaticSize.Y
             dropdown.Parent = container
@@ -317,7 +332,19 @@ local function createModernGUI()
             dropCorner.CornerRadius = UDim.new(0, 8)
             dropCorner.Parent = dropdown
             
+            -- Placeholder text
+            local placeholderLabel = Instance.new("TextLabel")
+            placeholderLabel.Name = "PlaceholderText"
+            placeholderLabel.Size = UDim2.new(1, 0, 1, 0)
+            placeholderLabel.BackgroundTransparency = 1
+            placeholderLabel.Text = "Select a player..."
+            placeholderLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+            placeholderLabel.TextSize = 13
+            placeholderLabel.Font = Enum.Font.Gotham
+            placeholderLabel.Parent = dropdown
+            
             buttons[feature.state].dropdown = dropdown
+            buttons[feature.state].placeholder = placeholderLabel
         end
     end
     
@@ -327,23 +354,34 @@ local function createModernGUI()
 end
 
 -- ============================================
--- PLAYER DROPDOWN UPDATE
+-- PLAYER DROPDOWN UPDATE (IMPROVED)
 -- ============================================
 local function updatePlayerDropdown(dropdown)
     if not dropdown then return end
     
-    dropdown:ClearAllChildren()
+    -- Clear existing player buttons
+    for _, child in pairs(dropdown:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        elseif child:IsA("UIListLayout") then
+            child:Destroy()
+        end
+    end
     
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 2)
+    layout.Padding = UDim.new(0, 3)
     layout.SortOrder = Enum.SortOrder.Name
     layout.Parent = dropdown
     
+    local hasPlayers = false
+    
     for _, otherPlayer in pairs(Players:GetPlayers()) do
         if otherPlayer ~= player then
+            hasPlayers = true
+            
             local playerBtn = Instance.new("TextButton")
             playerBtn.Name = otherPlayer.Name
-            playerBtn.Size = UDim2.new(1, 0, 0, 25)
+            playerBtn.Size = UDim2.new(1, -6, 0, 26)
             playerBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
             playerBtn.BackgroundTransparency = 0.4
             playerBtn.BorderSizePixel = 0
@@ -353,19 +391,41 @@ local function updatePlayerDropdown(dropdown)
             playerBtn.Font = Enum.Font.Gotham
             playerBtn.Parent = dropdown
             
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 6)
+            btnCorner.Parent = playerBtn
+            
             playerBtn.MouseButton1Click:Connect(function()
                 selectedTeleportPlayer = otherPlayer
                 print("[NullHub] Selected player:", otherPlayer.Name)
+                
+                -- Visual feedback - highlight selected
+                for _, btn in pairs(dropdown:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        btn.BackgroundTransparency = 0.4
+                    end
+                end
+                playerBtn.BackgroundTransparency = 0.2
             end)
             
             playerBtn.MouseEnter:Connect(function()
-                TweenService:Create(playerBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+                if playerBtn.BackgroundTransparency > 0.2 then
+                    TweenService:Create(playerBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+                end
             end)
             
             playerBtn.MouseLeave:Connect(function()
-                TweenService:Create(playerBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
+                if selectedTeleportPlayer ~= otherPlayer then
+                    TweenService:Create(playerBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
+                end
             end)
         end
+    end
+    
+    -- Show/hide placeholder
+    local placeholder = dropdown:FindFirstChild("PlaceholderText")
+    if placeholder then
+        placeholder.Visible = not hasPlayers
     end
 end
 
@@ -793,7 +853,7 @@ Players.PlayerRemoving:Connect(function(removedPlayer)
 end)
 
 -- ============================================
--- RESPAWN HANDLING (BUG FIX)
+-- RESPAWN HANDLING
 -- ============================================
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
