@@ -1,4 +1,4 @@
--- NullHub V2.lua - WITH KILLAURA & FAST M1
+-- NullHub V2.lua - WITH FLY SYSTEM
 -- Created by Debbhai
 
 local Players = game:GetService("Players")
@@ -37,13 +37,15 @@ local CONFIG = {
     TELEPORT_KEY = Enum.KeyCode.Z,
     TELEPORT_SPEED = 80,
     
-    -- New Features
     KILLAURA_KEY = Enum.KeyCode.K,
-    KILLAURA_RANGE = 20,
+    KILLAURA_RANGE = 500,
     KILLAURA_DELAY = 0.15,
     
     FASTM1_KEY = Enum.KeyCode.M,
     FASTM1_DELAY = 0.05,
+    
+    FLY_KEY = Enum.KeyCode.F,
+    FLY_SPEED = 50,
 }
 
 -- ============================================
@@ -59,6 +61,7 @@ local state = {
     godmode = false,
     killaura = false,
     fastm1 = false,
+    fly = false,
 }
 
 local espObjects = {}
@@ -69,9 +72,12 @@ local isTeleporting = false
 local selectedTeleportPlayer = nil
 local killAuraConnection = nil
 local fastM1Connection = nil
+local flyConnection = nil
+local flyBodyVelocity = nil
+local flyBodyGyro = nil
 
 -- ============================================
--- MODERN GUI CREATION (WITH NEW FEATURES)
+-- MODERN GUI CREATION (WITH FLY)
 -- ============================================
 local function createModernGUI()
     -- Main ScreenGui
@@ -214,12 +220,13 @@ local function createModernGUI()
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = scrollFrame
     
-    -- Feature buttons data (ADDED NEW FEATURES)
+    -- Feature buttons data (ADDED FLY)
     local features = {
         {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯"},
         {name = "ESP", key = "T", state = "esp", icon = "👁️"},
         {name = "KillAura", key = "K", state = "killaura", icon = "⚔️"},
         {name = "Fast M1", key = "M", state = "fastm1", icon = "👊"},
+        {name = "Fly", key = "F", state = "fly", icon = "🕊️"},
         {name = "NoClip", key = "N", state = "noclip", icon = "👻"},
         {name = "Infinite Jump", key = "J", state = "infjump", icon = "🦘"},
         {name = "Speed Hack", key = "X", state = "speed", icon = "⚡", hasInput = true},
@@ -232,7 +239,6 @@ local function createModernGUI()
     
     -- Create feature buttons
     for i, feature in ipairs(features) do
-        -- Determine container height
         local containerHeight = 48
         if feature.hasInput then
             containerHeight = 98
@@ -503,7 +509,6 @@ local function aimAtTarget(target)
     camera.CFrame = camera.CFrame:Lerp(newCFrame, CONFIG.AIMBOT_SMOOTHNESS)
 end
 
--- NEW: KillAura Function
 local function performKillAura()
     if not state.killaura or not character or not humanoid then return end
     
@@ -511,10 +516,8 @@ local function performKillAura()
     if target and target.Character then
         local targetHumanoid = target.Character:FindFirstChild("Humanoid")
         if targetHumanoid and targetHumanoid.Health > 0 then
-            -- Simulate hitting the target
             local tool = character:FindFirstChildOfClass("Tool")
             if tool and tool:FindFirstChild("Handle") then
-                -- Fire tool if it has a RemoteEvent/RemoteFunction
                 for _, descendant in pairs(tool:GetDescendants()) do
                     if descendant:IsA("RemoteEvent") then
                         pcall(function()
@@ -528,7 +531,6 @@ local function performKillAura()
                 end
             end
             
-            -- Activate humanoid punch (if no tool)
             if humanoid and not tool then
                 humanoid:ChangeState(Enum.HumanoidStateType.Attacking)
             end
@@ -536,17 +538,13 @@ local function performKillAura()
     end
 end
 
--- NEW: Fast M1 Function
 local function performFastM1()
     if not state.fastm1 then return end
     
-    -- Simulate rapid clicking
     local tool = character:FindFirstChildOfClass("Tool")
     if tool then
-        -- Activate tool rapidly
         tool:Activate()
         
-        -- Fire remotes if available
         for _, descendant in pairs(tool:GetDescendants()) do
             if descendant:IsA("RemoteEvent") then
                 pcall(function()
@@ -558,6 +556,43 @@ local function performFastM1()
                 end)
             end
         end
+    end
+end
+
+-- NEW: Fly System
+local function updateFly()
+    if not state.fly or not rootPart then return end
+    
+    local moveDirection = Vector3.new(0, 0, 0)
+    
+    -- Get movement input
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+        moveDirection = moveDirection + (camera.CFrame.LookVector * CONFIG.FLY_SPEED)
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+        moveDirection = moveDirection - (camera.CFrame.LookVector * CONFIG.FLY_SPEED)
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+        moveDirection = moveDirection - (camera.CFrame.RightVector * CONFIG.FLY_SPEED)
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+        moveDirection = moveDirection + (camera.CFrame.RightVector * CONFIG.FLY_SPEED)
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+        moveDirection = moveDirection + Vector3.new(0, CONFIG.FLY_SPEED, 0)
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+        moveDirection = moveDirection - Vector3.new(0, CONFIG.FLY_SPEED, 0)
+    end
+    
+    -- Apply velocity
+    if flyBodyVelocity then
+        flyBodyVelocity.Velocity = moveDirection
+    end
+    
+    -- Keep upright
+    if flyBodyGyro then
+        flyBodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector)
     end
 end
 
@@ -780,12 +815,10 @@ local function toggleESP()
     print("[NullHub] ESP:", state.esp and "ON" or "OFF")
 end
 
--- NEW: KillAura Toggle
 local function toggleKillAura()
     state.killaura = not state.killaura
     
     if state.killaura then
-        -- Start KillAura loop
         if killAuraConnection then
             killAuraConnection:Disconnect()
         end
@@ -798,7 +831,6 @@ local function toggleKillAura()
             end
         end)
     else
-        -- Stop KillAura
         if killAuraConnection then
             killAuraConnection:Disconnect()
             killAuraConnection = nil
@@ -809,12 +841,10 @@ local function toggleKillAura()
     print("[NullHub] KillAura:", state.killaura and "ON" or "OFF")
 end
 
--- NEW: Fast M1 Toggle
 local function toggleFastM1()
     state.fastm1 = not state.fastm1
     
     if state.fastm1 then
-        -- Start Fast M1 loop
         if fastM1Connection then
             fastM1Connection:Disconnect()
         end
@@ -827,7 +857,6 @@ local function toggleFastM1()
             end
         end)
     else
-        -- Stop Fast M1
         if fastM1Connection then
             fastM1Connection:Disconnect()
             fastM1Connection = nil
@@ -836,6 +865,67 @@ local function toggleFastM1()
     
     updateButtonVisual("fastm1")
     print("[NullHub] Fast M1:", state.fastm1 and "ON" or "OFF")
+end
+
+-- NEW: Fly Toggle
+local function toggleFly()
+    state.fly = not state.fly
+    
+    if state.fly then
+        -- Create BodyVelocity
+        if not flyBodyVelocity then
+            flyBodyVelocity = Instance.new("BodyVelocity")
+            flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            flyBodyVelocity.Parent = rootPart
+        end
+        
+        -- Create BodyGyro
+        if not flyBodyGyro then
+            flyBodyGyro = Instance.new("BodyGyro")
+            flyBodyGyro.MaxTorque = Vector3.new(100000, 100000, 100000)
+            flyBodyGyro.P = 10000
+            flyBodyGyro.Parent = rootPart
+        end
+        
+        -- Start fly loop
+        if flyConnection then
+            flyConnection:Disconnect()
+        end
+        
+        flyConnection = RunService.RenderStepped:Connect(updateFly)
+        
+        -- Set humanoid state
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+        end
+    else
+        -- Stop fly
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        
+        -- Remove BodyVelocity
+        if flyBodyVelocity then
+            flyBodyVelocity:Destroy()
+            flyBodyVelocity = nil
+        end
+        
+        -- Remove BodyGyro
+        if flyBodyGyro then
+            flyBodyGyro:Destroy()
+            flyBodyGyro = nil
+        end
+        
+        -- Reset humanoid state
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+        end
+    end
+    
+    updateButtonVisual("fly")
+    print("[NullHub] Fly:", state.fly and "ON" or "OFF")
 end
 
 local function toggleNoClip()
@@ -897,11 +987,12 @@ closeBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
--- Button click handlers (ADDED NEW FEATURES)
+-- Button click handlers (ADDED FLY)
 buttons.aimbot.button.MouseButton1Click:Connect(toggleAimbot)
 buttons.esp.button.MouseButton1Click:Connect(toggleESP)
 buttons.killaura.button.MouseButton1Click:Connect(toggleKillAura)
 buttons.fastm1.button.MouseButton1Click:Connect(toggleFastM1)
+buttons.fly.button.MouseButton1Click:Connect(toggleFly)
 buttons.noclip.button.MouseButton1Click:Connect(toggleNoClip)
 buttons.infjump.button.MouseButton1Click:Connect(toggleInfJump)
 buttons.speed.button.MouseButton1Click:Connect(toggleSpeed)
@@ -909,7 +1000,7 @@ buttons.fullbright.button.MouseButton1Click:Connect(toggleFullBright)
 buttons.godmode.button.MouseButton1Click:Connect(toggleGodMode)
 buttons.teleport.button.MouseButton1Click:Connect(teleportToPlayer)
 
--- Speed input handler (UPDATED TO 1-500)
+-- Speed input handler
 if buttons.speed.input then
     buttons.speed.input.FocusLost:Connect(function(enterPressed)
         local value = tonumber(buttons.speed.input.Text)
@@ -941,7 +1032,7 @@ if buttons.teleport.dropdown then
 end
 
 -- ============================================
--- KEYBIND INPUT HANDLING (ADDED NEW KEYS)
+-- KEYBIND INPUT HANDLING (ADDED FLY KEY)
 -- ============================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -954,6 +1045,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleKillAura()
     elseif input.KeyCode == CONFIG.FASTM1_KEY then
         toggleFastM1()
+    elseif input.KeyCode == CONFIG.FLY_KEY then
+        toggleFly()
     elseif input.KeyCode == CONFIG.NOCLIP_KEY then
         toggleNoClip()
     elseif input.KeyCode == CONFIG.INFJUMP_KEY then
@@ -966,7 +1059,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleGodMode()
     elseif input.KeyCode == CONFIG.TELEPORT_KEY then
         teleportToPlayer()
-    elseif input.KeyCode == Enum.KeyCode.Space then
+    elseif input.KeyCode == Enum.KeyCode.Space and not state.fly then
         onJumpRequest()
     end
 end)
@@ -1050,6 +1143,16 @@ player.CharacterAdded:Connect(function(newChar)
         toggleFastM1()
     end
     
+    -- Restart Fly if enabled
+    if state.fly then
+        local wasEnabled = state.fly
+        state.fly = false
+        task.wait(0.3)
+        state.fly = wasEnabled
+        toggleFly()
+        toggleFly()
+    end
+    
     print("[NullHub] Character respawned - features reapplied")
 end)
 
@@ -1068,6 +1171,7 @@ print("  • Aimbot [E] | ESP [T]")
 print("  • KillAura [K] - Auto attack nearby")
 print("  • Fast M1 [M] - Rapid clicking")
 print("🏃 MOVEMENT:")
+print("  • Fly [F] - WASD to move, Space/Shift up/down")
 print("  • NoClip [N] | Infinite Jump [J]")
 print("  • Speed [X] (1-500) | Teleport [Z]")
 print("✨ EXTRAS:")
