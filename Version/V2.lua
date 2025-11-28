@@ -1,4 +1,4 @@
--- NullHub V2.lua - COMPLETE FIXED VERSION
+-- NullHub V2.lua - WITH KILLAURA & FAST M1
 -- Created by Debbhai
 
 local Players = game:GetService("Players")
@@ -30,11 +30,20 @@ local CONFIG = {
     INFJUMP_KEY = Enum.KeyCode.J,
     SPEED_KEY = Enum.KeyCode.X,
     SPEED_VALUE = 100,
+    MIN_SPEED = 1,
     MAX_SPEED = 500,
     FULLBRIGHT_KEY = Enum.KeyCode.B,
     GODMODE_KEY = Enum.KeyCode.V,
     TELEPORT_KEY = Enum.KeyCode.Z,
     TELEPORT_SPEED = 80,
+    
+    -- New Features
+    KILLAURA_KEY = Enum.KeyCode.K,
+    KILLAURA_RANGE = 20,
+    KILLAURA_DELAY = 0.15,
+    
+    FASTM1_KEY = Enum.KeyCode.M,
+    FASTM1_DELAY = 0.05,
 }
 
 -- ============================================
@@ -48,6 +57,8 @@ local state = {
     speed = false,
     fullbright = false,
     godmode = false,
+    killaura = false,
+    fastm1 = false,
 }
 
 local espObjects = {}
@@ -56,9 +67,11 @@ local originalLightingSettings = {}
 local godmodeConnection = nil
 local isTeleporting = false
 local selectedTeleportPlayer = nil
+local killAuraConnection = nil
+local fastM1Connection = nil
 
 -- ============================================
--- MODERN GUI CREATION (FULLY FIXED)
+-- MODERN GUI CREATION (WITH NEW FEATURES)
 -- ============================================
 local function createModernGUI()
     -- Main ScreenGui
@@ -95,8 +108,8 @@ local function createModernGUI()
     -- Main Frame (Modern Black Translucent)
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 480, 0, 550)
-    mainFrame.Position = UDim2.new(0.5, -240, 0.5, -275)
+    mainFrame.Size = UDim2.new(0, 480, 0, 600)
+    mainFrame.Position = UDim2.new(0.5, -240, 0.5, -300)
     mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
     mainFrame.BackgroundTransparency = 0.15
     mainFrame.BorderSizePixel = 0
@@ -201,10 +214,12 @@ local function createModernGUI()
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = scrollFrame
     
-    -- Feature buttons data
+    -- Feature buttons data (ADDED NEW FEATURES)
     local features = {
         {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯"},
         {name = "ESP", key = "T", state = "esp", icon = "👁️"},
+        {name = "KillAura", key = "K", state = "killaura", icon = "⚔️"},
+        {name = "Fast M1", key = "M", state = "fastm1", icon = "👊"},
         {name = "NoClip", key = "N", state = "noclip", icon = "👻"},
         {name = "Infinite Jump", key = "J", state = "infjump", icon = "🦘"},
         {name = "Speed Hack", key = "X", state = "speed", icon = "⚡", hasInput = true},
@@ -218,11 +233,11 @@ local function createModernGUI()
     -- Create feature buttons
     for i, feature in ipairs(features) do
         -- Determine container height
-        local containerHeight = 48  -- default
+        local containerHeight = 48
         if feature.hasInput then
-            containerHeight = 98  -- for speed input
+            containerHeight = 98
         elseif feature.hasDropdown then
-            containerHeight = 115  -- for player dropdown
+            containerHeight = 115
         end
         
         local container = Instance.new("Frame")
@@ -257,7 +272,6 @@ local function createModernGUI()
         featureBtn.TextXAlignment = Enum.TextXAlignment.Left
         featureBtn.Parent = container
         
-        -- Add padding
         local btnPadding = Instance.new("UIPadding")
         btnPadding.PaddingLeft = UDim.new(0, 10)
         btnPadding.Parent = featureBtn
@@ -293,7 +307,7 @@ local function createModernGUI()
             speedInput.BackgroundTransparency = 0.3
             speedInput.BorderSizePixel = 0
             speedInput.Text = tostring(CONFIG.SPEED_VALUE)
-            speedInput.PlaceholderText = "Enter speed (10-500)"
+            speedInput.PlaceholderText = "Enter speed (1-500)"
             speedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
             speedInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
             speedInput.TextSize = 14
@@ -332,7 +346,6 @@ local function createModernGUI()
             dropCorner.CornerRadius = UDim.new(0, 8)
             dropCorner.Parent = dropdown
             
-            -- Placeholder text
             local placeholderLabel = Instance.new("TextLabel")
             placeholderLabel.Name = "PlaceholderText"
             placeholderLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -354,12 +367,11 @@ local function createModernGUI()
 end
 
 -- ============================================
--- PLAYER DROPDOWN UPDATE (IMPROVED)
+-- PLAYER DROPDOWN UPDATE
 -- ============================================
 local function updatePlayerDropdown(dropdown)
     if not dropdown then return end
     
-    -- Clear existing player buttons
     for _, child in pairs(dropdown:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
@@ -399,7 +411,6 @@ local function updatePlayerDropdown(dropdown)
                 selectedTeleportPlayer = otherPlayer
                 print("[NullHub] Selected player:", otherPlayer.Name)
                 
-                -- Visual feedback - highlight selected
                 for _, btn in pairs(dropdown:GetChildren()) do
                     if btn:IsA("TextButton") then
                         btn.BackgroundTransparency = 0.4
@@ -422,7 +433,6 @@ local function updatePlayerDropdown(dropdown)
         end
     end
     
-    -- Show/hide placeholder
     local placeholder = dropdown:FindFirstChild("PlaceholderText")
     if placeholder then
         placeholder.Visible = not hasPlayers
@@ -459,6 +469,29 @@ local function getClosestPlayerToMouse()
     return closestPlayer
 end
 
+local function getClosestPlayerInRange(range)
+    local closestPlayer = nil
+    local shortestDistance = range
+    
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            local otherHumanoid = otherPlayer.Character:FindFirstChild("Humanoid")
+            local otherRoot = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+            
+            if otherHumanoid and otherRoot and otherHumanoid.Health > 0 and rootPart then
+                local distance = (rootPart.Position - otherRoot.Position).Magnitude
+                
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = otherPlayer
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
 local function aimAtTarget(target)
     if not target or not target.Character then return end
     local targetHead = target.Character:FindFirstChild("Head")
@@ -468,6 +501,64 @@ local function aimAtTarget(target)
     local cameraPos = camera.CFrame.Position
     local newCFrame = CFrame.new(cameraPos, targetPos)
     camera.CFrame = camera.CFrame:Lerp(newCFrame, CONFIG.AIMBOT_SMOOTHNESS)
+end
+
+-- NEW: KillAura Function
+local function performKillAura()
+    if not state.killaura or not character or not humanoid then return end
+    
+    local target = getClosestPlayerInRange(CONFIG.KILLAURA_RANGE)
+    if target and target.Character then
+        local targetHumanoid = target.Character:FindFirstChild("Humanoid")
+        if targetHumanoid and targetHumanoid.Health > 0 then
+            -- Simulate hitting the target
+            local tool = character:FindFirstChildOfClass("Tool")
+            if tool and tool:FindFirstChild("Handle") then
+                -- Fire tool if it has a RemoteEvent/RemoteFunction
+                for _, descendant in pairs(tool:GetDescendants()) do
+                    if descendant:IsA("RemoteEvent") then
+                        pcall(function()
+                            descendant:FireServer()
+                        end)
+                    elseif descendant:IsA("RemoteFunction") then
+                        pcall(function()
+                            descendant:InvokeServer()
+                        end)
+                    end
+                end
+            end
+            
+            -- Activate humanoid punch (if no tool)
+            if humanoid and not tool then
+                humanoid:ChangeState(Enum.HumanoidStateType.Attacking)
+            end
+        end
+    end
+end
+
+-- NEW: Fast M1 Function
+local function performFastM1()
+    if not state.fastm1 then return end
+    
+    -- Simulate rapid clicking
+    local tool = character:FindFirstChildOfClass("Tool")
+    if tool then
+        -- Activate tool rapidly
+        tool:Activate()
+        
+        -- Fire remotes if available
+        for _, descendant in pairs(tool:GetDescendants()) do
+            if descendant:IsA("RemoteEvent") then
+                pcall(function()
+                    descendant:FireServer()
+                end)
+            elseif descendant:IsA("RemoteFunction") then
+                pcall(function()
+                    descendant:InvokeServer()
+                end)
+            end
+        end
+    end
 end
 
 local function createESP(targetPlayer)
@@ -689,6 +780,64 @@ local function toggleESP()
     print("[NullHub] ESP:", state.esp and "ON" or "OFF")
 end
 
+-- NEW: KillAura Toggle
+local function toggleKillAura()
+    state.killaura = not state.killaura
+    
+    if state.killaura then
+        -- Start KillAura loop
+        if killAuraConnection then
+            killAuraConnection:Disconnect()
+        end
+        
+        local lastHit = tick()
+        killAuraConnection = RunService.Heartbeat:Connect(function()
+            if tick() - lastHit >= CONFIG.KILLAURA_DELAY then
+                performKillAura()
+                lastHit = tick()
+            end
+        end)
+    else
+        -- Stop KillAura
+        if killAuraConnection then
+            killAuraConnection:Disconnect()
+            killAuraConnection = nil
+        end
+    end
+    
+    updateButtonVisual("killaura")
+    print("[NullHub] KillAura:", state.killaura and "ON" or "OFF")
+end
+
+-- NEW: Fast M1 Toggle
+local function toggleFastM1()
+    state.fastm1 = not state.fastm1
+    
+    if state.fastm1 then
+        -- Start Fast M1 loop
+        if fastM1Connection then
+            fastM1Connection:Disconnect()
+        end
+        
+        local lastClick = tick()
+        fastM1Connection = RunService.Heartbeat:Connect(function()
+            if tick() - lastClick >= CONFIG.FASTM1_DELAY then
+                performFastM1()
+                lastClick = tick()
+            end
+        end)
+    else
+        -- Stop Fast M1
+        if fastM1Connection then
+            fastM1Connection:Disconnect()
+            fastM1Connection = nil
+        end
+    end
+    
+    updateButtonVisual("fastm1")
+    print("[NullHub] Fast M1:", state.fastm1 and "ON" or "OFF")
+end
+
 local function toggleNoClip()
     state.noclip = not state.noclip
     updateButtonVisual("noclip")
@@ -748,9 +897,11 @@ closeBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
--- Button click handlers
+-- Button click handlers (ADDED NEW FEATURES)
 buttons.aimbot.button.MouseButton1Click:Connect(toggleAimbot)
 buttons.esp.button.MouseButton1Click:Connect(toggleESP)
+buttons.killaura.button.MouseButton1Click:Connect(toggleKillAura)
+buttons.fastm1.button.MouseButton1Click:Connect(toggleFastM1)
 buttons.noclip.button.MouseButton1Click:Connect(toggleNoClip)
 buttons.infjump.button.MouseButton1Click:Connect(toggleInfJump)
 buttons.speed.button.MouseButton1Click:Connect(toggleSpeed)
@@ -758,11 +909,11 @@ buttons.fullbright.button.MouseButton1Click:Connect(toggleFullBright)
 buttons.godmode.button.MouseButton1Click:Connect(toggleGodMode)
 buttons.teleport.button.MouseButton1Click:Connect(teleportToPlayer)
 
--- Speed input handler
+-- Speed input handler (UPDATED TO 1-500)
 if buttons.speed.input then
     buttons.speed.input.FocusLost:Connect(function(enterPressed)
         local value = tonumber(buttons.speed.input.Text)
-        if value and value >= 10 and value <= CONFIG.MAX_SPEED then
+        if value and value >= CONFIG.MIN_SPEED and value <= CONFIG.MAX_SPEED then
             CONFIG.SPEED_VALUE = value
             if state.speed then
                 updateSpeed()
@@ -770,7 +921,7 @@ if buttons.speed.input then
             print("[NullHub] Speed set to:", value)
         else
             buttons.speed.input.Text = tostring(CONFIG.SPEED_VALUE)
-            warn("[NullHub] Invalid speed! Use 10-500")
+            warn("[NullHub] Invalid speed! Use 1-500")
         end
     end)
 end
@@ -779,7 +930,6 @@ end
 if buttons.teleport.dropdown then
     updatePlayerDropdown(buttons.teleport.dropdown)
     
-    -- Update dropdown when players join/leave
     Players.PlayerAdded:Connect(function()
         task.wait(0.5)
         updatePlayerDropdown(buttons.teleport.dropdown)
@@ -791,7 +941,7 @@ if buttons.teleport.dropdown then
 end
 
 -- ============================================
--- KEYBIND INPUT HANDLING
+-- KEYBIND INPUT HANDLING (ADDED NEW KEYS)
 -- ============================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -800,6 +950,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleAimbot()
     elseif input.KeyCode == CONFIG.ESP_KEY then
         toggleESP()
+    elseif input.KeyCode == CONFIG.KILLAURA_KEY then
+        toggleKillAura()
+    elseif input.KeyCode == CONFIG.FASTM1_KEY then
+        toggleFastM1()
     elseif input.KeyCode == CONFIG.NOCLIP_KEY then
         toggleNoClip()
     elseif input.KeyCode == CONFIG.INFJUMP_KEY then
@@ -876,6 +1030,26 @@ player.CharacterAdded:Connect(function(newChar)
         updateESP()
     end
     
+    -- Restart KillAura if enabled
+    if state.killaura then
+        local wasEnabled = state.killaura
+        state.killaura = false
+        task.wait(0.3)
+        state.killaura = wasEnabled
+        toggleKillAura()
+        toggleKillAura()
+    end
+    
+    -- Restart Fast M1 if enabled
+    if state.fastm1 then
+        local wasEnabled = state.fastm1
+        state.fastm1 = false
+        task.wait(0.3)
+        state.fastm1 = wasEnabled
+        toggleFastM1()
+        toggleFastM1()
+    end
+    
     print("[NullHub] Character respawned - features reapplied")
 end)
 
@@ -889,7 +1063,13 @@ print("========================================")
 print("⚡ NullHub V2 Loaded Successfully!")
 print("========================================")
 print("📱 GUI: Drag header to move | 'N' button to toggle")
-print("🎯 Features: Click buttons or use keybinds")
-print("⚙️  Speed: Type custom value (10-500)")
-print("🚀 Teleport: Select player from dropdown")
+print("🎯 COMBAT:")
+print("  • Aimbot [E] | ESP [T]")
+print("  • KillAura [K] - Auto attack nearby")
+print("  • Fast M1 [M] - Rapid clicking")
+print("🏃 MOVEMENT:")
+print("  • NoClip [N] | Infinite Jump [J]")
+print("  • Speed [X] (1-500) | Teleport [Z]")
+print("✨ EXTRAS:")
+print("  • Full Bright [B] | God Mode [V]")
 print("========================================")
