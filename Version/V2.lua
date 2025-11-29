@@ -1,7 +1,4 @@
--- NullHub V2 - Main Script (MODULAR VERSION)
--- Created by Debbhai
--- Loads Theme.lua + AntiDetection.lua from GitHub
-
+-- NullHub V2 - FIXED VERSION
 print("[NullHub] Loading...")
 
 -- ============================================
@@ -10,16 +7,16 @@ print("[NullHub] Loading...")
 local AntiDetection
 local ANTIDETECT_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/AntiDetection.lua"
 
-local success, result = pcall(function()
+local success1, result1 = pcall(function()
     return loadstring(game:HttpGet(ANTIDETECT_URL))()
 end)
 
-if success and result then
-    AntiDetection = result
+if success1 and result1 then
+    AntiDetection = result1
     AntiDetection:Initialize()
-    print("[NullHub] ✅ Anti-Detection loaded from GitHub")
+    print("[NullHub] ✅ Anti-Detection loaded")
 else
-    print("[NullHub] ⚠️ Anti-Detection failed to load - Using fallback")
+    print("[NullHub] ⚠️ Anti-Detection failed - Using fallback")
     AntiDetection = {
         AddRandomDelay = function(self, s) end,
         SmoothTransition = function(self, t, c, s, m) return t end,
