@@ -6,6 +6,7 @@ local CURRENT_VERSION = _ENV.Version or "V2"
 local Versions = {
     V1 = "https://raw.githubusercontent.com/Debbhai/NullHub/refs/heads/main/Version/V1.lua",
     V2 = "https://raw.githubusercontent.com/Debbhai/NullHub/refs/heads/main/Version/V2.lua",
+    V3 = "https://raw.githubusercontent.com/Debbhai/NullHub/refs/heads/main/Version/V3.lua",
 }
 
 -- Anti-spam debounce
