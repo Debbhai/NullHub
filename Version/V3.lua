@@ -1,4 +1,4 @@
--- NullHub V2 - Main Script (WITH CHECKPOINT TELEPORT)
+-- NullHub V3 - Main Script (WITH AUTO-OBBY SYSTEM)
 -- Created by Debbhai
 -- Loads Theme.lua + AntiDetection.lua from GitHub
 
@@ -84,19 +84,24 @@ local CONFIG = {
     NOCLIP_KEY = Enum.KeyCode.N, INFJUMP_KEY = Enum.KeyCode.J, SPEED_KEY = Enum.KeyCode.X,
     SPEED_VALUE = 500000, MIN_SPEED = 0, MAX_SPEED = 1000000,
     FULLBRIGHT_KEY = Enum.KeyCode.B, GODMODE_KEY = Enum.KeyCode.V, 
-    TELEPORT_KEY = Enum.KeyCode.Z, TELEPORT_SPEED = 100,
+    TELEPORT_KEY = Enum.KeyCode.Z, TELEPORT_SPEED = 150,
     WALKONWATER_KEY = Enum.KeyCode.U,
     STEALTH_MODE = true,
+    AUTO_OBBY_SPEED = 150,
+    AUTO_OBBY_HEIGHT = 7,
+    CHECKPOINT_REACH_DISTANCE = 8,
+    OBSTACLE_AVOIDANCE_HEIGHT = 10,
 }
 
 -- ============================================
 -- STATE
 -- ============================================
-local state = {aimbot = false, esp = false, noclip = false, infjump = false, speed = false, fullbright = false, godmode = false, killaura = false, fastm1 = false, fly = false, walkonwater = false}
+local state = {aimbot = false, esp = false, noclip = false, infjump = false, speed = false, fullbright = false, godmode = false, killaura = false, fastm1 = false, fly = false, walkonwater = false, autoObby = false}
 local espObjects, connections, killAuraTargets = {}, {}, {}
 local originalSpeed, originalLightingSettings = 16, {}
 local selectedTeleportPlayer, isTeleporting, currentTeleportTween = nil, false, nil
-local selectedCheckpoint = nil
+local selectedCheckpoint, currentCheckpointIndex, isAutoObby = nil, 1, false
+local allCheckpoints = {}
 local guiVisible, mainFrameRef, guiButtons, contentScroll, pageTitle, screenGuiRef = true, nil, {}, nil, nil, nil
 local waterPlatform = nil
 
@@ -544,32 +549,6 @@ local function createActionRow(parent, actionData, index)
         placeholderLabel.TextXAlignment = Enum.TextXAlignment.Left
         return actionFrame, actionBtn, statusIndicator, nil, dropdown, placeholderLabel
     end
-    if actionData.hasCheckpointDropdown then
-        local dropdown = Instance.new("ScrollingFrame", actionFrame)
-        dropdown.Name = "CheckpointDropdown"
-        dropdown.Size = UDim2.new(1, -16, 0, Theme.Sizes.DropdownHeight)
-        dropdown.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
-        dropdown.BackgroundColor3 = currentTheme.Colors.DropdownBackground
-        dropdown.BackgroundTransparency = currentTheme.Transparency.Dropdown
-        dropdown.BorderSizePixel = 0
-        dropdown.ScrollBarThickness = 4
-        dropdown.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
-        dropdown.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
-        dropdown.CanvasSize = UDim2.new(0, 0, 0, 0)
-        dropdown.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
-        local placeholderLabel = Instance.new("TextLabel", dropdown)
-        placeholderLabel.Name = "PlaceholderText"
-        placeholderLabel.Size = UDim2.new(1, -16, 0, 30)
-        placeholderLabel.Position = UDim2.new(0, 8, 0, 8)
-        placeholderLabel.BackgroundTransparency = 1
-        placeholderLabel.Text = "Scanning checkpoints..."
-        placeholderLabel.TextColor3 = currentTheme.Colors.TextPlaceholder
-        placeholderLabel.TextSize = Theme.FontSizes.Input
-        placeholderLabel.Font = Theme.Fonts.Input
-        placeholderLabel.TextXAlignment = Enum.TextXAlignment.Left
-        return actionFrame, actionBtn, statusIndicator, nil, dropdown, placeholderLabel
-    end
     if actionData.hasStopButton then
         local stopBtn = Instance.new("TextButton", actionFrame)
         stopBtn.Name = "StopTweenBtn"
@@ -630,7 +609,7 @@ local featuresByTab = {
     },
     Teleport = {
         {name = "Teleport To Player", key = "Z", state = "teleport", icon = "🚀", isAction = true, hasDropdown = true},
-        {name = "Teleport To Checkpoint", key = "", state = "checkpoint", icon = "📍", isAction = true, hasCheckpointDropdown = true},
+        {name = "Auto-Complete Obby", key = "", state = "autoObby", icon = "🎯"},
         {name = "Stop Teleport", key = "", state = "stop_tween", icon = "⏹", isAction = true, hasStopButton = true},
     },
     Themes = {},
@@ -660,25 +639,27 @@ local function updateContentPage(tabName)
 end
 
 -- ============================================
--- CHECKPOINT DETECTION SYSTEM
+-- ADVANCED AUTO-OBBY SYSTEM
 -- ============================================
 local function findAllCheckpoints()
     local checkpoints = {}
-    local checkpointNames = {"Checkpoint", "checkpoint", "CheckPoint", "Stage", "stage", "Spawn", "spawn", "SpawnLocation", "Respawn"}
+    local checkpointNames = {"CheckpointArrow", "Checkpoint", "checkpoint", "CheckPoint", "Stage", "stage", "Spawn", "spawn", "SpawnLocation", "Respawn"}
     
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("SpawnLocation") then
-            local objName = obj.Name:lower()
+        if obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("SpawnLocation") then
+            local objName = obj.Name
             for _, keyword in pairs(checkpointNames) do
-                if objName:find(keyword:lower()) then
+                if objName:find(keyword) then
                     local stageNum = tonumber(objName:match("%d+")) or 0
-                    table.insert(checkpoints, {part = obj, name = obj.Name, stage = stageNum, position = obj.Position})
+                    local position = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
+                    table.insert(checkpoints, {part = obj, name = objName, stage = stageNum, position = position})
                     break
                 end
             end
             local stageValue = obj:FindFirstChild("Stage") or obj:FindFirstChild("Checkpoint")
             if stageValue and stageValue:IsA("NumberValue") then
-                table.insert(checkpoints, {part = obj, name = obj.Name .. " (Stage " .. stageValue.Value .. ")", stage = stageValue.Value, position = obj.Position})
+                local position = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
+                table.insert(checkpoints, {part = obj, name = obj.Name .. " (Stage " .. stageValue.Value .. ")", stage = stageValue.Value, position = position})
             end
         end
     end
@@ -687,51 +668,119 @@ local function findAllCheckpoints()
     return checkpoints
 end
 
-local function updateCheckpointDropdown(dropdown)
-    if not dropdown then return end
-    local currentTheme = Theme:GetTheme()
-    for _, child in pairs(dropdown:GetChildren()) do
-        if child:IsA("TextButton") or child:IsA("UIListLayout") or child:IsA("UIPadding") then child:Destroy() end
+local function isObstacle(part)
+    if not part or not part:IsA("BasePart") then return false end
+    local partName = part.Name:lower()
+    local obstacleKeywords = {"kill", "lava", "spike", "trap", "death", "damage", "hurt", "void"}
+    for _, keyword in pairs(obstacleKeywords) do
+        if partName:find(keyword) then return true end
     end
-    Instance.new("UIListLayout", dropdown).Padding = UDim.new(0, 4)
-    local padding = Instance.new("UIPadding", dropdown)
-    padding.PaddingTop = UDim.new(0, 6)
-    padding.PaddingLeft = UDim.new(0, 6)
-    padding.PaddingRight = UDim.new(0, 6)
-    padding.PaddingBottom = UDim.new(0, 6)
+    if part.Color == Color3.fromRGB(255, 0, 0) or part.Color == Color3.fromRGB(255, 100, 100) then return true end
+    if part.Material == Enum.Material.Neon and (part.Color.R > 0.8 and part.Color.G < 0.3) then return true end
+    return false
+end
+
+local function getSafePathToCheckpoint(targetPos)
+    if not rootPart then return targetPos end
+    local startPos = rootPart.Position
+    local direction = (targetPos - startPos).Unit
+    local distance = (targetPos - startPos).Magnitude
     
-    local checkpoints = findAllCheckpoints()
-    local hasCheckpoints = #checkpoints > 0
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {character}
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
     
-    if hasCheckpoints then
-        for i, checkpoint in ipairs(checkpoints) do
-            local checkpointBtn = Instance.new("TextButton", dropdown)
-            checkpointBtn.Name = "Checkpoint_" .. i
-            checkpointBtn.Size = UDim2.new(1, -8, 0, Theme.Sizes.PlayerButtonHeight)
-            checkpointBtn.BackgroundColor3 = currentTheme.Colors.PlayerButtonBg
-            checkpointBtn.BackgroundTransparency = currentTheme.Transparency.PlayerButton
-            checkpointBtn.BorderSizePixel = 0
-            checkpointBtn.Text = checkpoint.name
-            checkpointBtn.TextColor3 = currentTheme.Colors.TextPrimary
-            checkpointBtn.TextSize = Theme.FontSizes.Input
-            checkpointBtn.Font = Theme.Fonts.Input
-            checkpointBtn.TextXAlignment = Enum.TextXAlignment.Left
-            Instance.new("UICorner", checkpointBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
-            checkpointBtn.MouseButton1Click:Connect(function()
-                selectedCheckpoint = checkpoint
-                for _, btn in pairs(dropdown:GetChildren()) do
-                    if btn:IsA("TextButton") then btn.BackgroundTransparency = currentTheme.Transparency.PlayerButton end
-                end
-                checkpointBtn.BackgroundTransparency = 0.15
-                showNotification("Selected: " .. checkpoint.name, 2)
-            end)
+    for i = 1, math.floor(distance / 5) do
+        local checkPos = startPos + (direction * (i * 5))
+        local rayResult = workspace:Raycast(checkPos, Vector3.new(0, -20, 0), rayParams)
+        
+        if rayResult and rayResult.Instance then
+            if isObstacle(rayResult.Instance) then
+                return Vector3.new(checkPos.X, checkPos.Y + CONFIG.OBSTACLE_AVOIDANCE_HEIGHT, checkPos.Z)
+            end
         end
     end
     
-    local placeholder = dropdown:FindFirstChild("PlaceholderText")
-    if placeholder then 
-        placeholder.Visible = not hasCheckpoints
-        if not hasCheckpoints then placeholder.Text = "No checkpoints found..." end
+    return Vector3.new(targetPos.X, targetPos.Y + CONFIG.AUTO_OBBY_HEIGHT, targetPos.Z)
+end
+
+local function autoCompleteObby()
+    if not isAutoObby or not rootPart then return end
+    
+    allCheckpoints = findAllCheckpoints()
+    
+    if #allCheckpoints == 0 then
+        showNotification("No checkpoints found!", 3)
+        state.autoObby = false
+        isAutoObby = false
+        updateButtonVisual("autoObby")
+        return
+    end
+    
+    showNotification("Starting Auto-Obby: " .. #allCheckpoints .. " checkpoints", 3)
+    currentCheckpointIndex = 1
+    
+    while isAutoObby and currentCheckpointIndex <= #allCheckpoints do
+        if not rootPart or not rootPart.Parent then
+            showNotification("Character lost!", 2)
+            break
+        end
+        
+        local checkpoint = allCheckpoints[currentCheckpointIndex]
+        
+        if not checkpoint.part or not checkpoint.part.Parent then
+            currentCheckpointIndex = currentCheckpointIndex + 1
+            task.wait(0.1)
+            continue
+        end
+        
+        local targetPos = getSafePathToCheckpoint(checkpoint.position)
+        local distance = (rootPart.Position - targetPos).Magnitude
+        
+        if distance > CONFIG.CHECKPOINT_REACH_DISTANCE then
+            showNotification("Going to: " .. checkpoint.name .. " (" .. currentCheckpointIndex .. "/" .. #allCheckpoints .. ")", 2)
+            
+            local duration = distance / CONFIG.AUTO_OBBY_SPEED
+            currentTeleportTween = TweenService:Create(
+                rootPart,
+                TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut),
+                {CFrame = CFrame.new(targetPos)}
+            )
+            
+            local tweenCompleted = false
+            currentTeleportTween:Play()
+            currentTeleportTween.Completed:Connect(function(playbackState)
+                tweenCompleted = true
+            end)
+            
+            local checkInterval = 0.1
+            local maxWaitTime = duration + 2
+            local waitedTime = 0
+            
+            while not tweenCompleted and waitedTime < maxWaitTime and isAutoObby do
+                task.wait(checkInterval)
+                waitedTime = waitedTime + checkInterval
+                
+                if rootPart and rootPart.Parent then
+                    local currentDistance = (rootPart.Position - checkpoint.position).Magnitude
+                    if currentDistance < CONFIG.CHECKPOINT_REACH_DISTANCE then
+                        break
+                    end
+                end
+            end
+            
+            task.wait(0.3)
+        end
+        
+        currentCheckpointIndex = currentCheckpointIndex + 1
+        task.wait(0.2)
+    end
+    
+    if isAutoObby then
+        showNotification("🎉 Obby Complete! All checkpoints reached!", 4)
+        isAutoObby = false
+        state.autoObby = false
+        updateButtonVisual("autoObby")
     end
 end
 
@@ -1068,6 +1117,9 @@ local function stopTeleportTween()
         currentTeleportTween = nil
     end
     isTeleporting = false
+    isAutoObby = false
+    state.autoObby = false
+    updateButtonVisual("autoObby")
     showNotification("Teleport stopped", 2)
 end
 
@@ -1096,37 +1148,6 @@ local function teleportToPlayer()
     end)
 end
 
--- ============================================
--- CHECKPOINT TELEPORT FUNCTION
--- ============================================
-local function teleportToCheckpoint()
-    if isTeleporting then return end
-    if not selectedCheckpoint then
-        showNotification("No checkpoint selected!", 2)
-        return
-    end
-    if not selectedCheckpoint.part or not selectedCheckpoint.part.Parent then
-        showNotification("Checkpoint no longer exists!", 2)
-        return
-    end
-    if not rootPart then
-        showNotification("Character not found!", 2)
-        return
-    end
-    isTeleporting = true
-    showNotification("Teleporting to " .. selectedCheckpoint.name, 3)
-    local targetCFrame = CFrame.new(selectedCheckpoint.position + Vector3.new(0, 5, 0))
-    local distance = (rootPart.Position - targetCFrame.Position).Magnitude
-    local duration = distance / CONFIG.TELEPORT_SPEED
-    currentTeleportTween = TweenService:Create(rootPart, TweenInfo.new(duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {CFrame = targetCFrame})
-    currentTeleportTween:Play()
-    currentTeleportTween.Completed:Connect(function(playbackState)
-        if playbackState == Enum.PlaybackState.Completed then showNotification("Reached checkpoint!", 2) end
-        isTeleporting = false
-        currentTeleportTween = nil
-    end)
-end
-
 local function updateButtonVisual(stateName)
     if guiButtons[stateName] and not guiButtons[stateName].isAction then
         local btn = guiButtons[stateName]
@@ -1149,9 +1170,26 @@ local function toggleFullBright() state.fullbright = not state.fullbright if sta
 local function toggleGodMode() state.godmode = not state.godmode updateGodMode() updateButtonVisual("godmode") showNotification("God Mode " .. (state.godmode and "ON" or "OFF"), 2) end
 local function toggleWalkOnWater() state.walkonwater = not state.walkonwater if state.walkonwater then if connections.walkonwater then connections.walkonwater:Disconnect() end connections.walkonwater = RunService.Heartbeat:Connect(updateWalkOnWater) showNotification("Walk on Water ON", 2) else if connections.walkonwater then connections.walkonwater:Disconnect() connections.walkonwater = nil end if waterPlatform then waterPlatform:Destroy() waterPlatform = nil end showNotification("Walk on Water OFF", 2) end updateButtonVisual("walkonwater") end
 
+local function toggleAutoObby()
+    state.autoObby = not state.autoObby
+    isAutoObby = state.autoObby
+    updateButtonVisual("autoObby")
+    
+    if isAutoObby then
+        showNotification("Auto-Obby: Starting...", 2)
+        task.spawn(autoCompleteObby)
+    else
+        if currentTeleportTween then
+            currentTeleportTween:Cancel()
+            currentTeleportTween = nil
+        end
+        showNotification("Auto-Obby: Stopped", 2)
+    end
+end
+
 local function connectButtons()
     task.wait(0.1)
-    local buttonMap = {aimbot = toggleAimbot, esp = toggleESP, killaura = toggleKillAura, fastm1 = toggleFastM1, fly = toggleFly, noclip = toggleNoClip, infjump = toggleInfJump, speed = toggleSpeed, fullbright = toggleFullBright, godmode = toggleGodMode, teleport = teleportToPlayer, checkpoint = teleportToCheckpoint, walkonwater = toggleWalkOnWater}
+    local buttonMap = {aimbot = toggleAimbot, esp = toggleESP, killaura = toggleKillAura, fastm1 = toggleFastM1, fly = toggleFly, noclip = toggleNoClip, infjump = toggleInfJump, speed = toggleSpeed, fullbright = toggleFullBright, godmode = toggleGodMode, teleport = teleportToPlayer, autoObby = toggleAutoObby, walkonwater = toggleWalkOnWater}
     for stateName, toggleFunc in pairs(buttonMap) do
         if guiButtons[stateName] and guiButtons[stateName].button then
             guiButtons[stateName].button.MouseButton1Click:Connect(toggleFunc)
@@ -1178,13 +1216,6 @@ local function connectButtons()
                 end)
                 Players.PlayerRemoving:Connect(function()
                     updatePlayerDropdown(guiButtons[stateName].dropdown)
-                end)
-            end
-            if stateName == "checkpoint" and guiButtons[stateName].dropdown then
-                updateCheckpointDropdown(guiButtons[stateName].dropdown)
-                task.spawn(function()
-                    task.wait(1)
-                    updateCheckpointDropdown(guiButtons[stateName].dropdown)
                 end)
             end
         end
@@ -1215,15 +1246,16 @@ RunService.RenderStepped:Connect(function() if state.aimbot then local target = 
 Players.PlayerAdded:Connect(function(newPlayer) newPlayer.CharacterAdded:Connect(function() task.wait(1) if state.esp then createESP(newPlayer) end end) end)
 Players.PlayerRemoving:Connect(function(removedPlayer) removeESP(removedPlayer) if selectedTeleportPlayer == removedPlayer then selectedTeleportPlayer = nil end end)
 
-player.CharacterAdded:Connect(function(newChar) character = newChar humanoid = character:WaitForChild("Humanoid") rootPart = character:WaitForChild("HumanoidRootPart") task.wait(0.2) originalSpeed = humanoid.WalkSpeed if state.speed then updateSpeed() end if state.godmode then updateGodMode() end if state.esp then task.wait(0.5) updateESP() end if state.fly then toggleFly() toggleFly() end if state.walkonwater then toggleWalkOnWater() toggleWalkOnWater() end end)
+player.CharacterAdded:Connect(function(newChar) character = newChar humanoid = character:WaitForChild("Humanoid") rootPart = character:WaitForChild("HumanoidRootPart") task.wait(0.2) originalSpeed = humanoid.WalkSpeed if state.speed then updateSpeed() end if state.godmode then updateGodMode() end if state.esp then task.wait(0.5) updateESP() end if state.fly then toggleFly() toggleFly() end if state.walkonwater then toggleWalkOnWater() toggleWalkOnWater() end if isAutoObby then isAutoObby = false state.autoObby = false updateButtonVisual("autoObby") end end)
 
 saveOriginalLighting() originalSpeed = humanoid.WalkSpeed
-showNotification("🛡️ NullHub Protected - Loaded!", 3)
+showNotification("🛡️ NullHub V3 Protected - Loaded!", 3)
 print("========================================")
-print("⚡ NullHub V2 - WITH CHECKPOINT TELEPORT ⚡")
+print("⚡ NullHub V3 - WITH AUTO-OBBY SYSTEM ⚡")
 print("✅ Anti-Detection Module Active")
 print("✅ Theme Module Active")
 print("✅ All Features Active")
-print("✅ Checkpoint Teleport Active")
+print("✅ Auto-Obby System Active")
+print("✅ Obstacle Avoidance Active")
 print("✅ Speed: 500k (1M in 2s)")
 print("========================================")
