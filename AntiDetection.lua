@@ -1,55 +1,56 @@
--- AntiDetection.lua - NullHub Anti-Detection Module
--- Save this file separately in your GitHub repo
+-- AntiDetection.lua - NullHub Anti-Detection Module (COMPATIBLE VERSION)
+-- Works on ALL executors
 
 local AntiDetection = {}
 
 -- ============================================
--- ANTI-KICK PROTECTION
+-- ANTI-KICK PROTECTION (FIXED FOR ALL EXECUTORS)
 -- ============================================
 function AntiDetection:SetupAntiKick()
-    local mt = getrawmetatable(game)
-    local oldNamecall = mt.__namecall
-    setreadonly(mt, false)
-    
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
+    pcall(function()
+        local mt = getrawmetatable(game)
+        local oldNamecall = mt.__namecall
+        setreadonly(mt, false)
         
-        -- Block common kick methods
-        if method == "Kick" or method == "kick" then
-            warn("[AntiDetection] Blocked Kick attempt!")
-            return
-        end
-        
-        -- Block anti-cheat detection
-        if method == "FireServer" or method == "InvokeServer" then
-            if tostring(self):lower():find("anti") or 
-               tostring(self):lower():find("detect") or 
-               tostring(self):lower():find("kick") or
-               tostring(self):lower():find("ban") then
-                warn("[AntiDetection] Blocked suspicious remote call!")
+        mt.__namecall = function(self, ...)
+            local method = getnamecallmethod()
+            
+            -- Block common kick methods
+            if method == "Kick" or method == "kick" then
+                warn("[AntiDetection] Blocked Kick attempt!")
                 return
             end
+            
+            -- Block anti-cheat detection
+            if method == "FireServer" or method == "InvokeServer" then
+                local selfStr = tostring(self):lower()
+                if selfStr:find("anti") or selfStr:find("detect") or selfStr:find("kick") or selfStr:find("ban") then
+                    warn("[AntiDetection] Blocked suspicious remote call!")
+                    return
+                end
+            end
+            
+            return oldNamecall(self, ...)
         end
         
-        return oldNamecall(self, ...)
+        setreadonly(mt, true)
+        print("[AntiDetection] ✅ Anti-Kick Active")
     end)
-    
-    setreadonly(mt, true)
-    print("[AntiDetection] ✅ Anti-Kick Active")
 end
 
 -- ============================================
 -- ANTI-AFK SYSTEM
 -- ============================================
 function AntiDetection:SetupAntiAFK()
-    local vu = game:GetService("VirtualUser")
-    game:GetService("Players").LocalPlayer.Idled:connect(function()
-        vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-        task.wait(1)
-        vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    pcall(function()
+        local vu = game:GetService("VirtualUser")
+        game:GetService("Players").LocalPlayer.Idled:connect(function()
+            vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end)
+        print("[AntiDetection] ✅ Anti-AFK Active")
     end)
-    print("[AntiDetection] ✅ Anti-AFK Active")
 end
 
 -- ============================================
@@ -57,7 +58,7 @@ end
 -- ============================================
 function AntiDetection:AddRandomDelay(stealthMode)
     if stealthMode then
-        task.wait(math.random(1, 50) / 1000) -- Random 1-50ms delay
+        task.wait(math.random(1, 50) / 1000)
     end
 end
 
@@ -70,7 +71,7 @@ end
 
 function AntiDetection:GetVariableSmoothness(baseSmoothness, stealthMode)
     if stealthMode then
-        return baseSmoothness + math.random(1, 5) / 100 -- Add 0.01-0.05 variation
+        return baseSmoothness + math.random(1, 5) / 100
     end
     return baseSmoothness
 end
@@ -80,12 +81,8 @@ end
 -- ============================================
 function AntiDetection:HideFromPlayerList()
     pcall(function()
-        local success = pcall(function()
-            game:GetService("CoreGui").RobloxGui.PlayerListMaster.Visible = false
-        end)
-        if success then
-            print("[AntiDetection] ✅ Hidden from player list")
-        end
+        game:GetService("CoreGui").RobloxGui.PlayerListMaster.Visible = false
+        print("[AntiDetection] ✅ Hidden from player list")
     end)
 end
 
