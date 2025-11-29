@@ -1,4 +1,7 @@
--- NullHub V2 - FIXED VERSION
+-- NullHub V2 - Main Script (MODULAR VERSION)
+-- Created by Debbhai
+-- Loads Theme.lua + AntiDetection.lua from GitHub
+
 print("[NullHub] Loading...")
 
 -- ============================================
@@ -14,9 +17,9 @@ end)
 if success1 and result1 then
     AntiDetection = result1
     AntiDetection:Initialize()
-    print("[NullHub] ✅ Anti-Detection loaded")
+    print("[NullHub] ✅ Anti-Detection loaded from GitHub")
 else
-    print("[NullHub] ⚠️ Anti-Detection failed - Using fallback")
+    print("[NullHub] ⚠️ Anti-Detection failed to load - Using fallback")
     AntiDetection = {
         AddRandomDelay = function(self, s) end,
         SmoothTransition = function(self, t, c, s, m) return t end,
@@ -30,12 +33,12 @@ end
 local Theme
 local THEME_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/Theme.lua"
 
-local success, result = pcall(function()
+local success2, result2 = pcall(function()
     return loadstring(game:HttpGet(THEME_URL))()
 end)
 
-if success and result then
-    Theme = result
+if success2 and result2 then
+    Theme = result2
     print("[NullHub] ✅ Theme loaded from GitHub")
 else
     print("[NullHub] ⚠️ Loading fallback theme (embedded)")
@@ -1075,8 +1078,8 @@ saveOriginalLighting() originalSpeed = humanoid.WalkSpeed
 showNotification("🛡️ NullHub Protected - Loaded!", 3)
 print("========================================")
 print("⚡ NullHub V2 - MODULAR PROTECTED ⚡")
-print("✅ Anti-Detection Module Loaded")
-print("✅ Theme Module Loaded")
+print("✅ Anti-Detection Module Active")
+print("✅ Theme Module Active")
 print("✅ All Features Active")
 print("✅ Speed: 500k (1M in 2s)")
 print("========================================")
