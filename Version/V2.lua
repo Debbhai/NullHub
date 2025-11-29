@@ -1,6 +1,6 @@
--- NullHub V2 - ULTIMATE EDITION
+-- NullHub V2 - ULTIMATE OPTIMIZED
 -- Created by Debbhai
--- Modern Black UI with Fixed Spacing & Features
+-- Fixed: Toggle drag, KillAura lag, Full optimization
 
 -- ============================================
 -- SERVICES
@@ -20,7 +20,7 @@ local camera = workspace.CurrentCamera
 local mouse = player:GetMouse()
 
 -- ============================================
--- THEME (BLACK MODERN)
+-- THEME (OPTIMIZED)
 -- ============================================
 local Theme = {
     Colors = {
@@ -78,24 +78,14 @@ local Theme = {
         ScrollBarThickness = 5,
         ToggleButton = 55,
     },
-    CornerRadius = {
-        Large = 14,
-        Medium = 10,
-        Small = 7,
-        Tiny = 5,
-    },
+    CornerRadius = {Large = 14, Medium = 10, Small = 7, Tiny = 5},
     Fonts = {
         Title = Enum.Font.GothamBold,
         Tab = Enum.Font.GothamMedium,
         Action = Enum.Font.Gotham,
         Input = Enum.Font.Gotham,
     },
-    FontSizes = {
-        Title = 19,
-        Tab = 15,
-        Action = 14,
-        Input = 13,
-    },
+    FontSizes = {Title = 19, Tab = 15, Action = 14, Input = 13},
 }
 
 -- ============================================
@@ -110,7 +100,7 @@ local CONFIG = {
     ESP_SHOW_DISTANCE = true,
     KILLAURA_KEY = Enum.KeyCode.K,
     KILLAURA_RANGE = 25,
-    KILLAURA_DELAY = 0.1,
+    KILLAURA_DELAY = 0.12,
     FASTM1_KEY = Enum.KeyCode.M,
     FASTM1_DELAY = 0.03,
     FLY_KEY = Enum.KeyCode.F,
@@ -157,7 +147,14 @@ local guiButtons = {}
 local contentScroll, pageTitle
 
 -- ============================================
--- CREATE TOGGLE BUTTON (DRAGGABLE)
+-- OPTIMIZED KILLAURA CACHE
+-- ============================================
+local killAuraCache = {}
+local lastKillAuraCacheUpdate = 0
+local CACHE_UPDATE_INTERVAL = 0.5
+
+-- ============================================
+-- CREATE TOGGLE BUTTON (FIXED DRAG)
 -- ============================================
 local function createToggleButton(screenGui)
     local toggleBtn = Instance.new("TextButton")
@@ -184,15 +181,18 @@ local function createToggleButton(screenGui)
     stroke.Transparency = 0.3
     stroke.Parent = toggleBtn
     
-    -- Make draggable
+    -- FIXED: Drag detection to prevent accidental toggle
     local dragging = false
-    local dragInput, dragStart, startPos
+    local dragStart = nil
+    local startPos = nil
+    local dragDistance = 0
     
     toggleBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = toggleBtn.Position
+            dragDistance = 0
             
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
@@ -202,16 +202,20 @@ local function createToggleButton(screenGui)
         end
     end)
     
-    toggleBtn.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            dragDistance = delta.Magnitude
+            toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    -- Only toggle if not dragged (distance < 5 pixels)
+    toggleBtn.MouseButton1Click:Connect(function()
+        if dragDistance < 5 then
+            local targetPos = guiVisible and UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0) or UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2)
+            guiVisible = not guiVisible
+            TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play()
         end
     end)
     
@@ -263,7 +267,6 @@ local function createClosePrompt(screenGui)
     desc.TextXAlignment = Enum.TextXAlignment.Left
     desc.Parent = prompt
     
-    -- Minimize Button
     local minimizeBtn = Instance.new("TextButton")
     minimizeBtn.Size = UDim2.new(0, 140, 0, 38)
     minimizeBtn.Position = UDim2.new(0, 10, 1, -48)
@@ -280,7 +283,6 @@ local function createClosePrompt(screenGui)
     minCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
     minCorner.Parent = minimizeBtn
     
-    -- Close Button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 140, 0, 38)
     closeBtn.Position = UDim2.new(1, -150, 1, -48)
@@ -301,7 +303,7 @@ local function createClosePrompt(screenGui)
 end
 
 -- ============================================
--- GUI CREATION (FIXED SPACING)
+-- GUI CREATION
 -- ============================================
 local function createModernGUI()
     local screenGui = Instance.new("ScreenGui")
@@ -310,7 +312,6 @@ local function createModernGUI()
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.DisplayOrder = 999
     
-    -- Main Frame
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0, Theme.Sizes.MainFrameWidth, 0, Theme.Sizes.MainFrameHeight)
@@ -332,7 +333,6 @@ local function createModernGUI()
     mainStroke.Transparency = Theme.Transparency.Stroke
     mainStroke.Parent = mainFrame
     
-    -- Top Bar
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, Theme.Sizes.HeaderHeight)
@@ -353,7 +353,6 @@ local function createModernGUI()
     accentLine.BorderSizePixel = 0
     accentLine.Parent = topBar
     
-    -- Title (Changed to NullHub | Universal)
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -120, 1, 0)
     title.Position = UDim2.new(0, 18, 0, 0)
@@ -365,7 +364,6 @@ local function createModernGUI()
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = topBar
     
-    -- Close Button (Shows Prompt)
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseButton"
     closeBtn.Size = UDim2.new(0, Theme.Sizes.CloseButton, 0, Theme.Sizes.CloseButton)
@@ -383,7 +381,6 @@ local function createModernGUI()
     closeBtnCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
     closeBtnCorner.Parent = closeBtn
     
-    -- Sidebar
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
     sidebar.Size = UDim2.new(0, Theme.Sizes.SidebarWidth, 1, -Theme.Sizes.HeaderHeight - 8)
@@ -415,7 +412,6 @@ local function createModernGUI()
     sidebarPadding.PaddingBottom = UDim.new(0, 8)
     sidebarPadding.Parent = sidebar
     
-    -- Content Area (FIXED SPACING)
     local contentFrame = Instance.new("Frame")
     contentFrame.Name = "ContentFrame"
     contentFrame.Size = UDim2.new(1, -Theme.Sizes.SidebarWidth - 18, 1, -Theme.Sizes.HeaderHeight - 14)
@@ -435,7 +431,6 @@ local function createModernGUI()
     pageTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     pageTitleLabel.Parent = contentFrame
     
-    -- Action Scroll (FIXED SPACING)
     local actionScroll = Instance.new("ScrollingFrame")
     actionScroll.Name = "ActionScroll"
     actionScroll.Size = UDim2.new(1, -8, 1, -40)
@@ -495,7 +490,7 @@ local function createTabButton(parent, tabName, icon, index)
 end
 
 -- ============================================
--- CREATE ACTION ROW (FIXED SPACING)
+-- CREATE ACTION ROW
 -- ============================================
 local function createActionRow(parent, actionData, index)
     local rowHeight = Theme.Sizes.ActionRowHeight
@@ -563,7 +558,6 @@ local function createActionRow(parent, actionData, index)
     indicatorCorner.CornerRadius = UDim.new(1, 0)
     indicatorCorner.Parent = statusIndicator
     
-    -- Input Box (FIXED SPACING)
     if actionData.hasInput then
         local speedInput = Instance.new("TextBox")
         speedInput.Name = "SpeedInput"
@@ -592,7 +586,6 @@ local function createActionRow(parent, actionData, index)
         return actionFrame, actionBtn, statusIndicator, speedInput
     end
     
-    -- Dropdown (FIXED SPACING)
     if actionData.hasDropdown then
         local dropdown = Instance.new("ScrollingFrame")
         dropdown.Name = "PlayerDropdown"
@@ -612,7 +605,6 @@ local function createActionRow(parent, actionData, index)
         dropCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
         dropCorner.Parent = dropdown
         
-        -- FIXED: Proper spacing for placeholder
         local placeholderLabel = Instance.new("TextLabel")
         placeholderLabel.Name = "PlaceholderText"
         placeholderLabel.Size = UDim2.new(1, -16, 0, 30)
@@ -689,7 +681,7 @@ local function updateContentPage(tabName)
 end
 
 -- ============================================
--- PLAYER DROPDOWN (FIXED SPACING)
+-- PLAYER DROPDOWN
 -- ============================================
 local function updatePlayerDropdown(dropdown)
     if not dropdown then return end
@@ -736,7 +728,6 @@ local function updatePlayerDropdown(dropdown)
             
             playerBtn.MouseButton1Click:Connect(function()
                 selectedTeleportPlayer = otherPlayer
-                print("[NullHub] Selected player:", otherPlayer.Name)
                 
                 for _, btn in pairs(dropdown:GetChildren()) do
                     if btn:IsA("TextButton") then
@@ -744,18 +735,6 @@ local function updatePlayerDropdown(dropdown)
                     end
                 end
                 playerBtn.BackgroundTransparency = 0.15
-            end)
-            
-            playerBtn.MouseEnter:Connect(function()
-                if playerBtn.BackgroundTransparency > 0.15 then
-                    TweenService:Create(playerBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.15}):Play()
-                end
-            end)
-            
-            playerBtn.MouseLeave:Connect(function()
-                if selectedTeleportPlayer ~= otherPlayer then
-                    TweenService:Create(playerBtn, TweenInfo.new(0.2), {BackgroundTransparency = Theme.Transparency.PlayerButton}):Play()
-                end
             end)
         end
     end
@@ -767,7 +746,7 @@ local function updatePlayerDropdown(dropdown)
 end
 
 -- ============================================
--- ENHANCED AIMBOT (SMOOTH LOCKING)
+-- OPTIMIZED AIMBOT
 -- ============================================
 local function getClosestPlayerForAimbot()
     local closestPlayer = nil
@@ -804,113 +783,85 @@ local function aimAtTarget(target)
     local targetPos = targetHead.Position
     local cameraPos = camera.CFrame.Position
     local newCFrame = CFrame.new(cameraPos, targetPos)
-    
-    -- Smooth interpolation
     camera.CFrame = camera.CFrame:Lerp(newCFrame, CONFIG.AIMBOT_SMOOTHNESS)
 end
 
 -- ============================================
--- ENHANCED KILLAURA (PLAYERS + NPCS)
+-- OPTIMIZED KILLAURA (LAG-FREE)
 -- ============================================
-local function performKillAura()
-    if not state.killaura or not character or not humanoid or not rootPart then return end
+local function updateKillAuraCache()
+    local currentTime = tick()
+    if currentTime - lastKillAuraCacheUpdate < CACHE_UPDATE_INTERVAL then
+        return
+    end
     
-    -- Get all humanoids in range
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Humanoid") and obj.Health > 0 then
-            local char = obj.Parent
-            if char and char ~= character then
-                local targetRoot = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-                
-                if targetRoot then
-                    local distance = (rootPart.Position - targetRoot.Position).Magnitude
-                    
-                    if distance <= CONFIG.KILLAURA_RANGE then
-                        -- Try to damage with tool
-                        local tool = character:FindFirstChildOfClass("Tool")
-                        if tool and tool:FindFirstChild("Handle") then
-                            -- Activate tool
-                            tool:Activate()
-                            
-                            -- Fire remote events
-                            for _, descendant in pairs(tool:GetDescendants()) do
-                                if descendant:IsA("RemoteEvent") then
-                                    pcall(function()
-                                        descendant:FireServer()
-                                        descendant:FireServer(obj)
-                                        descendant:FireServer({Hit = targetRoot})
-                                    end)
-                                elseif descendant:IsA("RemoteFunction") then
-                                    pcall(function()
-                                        descendant:InvokeServer()
-                                        descendant:InvokeServer(obj)
-                                        descendant:InvokeServer({Hit = targetRoot})
-                                    end)
-                                end
-                            end
-                        end
-                        
-                        -- Also try attacking state
-                        if humanoid then
-                            humanoid:ChangeState(Enum.HumanoidStateType.Attacking)
-                        end
-                        
-                        -- Direct damage attempt (for NPCs)
-                        pcall(function()
-                            obj:TakeDamage(obj.MaxHealth)
-                        end)
-                    end
-                end
+    lastKillAuraCacheUpdate = currentTime
+    killAuraCache = {}
+    
+    -- Use Region3 for optimized spatial query
+    local region = Region3.new(rootPart.Position - Vector3.new(CONFIG.KILLAURA_RANGE, CONFIG.KILLAURA_RANGE, CONFIG.KILLAURA_RANGE), rootPart.Position + Vector3.new(CONFIG.KILLAURA_RANGE, CONFIG.KILLAURA_RANGE, CONFIG.KILLAURA_RANGE))
+    region = region:ExpandToGrid(4)
+    
+    local partsInRegion = workspace:FindPartsInRegion3(region, character, 100)
+    
+    for _, part in pairs(partsInRegion) do
+        if part.Parent and part.Parent:FindFirstChild("Humanoid") then
+            local hum = part.Parent:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 and part.Parent ~= character then
+                table.insert(killAuraCache, {humanoid = hum, character = part.Parent})
             end
         end
     end
 end
 
+local function performKillAura()
+    if not state.killaura or not character or not humanoid or not rootPart then return end
+    
+    updateKillAuraCache()
+    
+    -- Attack cached targets only
+    for _, target in pairs(killAuraCache) do
+        if target.humanoid and target.humanoid.Health > 0 then
+            local tool = character:FindFirstChildOfClass("Tool")
+            if tool then
+                tool:Activate()
+                
+                -- Fire remotes (optimized)
+                for _, descendant in pairs(tool:GetDescendants()) do
+                    if descendant:IsA("RemoteEvent") then
+                        pcall(function()
+                            descendant:FireServer(target.humanoid)
+                        end)
+                    end
+                end
+            end
+            
+            -- Only attack first valid target to reduce lag
+            break
+        end
+    end
+end
+
 -- ============================================
--- ENHANCED FAST M1 (CONTINUOUS AUTO-CLICK)
+-- OPTIMIZED FAST M1
 -- ============================================
 local function performFastM1()
     if not state.fastm1 then return end
     
-    -- Virtual mouse click (bypasses cooldown)
     pcall(function()
         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
         task.wait(0.01)
         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
     end)
     
-    -- Also activate tool
     local tool = character:FindFirstChildOfClass("Tool")
     if tool then
         tool:Activate()
-        
-        -- Fire all remotes
-        for _, descendant in pairs(tool:GetDescendants()) do
-            if descendant:IsA("RemoteEvent") then
-                pcall(function()
-                    descendant:FireServer()
-                    descendant:FireServer(mouse.Hit)
-                    descendant:FireServer({Hit = mouse.Hit})
-                end)
-            elseif descendant:IsA("RemoteFunction") then
-                pcall(function()
-                    descendant:InvokeServer()
-                    descendant:InvokeServer(mouse.Hit)
-                end)
-            end
-        end
     end
-    
-    -- Also fire mouse click manually
-    pcall(function()
-        mouse1press()
-        task.wait(0.01)
-        mouse1release()
-    end)
 end
 
 -- ============================================
--- OTHER FEATURE FUNCTIONS
+-- OTHER FUNCTIONS (OPTIMIZED)
 -- ============================================
 local function updateFly()
     if not state.fly or not rootPart then return end
@@ -918,22 +869,22 @@ local function updateFly()
     local moveDirection = Vector3.new(0, 0, 0)
     
     if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-        moveDirection = moveDirection + (camera.CFrame.LookVector * CONFIG.FLY_SPEED)
+        moveDirection += camera.CFrame.LookVector * CONFIG.FLY_SPEED
     end
     if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-        moveDirection = moveDirection - (camera.CFrame.LookVector * CONFIG.FLY_SPEED)
+        moveDirection -= camera.CFrame.LookVector * CONFIG.FLY_SPEED
     end
     if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-        moveDirection = moveDirection - (camera.CFrame.RightVector * CONFIG.FLY_SPEED)
+        moveDirection -= camera.CFrame.RightVector * CONFIG.FLY_SPEED
     end
     if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-        moveDirection = moveDirection + (camera.CFrame.RightVector * CONFIG.FLY_SPEED)
+        moveDirection += camera.CFrame.RightVector * CONFIG.FLY_SPEED
     end
     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-        moveDirection = moveDirection + Vector3.new(0, CONFIG.FLY_SPEED, 0)
+        moveDirection += Vector3.new(0, CONFIG.FLY_SPEED, 0)
     end
     if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-        moveDirection = moveDirection - Vector3.new(0, CONFIG.FLY_SPEED, 0)
+        moveDirection -= Vector3.new(0, CONFIG.FLY_SPEED, 0)
     end
     
     if connections.flyBodyVelocity then
@@ -998,12 +949,10 @@ end
 
 local function removeESP(targetPlayer)
     if espObjects[targetPlayer] then
-        if espObjects[targetPlayer].highlight then
-            pcall(function() espObjects[targetPlayer].highlight:Destroy() end)
-        end
-        if espObjects[targetPlayer].billboard then
-            pcall(function() espObjects[targetPlayer].billboard:Destroy() end)
-        end
+        pcall(function()
+            if espObjects[targetPlayer].highlight then espObjects[targetPlayer].highlight:Destroy() end
+            if espObjects[targetPlayer].billboard then espObjects[targetPlayer].billboard:Destroy() end
+        end)
         espObjects[targetPlayer] = nil
     end
 end
@@ -1089,24 +1038,16 @@ local function updateGodMode()
 end
 
 local function teleportToPlayer()
-    if isTeleporting then
-        warn("[NullHub] Already teleporting!")
-        return
-    end
+    if isTeleporting then return end
     
     if not selectedTeleportPlayer or not selectedTeleportPlayer.Character then
-        warn("[NullHub] No player selected!")
         return
     end
     
     local targetRoot = selectedTeleportPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not targetRoot or not rootPart then
-        warn("[NullHub] Target unavailable!")
-        return
-    end
+    if not targetRoot or not rootPart then return end
     
     isTeleporting = true
-    print("[NullHub] Teleporting to:", selectedTeleportPlayer.Name)
     
     local targetCFrame = targetRoot.CFrame * CFrame.new(0, 3, 3)
     local distance = (rootPart.Position - targetCFrame.Position).Magnitude
@@ -1117,7 +1058,6 @@ local function teleportToPlayer()
     tween:Play()
     tween.Completed:Connect(function()
         isTeleporting = false
-        print("[NullHub] Teleport complete!")
     end)
 end
 
@@ -1142,14 +1082,12 @@ end
 local function toggleAimbot()
     state.aimbot = not state.aimbot
     updateButtonVisual("aimbot")
-    print("[NullHub] Aimbot:", state.aimbot and "ON" or "OFF")
 end
 
 local function toggleESP()
     state.esp = not state.esp
     updateESP()
     updateButtonVisual("esp")
-    print("[NullHub] ESP:", state.esp and "ON" or "OFF")
 end
 
 local function toggleKillAura()
@@ -1175,7 +1113,6 @@ local function toggleKillAura()
     end
     
     updateButtonVisual("killaura")
-    print("[NullHub] KillAura:", state.killaura and "ON" or "OFF")
 end
 
 local function toggleFastM1()
@@ -1201,7 +1138,6 @@ local function toggleFastM1()
     end
     
     updateButtonVisual("fastm1")
-    print("[NullHub] Fast M1:", state.fastm1 and "ON" or "OFF")
 end
 
 local function toggleFly()
@@ -1253,26 +1189,22 @@ local function toggleFly()
     end
     
     updateButtonVisual("fly")
-    print("[NullHub] Fly:", state.fly and "ON" or "OFF")
 end
 
 local function toggleNoClip()
     state.noclip = not state.noclip
     updateButtonVisual("noclip")
-    print("[NullHub] NoClip:", state.noclip and "ON" or "OFF")
 end
 
 local function toggleInfJump()
     state.infjump = not state.infjump
     updateButtonVisual("infjump")
-    print("[NullHub] Infinite Jump:", state.infjump and "ON" or "OFF")
 end
 
 local function toggleSpeed()
     state.speed = not state.speed
     updateSpeed()
     updateButtonVisual("speed")
-    print("[NullHub] Speed:", state.speed and "ON" or "OFF", "- Value:", CONFIG.SPEED_VALUE)
 end
 
 local function toggleFullBright()
@@ -1283,23 +1215,12 @@ local function toggleFullBright()
         disableFullBright()
     end
     updateButtonVisual("fullbright")
-    print("[NullHub] Full Bright:", state.fullbright and "ON" or "OFF")
 end
 
 local function toggleGodMode()
     state.godmode = not state.godmode
     updateGodMode()
     updateButtonVisual("godmode")
-    print("[NullHub] God Mode:", state.godmode and "ON" or "OFF")
-end
-
-local function toggleGUI()
-    guiVisible = not guiVisible
-    if mainFrameRef then
-        local targetPos = guiVisible and UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2) or UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0)
-        TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play()
-    end
-    print("[NullHub] GUI:", guiVisible and "VISIBLE" or "HIDDEN")
 end
 
 -- ============================================
@@ -1334,10 +1255,8 @@ local function connectButtons()
                         if state.speed then
                             updateSpeed()
                         end
-                        print("[NullHub] Speed set to:", value)
                     else
                         guiButtons[stateName].input.Text = tostring(CONFIG.SPEED_VALUE)
-                        warn("[NullHub] Invalid speed! Use 1-500")
                     end
                 end)
             end
@@ -1366,34 +1285,23 @@ mainFrameRef = mainFrame
 contentScroll = actionScrollRef
 pageTitle = pageTitleRef
 
--- Create toggle button
 toggleBtnRef = createToggleButton(screenGui)
 
--- Create close prompt
 local closePrompt, minimizeBtn, destroyBtn = createClosePrompt(screenGui)
 
--- Toggle button click
-toggleBtnRef.MouseButton1Click:Connect(toggleGUI)
-
--- Close button shows prompt
 closeBtn.MouseButton1Click:Connect(function()
     closePrompt.Visible = true
 end)
 
--- Minimize button
 minimizeBtn.MouseButton1Click:Connect(function()
     closePrompt.Visible = false
     guiVisible = false
     TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0)}):Play()
-    print("[NullHub] Minimized")
 end)
 
--- Destroy button
 destroyBtn.MouseButton1Click:Connect(function()
-    print("[NullHub] Destroyed - Re-execute to use again")
     screenGui:Destroy()
     
-    -- Cleanup all connections
     for _, conn in pairs(connections) do
         if typeof(conn) == "RBXScriptConnection" then
             conn:Disconnect()
@@ -1403,7 +1311,6 @@ destroyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Create tabs
 local tabs = {
     {name = "Combat", icon = "⚔️"},
     {name = "Movement", icon = "🏃"},
@@ -1440,7 +1347,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
     local keyMap = {
-        [CONFIG.GUI_TOGGLE_KEY] = toggleGUI,
         [CONFIG.AIMBOT_KEY] = toggleAimbot,
         [CONFIG.ESP_KEY] = toggleESP,
         [CONFIG.KILLAURA_KEY] = toggleKillAura,
@@ -1511,8 +1417,6 @@ player.CharacterAdded:Connect(function(newChar)
     if state.speed then updateSpeed() end
     if state.godmode then updateGodMode() end
     if state.esp then task.wait(0.5); updateESP() end
-    
-    print("[NullHub] Character respawned - features reapplied")
 end)
 
 -- ============================================
@@ -1522,14 +1426,10 @@ saveOriginalLighting()
 originalSpeed = humanoid.WalkSpeed
 
 print("========================================")
-print("⚡ NullHub V2 - ULTIMATE EDITION ⚡")
+print("⚡ NullHub V2 - OPTIMIZED & LAG-FREE ⚡")
 print("========================================")
-print("✨ Modern Black UI with Fixed Spacing")
-print("🎮 Draggable Toggle Button")
-print("🔧 Enhanced Features:")
-print("  • Smooth Aimbot Lock")
-print("  • KillAura (Players + NPCs)")
-print("  • Continuous Fast M1")
-print("  • All spacing issues fixed")
-print("📱 Press [INSERT] to toggle")
+print("✅ Fixed: Toggle drag detection")
+print("✅ Fixed: KillAura lag (Region3)")
+print("✅ Optimized: All features")
+print("✅ Removed: Redundant code")
 print("========================================")
