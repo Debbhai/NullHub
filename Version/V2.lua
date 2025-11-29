@@ -1,4 +1,4 @@
--- NullHub V2.lua - WITH THEME SYSTEM
+-- NullHub V2.lua - SIDEBAR LAYOUT
 -- Created by Debbhai
 
 -- ============================================
@@ -23,16 +23,19 @@ if not themeLoaded then
         Colors = {
             MainBackground = Color3.fromRGB(15, 15, 20),
             HeaderBackground = Color3.fromRGB(20, 20, 28),
+            SidebarBackground = Color3.fromRGB(18, 18, 22),
             ContainerBackground = Color3.fromRGB(25, 25, 35),
             InputBackground = Color3.fromRGB(35, 35, 45),
             ToggleButtonBg = Color3.fromRGB(20, 20, 25),
             DropdownBackground = Color3.fromRGB(35, 35, 45),
             PlayerButtonBg = Color3.fromRGB(45, 45, 55),
-            AccentPrimary = Color3.fromRGB(100, 100, 255),
-            AccentBar = Color3.fromRGB(100, 100, 255),
-            ScrollBarColor = Color3.fromRGB(100, 100, 255),
+            TabNormal = Color3.fromRGB(25, 25, 30),
+            TabSelected = Color3.fromRGB(35, 35, 45),
+            AccentPrimary = Color3.fromRGB(218, 165, 32),
+            AccentBar = Color3.fromRGB(255, 215, 0),
+            ScrollBarColor = Color3.fromRGB(218, 165, 32),
             StatusOff = Color3.fromRGB(200, 50, 50),
-            StatusOn = Color3.fromRGB(50, 255, 100),
+            StatusOn = Color3.fromRGB(218, 165, 32),
             ContainerOff = Color3.fromRGB(25, 25, 35),
             ContainerOn = Color3.fromRGB(30, 35, 50),
             TextPrimary = Color3.fromRGB(255, 255, 255),
@@ -40,13 +43,14 @@ if not themeLoaded then
             TextPlaceholder = Color3.fromRGB(150, 150, 150),
             TextHint = Color3.fromRGB(200, 200, 200),
             BorderColor = Color3.fromRGB(60, 60, 80),
-            StrokeGold = Color3.fromRGB(100, 100, 255),
+            StrokeGold = Color3.fromRGB(218, 165, 32),
             CloseButton = Color3.fromRGB(200, 50, 60),
         },
         Transparency = {
             MainBackground = 0.15,
             ToggleButton = 0.3,
             Header = 0.2,
+            Sidebar = 0.2,
             Container = 0.3,
             Input = 0.3,
             Dropdown = 0.3,
@@ -58,53 +62,43 @@ if not themeLoaded then
             BackgroundImage = 0.3,
             StatusIndicator = 0.2,
             ScrollBar = 0.5,
+            Tab = 0.3,
         },
         Sizes = {
-            MainFrameWidth = 480,
-            MainFrameHeight = 600,
+            MainFrameWidth = 650,
+            MainFrameHeight = 420,
+            SidebarWidth = 140,
             ToggleButton = 50,
-            HeaderHeight = 60,
-            CloseButton = 45,
-            ButtonHeight = 40,
-            StatusIndicator = 12,
-            ContainerHeight = 48,
-            ContainerHeightInput = 98,
-            ContainerHeightDropdown = 115,
+            HeaderHeight = 40,
+            CloseButton = 35,
+            TabHeight = 36,
+            ActionRowHeight = 40,
+            StatusIndicator = 10,
             InputHeight = 42,
             DropdownHeight = 58,
             PlayerButtonHeight = 26,
-            ScrollBarThickness = 6,
+            ScrollBarThickness = 4,
             HintWidth = 80,
             HintHeight = 20,
         },
         CornerRadius = {
-            Large = 16,
-            Medium = 10,
-            Small = 8,
-            Circle = 0.5,
-            Tiny = 6,
+            Large = 12,
+            Medium = 8,
+            Small = 6,
+            Tiny = 4,
         },
         Fonts = {
             Title = Enum.Font.GothamBold,
-            Subtitle = Enum.Font.Gotham,
-            Button = Enum.Font.GothamSemibold,
+            Tab = Enum.Font.Gotham,
+            Action = Enum.Font.Gotham,
             Input = Enum.Font.Gotham,
-            Hint = Enum.Font.Gotham,
         },
         FontSizes = {
-            Title = 22,
-            Subtitle = 12,
-            Button = 15,
-            Hint = 11,
+            Title = 18,
+            Tab = 14,
+            Action = 14,
             Input = 14,
-            PlayerButton = 13,
-        },
-        Padding = {
-            ButtonLeft = 10,
-            InputLeft = 8,
-            ScrollFrame = 5,
-            List = 10,
-            DropdownList = 3,
+            Hint = 11,
         },
     }
 end
@@ -134,7 +128,7 @@ local CONFIG = {
     ESP_COLOR = Color3.fromRGB(255, 0, 0),
     ESP_SHOW_DISTANCE = true,
     
-    NOCLIP_KEY = Enum.KeyCode.p,
+    NOCLIP_KEY = Enum.KeyCode.N,
     INFJUMP_KEY = Enum.KeyCode.J,
     SPEED_KEY = Enum.KeyCode.X,
     SPEED_VALUE = 100,
@@ -189,11 +183,12 @@ local flyBodyGyro = nil
 local guiVisible = true
 local mainFrameRef = nil
 local toggleBtnRef = nil
+local currentTab = "Combat"
 
 -- ============================================
--- MODERN GUI CREATION (WITH THEME)
+-- SIDEBAR GUI CREATION
 -- ============================================
-local function createModernGUI()
+local function createSidebarGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NullHubGUI"
     screenGui.ResetOnSpawn = false
@@ -215,7 +210,7 @@ local function createModernGUI()
     toggleBtn.Parent = screenGui
     
     local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(Theme.CornerRadius.Circle, 0)
+    toggleCorner.CornerRadius = UDim.new(0.5, 0)
     toggleCorner.Parent = toggleBtn
     
     local toggleStroke = Instance.new("UIStroke")
@@ -234,7 +229,7 @@ local function createModernGUI()
     keybindHint.Text = "[Insert]"
     keybindHint.TextColor3 = Theme.Colors.TextHint
     keybindHint.TextSize = Theme.FontSizes.Hint
-    keybindHint.Font = Theme.Fonts.Hint
+    keybindHint.Font = Theme.Fonts.Input
     keybindHint.Parent = toggleBtn
     
     local hintCorner = Instance.new("UICorner")
@@ -258,7 +253,6 @@ local function createModernGUI()
         local bgImage = Instance.new("ImageLabel")
         bgImage.Name = "BackgroundPattern"
         bgImage.Size = UDim2.new(1, 0, 1, 0)
-        bgImage.Position = UDim2.new(0, 0, 0, 0)
         bgImage.Image = Theme.BackgroundImage
         bgImage.ImageTransparency = Theme.Transparency.BackgroundImage
         bgImage.BackgroundTransparency = 1
@@ -278,243 +272,359 @@ local function createModernGUI()
     mainStroke.Transparency = Theme.Transparency.Stroke
     mainStroke.Parent = mainFrame
     
-    -- Header
-    local header = Instance.new("Frame")
-    header.Name = "Header"
-    header.Size = UDim2.new(1, 0, 0, Theme.Sizes.HeaderHeight)
-    header.BackgroundColor3 = Theme.Colors.HeaderBackground
-    header.BackgroundTransparency = Theme.Transparency.Header
-    header.BorderSizePixel = 0
-    header.Parent = mainFrame
+    -- Top Bar
+    local topBar = Instance.new("Frame")
+    topBar.Name = "TopBar"
+    topBar.Size = UDim2.new(1, 0, 0, Theme.Sizes.HeaderHeight)
+    topBar.BackgroundColor3 = Theme.Colors.HeaderBackground
+    topBar.BackgroundTransparency = Theme.Transparency.Header
+    topBar.BorderSizePixel = 0
+    topBar.Parent = mainFrame
     
-    local headerCorner = Instance.new("UICorner")
-    headerCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Large)
-    headerCorner.Parent = header
+    local topCorner = Instance.new("UICorner")
+    topCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Large)
+    topCorner.Parent = topBar
     
-    -- Header Bar (Gold accent)
-    local headerBar = Instance.new("Frame")
-    headerBar.Size = UDim2.new(1, 0, 0, 2)
-    headerBar.Position = UDim2.new(0, 0, 1, -2)
-    headerBar.BackgroundColor3 = Theme.Colors.AccentBar
-    headerBar.BackgroundTransparency = Theme.Transparency.AccentBar
-    headerBar.BorderSizePixel = 0
-    headerBar.Parent = header
+    -- Bottom accent line
+    local accentLine = Instance.new("Frame")
+    accentLine.Size = UDim2.new(1, 0, 0, 1)
+    accentLine.Position = UDim2.new(0, 0, 1, -1)
+    accentLine.BackgroundColor3 = Theme.Colors.AccentBar
+    accentLine.BackgroundTransparency = Theme.Transparency.AccentBar
+    accentLine.BorderSizePixel = 0
+    accentLine.Parent = topBar
     
     -- Title
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -110, 1, 0)
-    title.Position = UDim2.new(0, 20, 0, 0)
+    title.Size = UDim2.new(1, -100, 1, 0)
+    title.Position = UDim2.new(0, 15, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ NullHub V2"
+    title.Text = "NullHub V2"
     title.TextColor3 = Theme.Colors.TextPrimary
     title.TextSize = Theme.FontSizes.Title
     title.Font = Theme.Fonts.Title
     title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = header
-    
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Size = UDim2.new(1, -110, 0, 16)
-    subtitle.Position = UDim2.new(0, 20, 1, -20)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = "Advanced Features Hub"
-    subtitle.TextColor3 = Theme.Colors.TextSecondary
-    subtitle.TextSize = Theme.FontSizes.Subtitle
-    subtitle.Font = Theme.Fonts.Subtitle
-    subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    subtitle.Parent = header
+    title.Parent = topBar
     
     -- Close Button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseButton"
     closeBtn.Size = UDim2.new(0, Theme.Sizes.CloseButton, 0, Theme.Sizes.CloseButton)
-    closeBtn.Position = UDim2.new(1, -55, 0, 7.5)
+    closeBtn.Position = UDim2.new(1, -Theme.Sizes.CloseButton - 5, 0, 2.5)
     closeBtn.BackgroundColor3 = Theme.Colors.CloseButton
     closeBtn.BackgroundTransparency = Theme.Transparency.CloseButton
     closeBtn.BorderSizePixel = 0
     closeBtn.Text = "×"
     closeBtn.TextColor3 = Theme.Colors.TextPrimary
-    closeBtn.TextSize = 28
+    closeBtn.TextSize = 24
     closeBtn.Font = Theme.Fonts.Title
-    closeBtn.Parent = header
+    closeBtn.Parent = topBar
     
     local closeBtnCorner = Instance.new("UICorner")
     closeBtnCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
     closeBtnCorner.Parent = closeBtn
     
-    -- Scrolling Frame
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Name = "ScrollFrame"
-    scrollFrame.Size = UDim2.new(1, -20, 1, -80)
-    scrollFrame.Position = UDim2.new(0, 10, 0, 70)
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.BorderSizePixel = 0
-    scrollFrame.ScrollBarThickness = Theme.Sizes.ScrollBarThickness
-    scrollFrame.ScrollBarImageColor3 = Theme.Colors.ScrollBarColor
-    scrollFrame.ScrollBarImageTransparency = Theme.Transparency.ScrollBar
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    scrollFrame.Parent = mainFrame
+    -- SIDEBAR
+    local sidebar = Instance.new("Frame")
+    sidebar.Name = "Sidebar"
+    sidebar.Size = UDim2.new(0, Theme.Sizes.SidebarWidth, 1, -Theme.Sizes.HeaderHeight - 5)
+    sidebar.Position = UDim2.new(0, 5, 0, Theme.Sizes.HeaderHeight + 5)
+    sidebar.BackgroundColor3 = Theme.Colors.SidebarBackground
+    sidebar.BackgroundTransparency = Theme.Transparency.Sidebar
+    sidebar.BorderSizePixel = 0
+    sidebar.Parent = mainFrame
     
-    local scrollPadding = Instance.new("UIPadding")
-    scrollPadding.PaddingLeft = UDim.new(0, Theme.Padding.ScrollFrame)
-    scrollPadding.PaddingRight = UDim.new(0, Theme.Padding.ScrollFrame)
-    scrollPadding.Parent = scrollFrame
+    local sidebarCorner = Instance.new("UICorner")
+    sidebarCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
+    sidebarCorner.Parent = sidebar
     
-    local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, Theme.Padding.List)
-    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    listLayout.Parent = scrollFrame
+    local sidebarStroke = Instance.new("UIStroke")
+    sidebarStroke.Color = Theme.Colors.BorderColor
+    sidebarStroke.Thickness = 1
+    sidebarStroke.Transparency = Theme.Transparency.Stroke
+    sidebarStroke.Parent = sidebar
     
-    -- Feature buttons data
-    local features = {
+    local sidebarList = Instance.new("UIListLayout")
+    sidebarList.Padding = UDim.new(0, 4)
+    sidebarList.SortOrder = Enum.SortOrder.LayoutOrder
+    sidebarList.Parent = sidebar
+    
+    local sidebarPadding = Instance.new("UIPadding")
+    sidebarPadding.PaddingTop = UDim.new(0, 6)
+    sidebarPadding.PaddingLeft = UDim.new(0, 6)
+    sidebarPadding.PaddingRight = UDim.new(0, 6)
+    sidebarPadding.PaddingBottom = UDim.new(0, 6)
+    sidebarPadding.Parent = sidebar
+    
+    -- CONTENT AREA
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -Theme.Sizes.SidebarWidth - 15, 1, -Theme.Sizes.HeaderHeight - 10)
+    contentFrame.Position = UDim2.new(0, Theme.Sizes.SidebarWidth + 10, 0, Theme.Sizes.HeaderHeight + 5)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.BorderSizePixel = 0
+    contentFrame.Parent = mainFrame
+    
+    -- Page Title
+    local pageTitle = Instance.new("TextLabel")
+    pageTitle.Name = "PageTitle"
+    pageTitle.Size = UDim2.new(1, 0, 0, 30)
+    pageTitle.BackgroundTransparency = 1
+    pageTitle.Text = "Combat"
+    pageTitle.TextColor3 = Theme.Colors.TextPrimary
+    pageTitle.TextSize = Theme.FontSizes.Title
+    pageTitle.Font = Theme.Fonts.Title
+    pageTitle.TextXAlignment = Enum.TextXAlignment.Left
+    pageTitle.Parent = contentFrame
+    
+    -- Action ScrollingFrame
+    local actionScroll = Instance.new("ScrollingFrame")
+    actionScroll.Name = "ActionScroll"
+    actionScroll.Size = UDim2.new(1, 0, 1, -35)
+    actionScroll.Position = UDim2.new(0, 0, 0, 35)
+    actionScroll.BackgroundTransparency = 1
+    actionScroll.BorderSizePixel = 0
+    actionScroll.ScrollBarThickness = Theme.Sizes.ScrollBarThickness
+    actionScroll.ScrollBarImageColor3 = Theme.Colors.ScrollBarColor
+    actionScroll.ScrollBarImageTransparency = Theme.Transparency.ScrollBar
+    actionScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    actionScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    actionScroll.Parent = contentFrame
+    
+    local actionList = Instance.new("UIListLayout")
+    actionList.Padding = UDim.new(0, 4)
+    actionList.SortOrder = Enum.SortOrder.LayoutOrder
+    actionList.Parent = actionScroll
+    
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+    
+    return mainFrame, toggleBtn, closeBtn, sidebar, contentFrame, pageTitle, actionScroll
+end
+
+-- ============================================
+-- CREATE TAB BUTTON
+-- ============================================
+local function createTabButton(parent, tabName, icon, index)
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Name = "Tab_" .. tabName
+    tabBtn.Size = UDim2.new(1, 0, 0, Theme.Sizes.TabHeight)
+    tabBtn.BackgroundColor3 = Theme.Colors.TabNormal
+    tabBtn.BackgroundTransparency = Theme.Transparency.Tab
+    tabBtn.BorderSizePixel = 0
+    tabBtn.Text = "  " .. icon .. "  " .. tabName
+    tabBtn.TextColor3 = Theme.Colors.TextPrimary
+    tabBtn.TextSize = Theme.FontSizes.Tab
+    tabBtn.Font = Theme.Fonts.Tab
+    tabBtn.TextXAlignment = Enum.TextXAlignment.Left
+    tabBtn.LayoutOrder = index
+    tabBtn.Parent = parent
+    
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    tabCorner.Parent = tabBtn
+    
+    local tabStroke = Instance.new("UIStroke")
+    tabStroke.Color = Theme.Colors.BorderColor
+    tabStroke.Thickness = 1
+    tabStroke.Transparency = 0.8
+    tabStroke.Parent = tabBtn
+    
+    return tabBtn
+end
+
+-- ============================================
+-- CREATE ACTION ROW
+-- ============================================
+local function createActionRow(parent, actionData, index)
+    local actionFrame = Instance.new("Frame")
+    actionFrame.Name = actionData.name .. "Row"
+    actionFrame.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight)
+    actionFrame.BackgroundColor3 = Theme.Colors.ContainerBackground
+    actionFrame.BackgroundTransparency = Theme.Transparency.Container
+    actionFrame.BorderSizePixel = 0
+    actionFrame.LayoutOrder = index
+    actionFrame.Parent = parent
+    
+    local rowCorner = Instance.new("UICorner")
+    rowCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    rowCorner.Parent = actionFrame
+    
+    local rowStroke = Instance.new("UIStroke")
+    rowStroke.Color = Theme.Colors.BorderColor
+    rowStroke.Thickness = 1
+    rowStroke.Transparency = Theme.Transparency.Stroke
+    rowStroke.Parent = actionFrame
+    
+    -- Action Button (full clickable area)
+    local actionBtn = Instance.new("TextButton")
+    actionBtn.Name = actionData.state .. "Btn"
+    actionBtn.Size = UDim2.new(1, 0, 1, 0)
+    actionBtn.BackgroundTransparency = 1
+    actionBtn.Text = ""
+    actionBtn.Parent = actionFrame
+    
+    -- Icon
+    local icon = Instance.new("TextLabel")
+    icon.Size = UDim2.new(0, 30, 1, 0)
+    icon.BackgroundTransparency = 1
+    icon.Text = actionData.icon
+    icon.TextSize = 18
+    icon.Parent = actionFrame
+    
+    -- Name Label
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -70, 1, 0)
+    nameLabel.Position = UDim2.new(0, 35, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = actionData.name .. " [" .. actionData.key .. "]"
+    nameLabel.TextColor3 = Theme.Colors.TextPrimary
+    nameLabel.TextSize = Theme.FontSizes.Action
+    nameLabel.Font = Theme.Fonts.Action
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = actionFrame
+    
+    -- Status Indicator (right side)
+    local statusIndicator = Instance.new("Frame")
+    statusIndicator.Name = "StatusIndicator"
+    statusIndicator.Size = UDim2.new(0, Theme.Sizes.StatusIndicator, 0, Theme.Sizes.StatusIndicator)
+    statusIndicator.Position = UDim2.new(1, -20, 0.5, -Theme.Sizes.StatusIndicator/2)
+    statusIndicator.BackgroundColor3 = Theme.Colors.StatusOff
+    statusIndicator.BackgroundTransparency = Theme.Transparency.StatusIndicator
+    statusIndicator.BorderSizePixel = 0
+    statusIndicator.Parent = actionFrame
+    
+    local indicatorCorner = Instance.new("UICorner")
+    indicatorCorner.CornerRadius = UDim.new(1, 0)
+    indicatorCorner.Parent = statusIndicator
+    
+    -- Input box for Speed
+    if actionData.hasInput then
+        actionFrame.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight + Theme.Sizes.InputHeight + 8)
+        
+        local speedInput = Instance.new("TextBox")
+        speedInput.Name = "SpeedInput"
+        speedInput.Size = UDim2.new(1, -10, 0, Theme.Sizes.InputHeight)
+        speedInput.Position = UDim2.new(0, 5, 0, Theme.Sizes.ActionRowHeight + 4)
+        speedInput.BackgroundColor3 = Theme.Colors.InputBackground
+        speedInput.BackgroundTransparency = Theme.Transparency.Input
+        speedInput.BorderSizePixel = 0
+        speedInput.Text = tostring(CONFIG.SPEED_VALUE)
+        speedInput.PlaceholderText = "Enter speed (1-500)"
+        speedInput.TextColor3 = Theme.Colors.TextPrimary
+        speedInput.PlaceholderColor3 = Theme.Colors.TextPlaceholder
+        speedInput.TextSize = Theme.FontSizes.Input
+        speedInput.Font = Theme.Fonts.Input
+        speedInput.ClearTextOnFocus = false
+        speedInput.Parent = actionFrame
+        
+        local inputCorner = Instance.new("UICorner")
+        inputCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
+        inputCorner.Parent = speedInput
+        
+        return actionFrame, actionBtn, statusIndicator, speedInput
+    end
+    
+    -- Dropdown for Teleport
+    if actionData.hasDropdown then
+        actionFrame.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight + Theme.Sizes.DropdownHeight + 8)
+        
+        local dropdown = Instance.new("ScrollingFrame")
+        dropdown.Name = "PlayerDropdown"
+        dropdown.Size = UDim2.new(1, -10, 0, Theme.Sizes.DropdownHeight)
+        dropdown.Position = UDim2.new(0, 5, 0, Theme.Sizes.ActionRowHeight + 4)
+        dropdown.BackgroundColor3 = Theme.Colors.DropdownBackground
+        dropdown.BackgroundTransparency = Theme.Transparency.Dropdown
+        dropdown.BorderSizePixel = 0
+        dropdown.ScrollBarThickness = 3
+        dropdown.ScrollBarImageColor3 = Theme.Colors.ScrollBarColor
+        dropdown.ScrollBarImageTransparency = Theme.Transparency.ScrollBar
+        dropdown.CanvasSize = UDim2.new(0, 0, 0, 0)
+        dropdown.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        dropdown.Parent = actionFrame
+        
+        local dropCorner = Instance.new("UICorner")
+        dropCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
+        dropCorner.Parent = dropdown
+        
+        local placeholderLabel = Instance.new("TextLabel")
+        placeholderLabel.Name = "PlaceholderText"
+        placeholderLabel.Size = UDim2.new(1, 0, 1, 0)
+        placeholderLabel.BackgroundTransparency = 1
+        placeholderLabel.Text = "Select a player..."
+        placeholderLabel.TextColor3 = Theme.Colors.TextPlaceholder
+        placeholderLabel.TextSize = Theme.FontSizes.Input
+        placeholderLabel.Font = Theme.Fonts.Input
+        placeholderLabel.Parent = dropdown
+        
+        return actionFrame, actionBtn, statusIndicator, nil, dropdown, placeholderLabel
+    end
+    
+    return actionFrame, actionBtn, statusIndicator
+end
+
+-- ============================================
+-- FEATURE ORGANIZATION
+-- ============================================
+local featuresByTab = {
+    Combat = {
         {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯"},
         {name = "ESP", key = "T", state = "esp", icon = "👁️"},
         {name = "KillAura", key = "K", state = "killaura", icon = "⚔️"},
         {name = "Fast M1", key = "M", state = "fastm1", icon = "👊"},
+    },
+    Movement = {
         {name = "Fly", key = "F", state = "fly", icon = "🕊️"},
         {name = "NoClip", key = "N", state = "noclip", icon = "👻"},
         {name = "Infinite Jump", key = "J", state = "infjump", icon = "🦘"},
         {name = "Speed Hack", key = "X", state = "speed", icon = "⚡", hasInput = true},
+    },
+    Visual = {
         {name = "Full Bright", key = "B", state = "fullbright", icon = "💡"},
         {name = "God Mode", key = "V", state = "godmode", icon = "🛡️"},
-        {name = "Teleport", key = "Z", state = "teleport", icon = "🚀", isAction = true, hasDropdown = true},
-    }
+    },
+    Teleport = {
+        {name = "Teleport To Player", key = "Z", state = "teleport", icon = "🚀", isAction = true, hasDropdown = true},
+    },
+}
+
+-- ============================================
+-- UPDATE CONTENT PAGE
+-- ============================================
+local guiButtons = {}
+local contentScroll, pageTitle
+
+local function updateContentPage(tabName)
+    if not contentScroll then return end
     
-    local buttons = {}
-    
-    -- Create feature buttons
-    for i, feature in ipairs(features) do
-        local containerHeight = Theme.Sizes.ContainerHeight
-        if feature.hasInput then
-            containerHeight = Theme.Sizes.ContainerHeightInput
-        elseif feature.hasDropdown then
-            containerHeight = Theme.Sizes.ContainerHeightDropdown
-        end
-        
-        local container = Instance.new("Frame")
-        container.Name = feature.state .. "Container"
-        container.Size = UDim2.new(1, 0, 0, containerHeight)
-        container.BackgroundColor3 = Theme.Colors.ContainerBackground
-        container.BackgroundTransparency = Theme.Transparency.Container
-        container.BorderSizePixel = 0
-        container.LayoutOrder = i
-        container.Parent = scrollFrame
-        
-        local containerCorner = Instance.new("UICorner")
-        containerCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
-        containerCorner.Parent = container
-        
-        local containerStroke = Instance.new("UIStroke")
-        containerStroke.Color = Theme.Colors.BorderColor
-        containerStroke.Thickness = 1
-        containerStroke.Transparency = Theme.Transparency.Stroke
-        containerStroke.Parent = container
-        
-        -- Feature Button
-        local featureBtn = Instance.new("TextButton")
-        featureBtn.Name = feature.state .. "Btn"
-        featureBtn.Size = UDim2.new(1, -10, 0, Theme.Sizes.ButtonHeight)
-        featureBtn.Position = UDim2.new(0, 5, 0, 2.5)
-        featureBtn.BackgroundTransparency = 1
-        featureBtn.Text = "  " .. feature.icon .. "  " .. feature.name .. "  [" .. feature.key .. "]"
-        featureBtn.TextColor3 = Theme.Colors.TextPrimary
-        featureBtn.TextSize = Theme.FontSizes.Button
-        featureBtn.Font = Theme.Fonts.Button
-        featureBtn.TextXAlignment = Enum.TextXAlignment.Left
-        featureBtn.Parent = container
-        
-        local btnPadding = Instance.new("UIPadding")
-        btnPadding.PaddingLeft = UDim.new(0, Theme.Padding.ButtonLeft)
-        btnPadding.Parent = featureBtn
-        
-        -- Status indicator
-        local statusIndicator = Instance.new("Frame")
-        statusIndicator.Name = "StatusIndicator"
-        statusIndicator.Size = UDim2.new(0, Theme.Sizes.StatusIndicator, 0, Theme.Sizes.StatusIndicator)
-        statusIndicator.Position = UDim2.new(1, -25, 0, 14)
-        statusIndicator.BackgroundColor3 = Theme.Colors.StatusOff
-        statusIndicator.BackgroundTransparency = Theme.Transparency.StatusIndicator
-        statusIndicator.BorderSizePixel = 0
-        statusIndicator.Parent = featureBtn
-        
-        local indicatorCorner = Instance.new("UICorner")
-        indicatorCorner.CornerRadius = UDim.new(1, 0)
-        indicatorCorner.Parent = statusIndicator
-        
-        buttons[feature.state] = {
-            button = featureBtn,
-            indicator = statusIndicator,
-            container = container,
-            isAction = feature.isAction or false
-        }
-        
-        -- Speed input box
-        if feature.hasInput then
-            local speedInput = Instance.new("TextBox")
-            speedInput.Name = "SpeedInput"
-            speedInput.Size = UDim2.new(1, -20, 0, Theme.Sizes.InputHeight)
-            speedInput.Position = UDim2.new(0, 10, 0, 52)
-            speedInput.BackgroundColor3 = Theme.Colors.InputBackground
-            speedInput.BackgroundTransparency = Theme.Transparency.Input
-            speedInput.BorderSizePixel = 0
-            speedInput.Text = tostring(CONFIG.SPEED_VALUE)
-            speedInput.PlaceholderText = "Enter speed (1-500)"
-            speedInput.TextColor3 = Theme.Colors.TextPrimary
-            speedInput.PlaceholderColor3 = Theme.Colors.TextPlaceholder
-            speedInput.TextSize = Theme.FontSizes.Input
-            speedInput.Font = Theme.Fonts.Input
-            speedInput.ClearTextOnFocus = false
-            speedInput.Parent = container
-            
-            local inputCorner = Instance.new("UICorner")
-            inputCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-            inputCorner.Parent = speedInput
-            
-            local inputPadding = Instance.new("UIPadding")
-            inputPadding.PaddingLeft = UDim.new(0, Theme.Padding.InputLeft)
-            inputPadding.Parent = speedInput
-            
-            buttons[feature.state].input = speedInput
-        end
-        
-        -- Teleport dropdown
-        if feature.hasDropdown then
-            local dropdown = Instance.new("ScrollingFrame")
-            dropdown.Name = "PlayerDropdown"
-            dropdown.Size = UDim2.new(1, -20, 0, Theme.Sizes.DropdownHeight)
-            dropdown.Position = UDim2.new(0, 10, 0, 52)
-            dropdown.BackgroundColor3 = Theme.Colors.DropdownBackground
-            dropdown.BackgroundTransparency = Theme.Transparency.Dropdown
-            dropdown.BorderSizePixel = 0
-            dropdown.ScrollBarThickness = 4
-            dropdown.ScrollBarImageColor3 = Theme.Colors.ScrollBarColor
-            dropdown.ScrollBarImageTransparency = Theme.Transparency.ScrollBar
-            dropdown.CanvasSize = UDim2.new(0, 0, 0, 0)
-            dropdown.AutomaticCanvasSize = Enum.AutomaticSize.Y
-            dropdown.Parent = container
-            
-            local dropCorner = Instance.new("UICorner")
-            dropCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-            dropCorner.Parent = dropdown
-            
-            local placeholderLabel = Instance.new("TextLabel")
-            placeholderLabel.Name = "PlaceholderText"
-            placeholderLabel.Size = UDim2.new(1, 0, 1, 0)
-            placeholderLabel.BackgroundTransparency = 1
-            placeholderLabel.Text = "Select a player..."
-            placeholderLabel.TextColor3 = Theme.Colors.TextPlaceholder
-            placeholderLabel.TextSize = Theme.FontSizes.PlayerButton
-            placeholderLabel.Font = Theme.Fonts.Input
-            placeholderLabel.Parent = dropdown
-            
-            buttons[feature.state].dropdown = dropdown
-            buttons[feature.state].placeholder = placeholderLabel
+    -- Clear existing content
+    for _, child in pairs(contentScroll:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
         end
     end
     
-    screenGui.Parent = player:WaitForChild("PlayerGui")
+    -- Update title
+    if pageTitle then
+        pageTitle.Text = tabName
+    end
     
-    return mainFrame, toggleBtn, closeBtn, buttons
+    -- Create actions for this tab
+    local features = featuresByTab[tabName] or {}
+    for i, feature in ipairs(features) do
+        local frame, btn, indicator, input, dropdown, placeholder = createActionRow(contentScroll, feature, i)
+        
+        guiButtons[feature.state] = {
+            button = btn,
+            indicator = indicator,
+            container = frame,
+            isAction = feature.isAction or false,
+            input = input,
+            dropdown = dropdown,
+            placeholder = placeholder
+        }
+    end
+    
+    currentTab = tabName
 end
 
 -- ============================================
@@ -524,15 +634,13 @@ local function updatePlayerDropdown(dropdown)
     if not dropdown then return end
     
     for _, child in pairs(dropdown:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        elseif child:IsA("UIListLayout") then
+        if child:IsA("TextButton") or child:IsA("UIListLayout") then
             child:Destroy()
         end
     end
     
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, Theme.Padding.DropdownList)
+    layout.Padding = UDim.new(0, 2)
     layout.SortOrder = Enum.SortOrder.Name
     layout.Parent = dropdown
     
@@ -544,13 +652,13 @@ local function updatePlayerDropdown(dropdown)
             
             local playerBtn = Instance.new("TextButton")
             playerBtn.Name = otherPlayer.Name
-            playerBtn.Size = UDim2.new(1, -6, 0, Theme.Sizes.PlayerButtonHeight)
+            playerBtn.Size = UDim2.new(1, -4, 0, Theme.Sizes.PlayerButtonHeight)
             playerBtn.BackgroundColor3 = Theme.Colors.PlayerButtonBg
             playerBtn.BackgroundTransparency = Theme.Transparency.PlayerButton
             playerBtn.BorderSizePixel = 0
             playerBtn.Text = otherPlayer.Name
             playerBtn.TextColor3 = Theme.Colors.TextPrimary
-            playerBtn.TextSize = Theme.FontSizes.PlayerButton
+            playerBtn.TextSize = Theme.FontSizes.Input
             playerBtn.Font = Theme.Fonts.Input
             playerBtn.Parent = dropdown
             
@@ -591,7 +699,7 @@ local function updatePlayerDropdown(dropdown)
 end
 
 -- ============================================
--- FEATURE FUNCTIONS
+-- FEATURE FUNCTIONS (UNCHANGED)
 -- ============================================
 local function getClosestPlayerToMouse()
     local closestPlayer = nil
@@ -926,8 +1034,6 @@ end
 -- ============================================
 -- TOGGLE FUNCTIONS WITH GUI UPDATE
 -- ============================================
-local guiButtons = {}
-
 local function updateButtonVisual(stateName)
     if guiButtons[stateName] and not guiButtons[stateName].isAction then
         local btn = guiButtons[stateName]
@@ -1111,60 +1217,135 @@ local function toggleGUI()
 end
 
 -- ============================================
+-- CONNECT BUTTONS TO FUNCTIONS
+-- ============================================
+local function connectButtons()
+    -- Wait a moment for buttons to be created
+    task.wait(0.1)
+    
+    -- Combat
+    if guiButtons.aimbot and guiButtons.aimbot.button then
+        guiButtons.aimbot.button.MouseButton1Click:Connect(toggleAimbot)
+    end
+    if guiButtons.esp and guiButtons.esp.button then
+        guiButtons.esp.button.MouseButton1Click:Connect(toggleESP)
+    end
+    if guiButtons.killaura and guiButtons.killaura.button then
+        guiButtons.killaura.button.MouseButton1Click:Connect(toggleKillAura)
+    end
+    if guiButtons.fastm1 and guiButtons.fastm1.button then
+        guiButtons.fastm1.button.MouseButton1Click:Connect(toggleFastM1)
+    end
+    
+    -- Movement
+    if guiButtons.fly and guiButtons.fly.button then
+        guiButtons.fly.button.MouseButton1Click:Connect(toggleFly)
+    end
+    if guiButtons.noclip and guiButtons.noclip.button then
+        guiButtons.noclip.button.MouseButton1Click:Connect(toggleNoClip)
+    end
+    if guiButtons.infjump and guiButtons.infjump.button then
+        guiButtons.infjump.button.MouseButton1Click:Connect(toggleInfJump)
+    end
+    if guiButtons.speed and guiButtons.speed.button then
+        guiButtons.speed.button.MouseButton1Click:Connect(toggleSpeed)
+        
+        if guiButtons.speed.input then
+            guiButtons.speed.input.FocusLost:Connect(function()
+                local value = tonumber(guiButtons.speed.input.Text)
+                if value and value >= CONFIG.MIN_SPEED and value <= CONFIG.MAX_SPEED then
+                    CONFIG.SPEED_VALUE = value
+                    if state.speed then
+                        updateSpeed()
+                    end
+                    print("[NullHub] Speed set to:", value)
+                else
+                    guiButtons.speed.input.Text = tostring(CONFIG.SPEED_VALUE)
+                    warn("[NullHub] Invalid speed! Use 1-500")
+                end
+            end)
+        end
+    end
+    
+    -- Visual
+    if guiButtons.fullbright and guiButtons.fullbright.button then
+        guiButtons.fullbright.button.MouseButton1Click:Connect(toggleFullBright)
+    end
+    if guiButtons.godmode and guiButtons.godmode.button then
+        guiButtons.godmode.button.MouseButton1Click:Connect(toggleGodMode)
+    end
+    
+    -- Teleport
+    if guiButtons.teleport and guiButtons.teleport.button then
+        guiButtons.teleport.button.MouseButton1Click:Connect(teleportToPlayer)
+        
+        if guiButtons.teleport.dropdown then
+            updatePlayerDropdown(guiButtons.teleport.dropdown)
+            
+            Players.PlayerAdded:Connect(function()
+                task.wait(0.5)
+                updatePlayerDropdown(guiButtons.teleport.dropdown)
+            end)
+            
+            Players.PlayerRemoving:Connect(function()
+                updatePlayerDropdown(guiButtons.teleport.dropdown)
+            end)
+        end
+    end
+end
+
+-- ============================================
 -- GUI INITIALIZATION
 -- ============================================
-local mainFrame, toggleBtn, closeBtn, buttons = createModernGUI()
-guiButtons = buttons
+local mainFrame, toggleBtn, closeBtn, sidebar, contentFrame, pageTitleRef, actionScrollRef = createSidebarGUI()
 mainFrameRef = mainFrame
 toggleBtnRef = toggleBtn
+contentScroll = actionScrollRef
+pageTitle = pageTitleRef
 
+-- Create sidebar tabs
+local tabs = {
+    {name = "Combat", icon = "⚔️"},
+    {name = "Movement", icon = "🏃"},
+    {name = "Visual", icon = "👁️"},
+    {name = "Teleport", icon = "📍"},
+}
+
+local tabButtons = {}
+for i, tab in ipairs(tabs) do
+    local tabBtn = createTabButton(sidebar, tab.name, tab.icon, i)
+    tabButtons[tab.name] = tabBtn
+    
+    tabBtn.MouseButton1Click:Connect(function()
+        -- Update all tab visuals
+        for _, otherTab in pairs(tabButtons) do
+            otherTab.BackgroundColor3 = Theme.Colors.TabNormal
+        end
+        tabBtn.BackgroundColor3 = Theme.Colors.TabSelected
+        
+        -- Update content
+        updateContentPage(tab.name)
+        
+        -- Reconnect buttons (since we recreated them)
+        connectButtons()
+    end)
+end
+
+-- Show Combat tab by default
+if tabButtons["Combat"] then
+    tabButtons["Combat"].BackgroundColor3 = Theme.Colors.TabSelected
+end
+updateContentPage("Combat")
+connectButtons()
+
+-- Toggle button
 toggleBtn.MouseButton1Click:Connect(toggleGUI)
 
+-- Close button
 closeBtn.MouseButton1Click:Connect(function()
     guiVisible = false
     mainFrame.Visible = false
 end)
-
-buttons.aimbot.button.MouseButton1Click:Connect(toggleAimbot)
-buttons.esp.button.MouseButton1Click:Connect(toggleESP)
-buttons.killaura.button.MouseButton1Click:Connect(toggleKillAura)
-buttons.fastm1.button.MouseButton1Click:Connect(toggleFastM1)
-buttons.fly.button.MouseButton1Click:Connect(toggleFly)
-buttons.noclip.button.MouseButton1Click:Connect(toggleNoClip)
-buttons.infjump.button.MouseButton1Click:Connect(toggleInfJump)
-buttons.speed.button.MouseButton1Click:Connect(toggleSpeed)
-buttons.fullbright.button.MouseButton1Click:Connect(toggleFullBright)
-buttons.godmode.button.MouseButton1Click:Connect(toggleGodMode)
-buttons.teleport.button.MouseButton1Click:Connect(teleportToPlayer)
-
-if buttons.speed.input then
-    buttons.speed.input.FocusLost:Connect(function(enterPressed)
-        local value = tonumber(buttons.speed.input.Text)
-        if value and value >= CONFIG.MIN_SPEED and value <= CONFIG.MAX_SPEED then
-            CONFIG.SPEED_VALUE = value
-            if state.speed then
-                updateSpeed()
-            end
-            print("[NullHub] Speed set to:", value)
-        else
-            buttons.speed.input.Text = tostring(CONFIG.SPEED_VALUE)
-            warn("[NullHub] Invalid speed! Use 1-500")
-        end
-    end)
-end
-
-if buttons.teleport.dropdown then
-    updatePlayerDropdown(buttons.teleport.dropdown)
-    
-    Players.PlayerAdded:Connect(function()
-        task.wait(0.5)
-        updatePlayerDropdown(buttons.teleport.dropdown)
-    end)
-    
-    Players.PlayerRemoving:Connect(function()
-        updatePlayerDropdown(buttons.teleport.dropdown)
-    end)
-end
 
 -- ============================================
 -- KEYBIND INPUT HANDLING
@@ -1297,18 +1478,14 @@ saveOriginalLighting()
 originalSpeed = humanoid.WalkSpeed
 
 print("========================================")
-print("⚡ NullHub V2 - Theme Edition")
+print("⚡ NullHub V2 - Sidebar Edition")
 print("========================================")
 print("📱 GUI: Press [INSERT] to toggle")
-print("   • Theme: " .. (themeLoaded and "Loaded ✅" or "Default (fallback) ⚠️"))
-print("   • Username: Debbhai")
-print("🎯 COMBAT:")
-print("  • Aimbot [E] | ESP [T]")
-print("  • KillAura [K] | Fast M1 [M]")
-print("🏃 MOVEMENT:")
-print("  • Fly [F] | NoClip [N]")
-print("  • Speed [X] (1-500) | Infinite Jump [J]")
-print("  • Teleport [Z]")
-print("✨ EXTRAS:")
-print("  • Full Bright [B] | God Mode [V]")
+print("   • Theme: " .. (themeLoaded and "Loaded ✅" or "Default ⚠️"))
+print("   • Layout: Sidebar + Tabs")
+print("🎯 FEATURES:")
+print("  • Combat: Aimbot, ESP, KillAura, Fast M1")
+print("  • Movement: Fly, NoClip, Speed, Inf Jump")
+print("  • Visual: Full Bright, God Mode")
+print("  • Teleport: Player teleportation")
 print("========================================")
