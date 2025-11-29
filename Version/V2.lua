@@ -1,8 +1,31 @@
--- NullHub V2 - Main Script (COMPLETE FIXED VERSION)
+-- NullHub V2 - Main Script (MODULAR VERSION)
 -- Created by Debbhai
--- ✅ Fixed Fly | ✅ Ultra Speed (1M in 2s) | ✅ Walk on Water
+-- Loads Theme.lua + AntiDetection.lua from GitHub
 
 print("[NullHub] Loading...")
+
+-- ============================================
+-- LOAD ANTI-DETECTION MODULE
+-- ============================================
+local AntiDetection
+local ANTIDETECT_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/AntiDetection.lua"
+
+local success, result = pcall(function()
+    return loadstring(game:HttpGet(ANTIDETECT_URL))()
+end)
+
+if success and result then
+    AntiDetection = result
+    AntiDetection:Initialize()
+    print("[NullHub] ✅ Anti-Detection loaded from GitHub")
+else
+    print("[NullHub] ⚠️ Anti-Detection failed to load - Using fallback")
+    AntiDetection = {
+        AddRandomDelay = function(self, s) end,
+        SmoothTransition = function(self, t, c, s, m) return t end,
+        GetVariableSmoothness = function(self, b, s) return b end,
+    }
+end
 
 -- ============================================
 -- LOAD THEME MODULE
@@ -50,19 +73,20 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
 
 -- ============================================
--- CONFIG (✅ UPDATED: 1M in 2s = 500k speed)
+-- CONFIG
 -- ============================================
 local CONFIG = {
     GUI_TOGGLE_KEY = Enum.KeyCode.Insert, AIMBOT_KEY = Enum.KeyCode.E, AIMBOT_FOV = 250, AIMBOT_SMOOTHNESS = 0.15,
     ESP_KEY = Enum.KeyCode.T, ESP_COLOR = Color3.fromRGB(255, 80, 80), ESP_SHOW_DISTANCE = true,
-    KILLAURA_KEY = Enum.KeyCode.K, KILLAURA_RANGE = 25, KILLAURA_DELAY = 0.1,
-    FASTM1_KEY = Enum.KeyCode.M, FASTM1_DELAY = 0.03, 
+    KILLAURA_KEY = Enum.KeyCode.K, KILLAURA_RANGE = 25, KILLAURA_DELAY = 0.15,
+    FASTM1_KEY = Enum.KeyCode.M, FASTM1_DELAY = 0.05, 
     FLY_KEY = Enum.KeyCode.F, FLY_SPEED = 120,
     NOCLIP_KEY = Enum.KeyCode.N, INFJUMP_KEY = Enum.KeyCode.J, SPEED_KEY = Enum.KeyCode.X,
-    SPEED_VALUE = 500000, MIN_SPEED = 0, MAX_SPEED = 1000000, -- ✅ 1M in 2s = 500k speed, cap 0-1M
+    SPEED_VALUE = 500000, MIN_SPEED = 0, MAX_SPEED = 1000000,
     FULLBRIGHT_KEY = Enum.KeyCode.B, GODMODE_KEY = Enum.KeyCode.V, 
     TELEPORT_KEY = Enum.KeyCode.Z, TELEPORT_SPEED = 100,
     WALKONWATER_KEY = Enum.KeyCode.U,
+    STEALTH_MODE = true,
 }
 
 -- ============================================
@@ -337,7 +361,7 @@ local function createModernGUI()
     title.Size = UDim2.new(1, -120, 1, 0)
     title.Position = UDim2.new(0, 18, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ NullHub | Universal"
+    title.Text = "⚡ NullHub | Protected"
     title.TextColor3 = currentTheme.Colors.TextPrimary
     title.TextSize = Theme.FontSizes.Title
     title.Font = Theme.Fonts.Title
@@ -405,9 +429,6 @@ local function createModernGUI()
     return mainFrame, closeBtn, sidebar, contentFrame, pageTitleLabel, actionScroll, screenGui
 end
 
--- ============================================
--- CREATE TAB
--- ============================================
 local function createTabButton(parent, tabName, icon, index)
     local currentTheme = Theme:GetTheme()
     local tabBtn = Instance.new("TextButton", parent)
@@ -430,9 +451,6 @@ local function createTabButton(parent, tabName, icon, index)
     return tabBtn
 end
 
--- ============================================
--- CREATE ACTION ROW (✅ UPDATED PLACEHOLDER)
--- ============================================
 local function createActionRow(parent, actionData, index)
     local currentTheme = Theme:GetTheme()
     local rowHeight = Theme.Sizes.ActionRowHeight
@@ -488,7 +506,7 @@ local function createActionRow(parent, actionData, index)
         speedInput.BackgroundTransparency = currentTheme.Transparency.Input
         speedInput.BorderSizePixel = 0
         speedInput.Text = tostring(CONFIG.SPEED_VALUE)
-        speedInput.PlaceholderText = "Speed (0-1000000)" -- ✅ UPDATED
+        speedInput.PlaceholderText = "Speed (0-1000000)"
         speedInput.TextColor3 = currentTheme.Colors.TextPrimary
         speedInput.PlaceholderColor3 = currentTheme.Colors.TextPlaceholder
         speedInput.TextSize = Theme.FontSizes.Input
@@ -542,9 +560,6 @@ local function createActionRow(parent, actionData, index)
     return actionFrame, actionBtn, statusIndicator
 end
 
--- ============================================
--- CREATE THEME BUTTON
--- ============================================
 local function createThemeButton(parent, themeName, index)
     local currentTheme = Theme:GetTheme()
     local themeBtn = Instance.new("TextButton", parent)
@@ -567,9 +582,6 @@ local function createThemeButton(parent, themeName, index)
     return themeBtn
 end
 
--- ============================================
--- FEATURES BY TAB
--- ============================================
 local featuresByTab = {
     Combat = {
         {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯"},
@@ -595,9 +607,6 @@ local featuresByTab = {
     Themes = {},
 }
 
--- ============================================
--- UPDATE CONTENT PAGE
--- ============================================
 local function updateContentPage(tabName)
     if not contentScroll then return end
     for _, child in pairs(contentScroll:GetChildren()) do
@@ -621,9 +630,6 @@ local function updateContentPage(tabName)
     end
 end
 
--- ============================================
--- PLAYER DROPDOWN
--- ============================================
 local function updatePlayerDropdown(dropdown)
     if not dropdown then return end
     local currentTheme = Theme:GetTheme()
@@ -665,7 +671,7 @@ local function updatePlayerDropdown(dropdown)
 end
 
 -- ============================================
--- AIMBOT
+-- AIMBOT (USING ANTIDETECTION)
 -- ============================================
 local function getClosestPlayerForAimbot()
     local closestPlayer, shortestDistance = nil, CONFIG.AIMBOT_FOV
@@ -693,14 +699,16 @@ local function aimAtTarget(target)
     if not target or not target.Character then return end
     local targetHead = target.Character:FindFirstChild("Head")
     if not targetHead then return end
+    AntiDetection:AddRandomDelay(CONFIG.STEALTH_MODE)
     local targetPos = targetHead.Position + (targetHead.AssemblyLinearVelocity * 0.1)
     local cameraPos = camera.CFrame.Position
     local newCFrame = CFrame.new(cameraPos, targetPos)
-    camera.CFrame = camera.CFrame:Lerp(newCFrame, CONFIG.AIMBOT_SMOOTHNESS)
+    local smoothness = AntiDetection:GetVariableSmoothness(CONFIG.AIMBOT_SMOOTHNESS, CONFIG.STEALTH_MODE)
+    camera.CFrame = camera.CFrame:Lerp(newCFrame, smoothness)
 end
 
 -- ============================================
--- KILLAURA
+-- KILLAURA (USING ANTIDETECTION)
 -- ============================================
 local function findAllTargets()
     killAuraTargets = {}
@@ -734,6 +742,7 @@ end
 
 local function performKillAura()
     if not state.killaura or not character or not humanoid or not rootPart then return end
+    AntiDetection:AddRandomDelay(CONFIG.STEALTH_MODE)
     findAllTargets()
     if #killAuraTargets == 0 then return end
     for _, target in pairs(killAuraTargets) do
@@ -741,6 +750,7 @@ local function performKillAura()
             local tool = character:FindFirstChildOfClass("Tool")
             if tool then
                 tool:Activate()
+                AntiDetection:AddRandomDelay(CONFIG.STEALTH_MODE)
                 for _, descendant in pairs(tool:GetDescendants()) do
                     if descendant:IsA("RemoteEvent") then
                         pcall(function()
@@ -759,9 +769,6 @@ local function performKillAura()
     end
 end
 
--- ============================================
--- FAST M1
--- ============================================
 local function performFastM1()
     if not state.fastm1 then return end
     local tool = character:FindFirstChildOfClass("Tool")
@@ -773,9 +780,6 @@ local function performFastM1()
     end)
 end
 
--- ============================================
--- FLY (FIXED)
--- ============================================
 local function updateFly()
     if not state.fly or not rootPart then return end
     local moveDirection = Vector3.new(0, 0, 0)
@@ -793,9 +797,6 @@ local function updateFly()
     end
 end
 
--- ============================================
--- WALK ON WATER
--- ============================================
 local function updateWalkOnWater()
     if not state.walkonwater or not rootPart then return end
     local rayOrigin = rootPart.Position
@@ -837,9 +838,6 @@ local function updateWalkOnWater()
     end
 end
 
--- ============================================
--- ESP
--- ============================================
 local function createESP(targetPlayer)
     if espObjects[targetPlayer] or not targetPlayer.Character then return end
     local highlight = Instance.new("Highlight")
@@ -901,9 +899,6 @@ local function updateESP()
     end
 end
 
--- ============================================
--- OTHER FUNCTIONS
--- ============================================
 local function updateNoClip()
     if not state.noclip or not character then return end
     for _, part in pairs(character:GetDescendants()) do
@@ -913,8 +908,12 @@ end
 
 local function updateSpeed()
     if humanoid then
-        if state.speed then humanoid.WalkSpeed = CONFIG.SPEED_VALUE
-        else humanoid.WalkSpeed = originalSpeed end
+        if state.speed then
+            local targetSpeed = CONFIG.SPEED_VALUE
+            humanoid.WalkSpeed = AntiDetection:SmoothTransition(targetSpeed, humanoid.WalkSpeed, 0.1, CONFIG.STEALTH_MODE)
+        else
+            humanoid.WalkSpeed = originalSpeed
+        end
     end
 end
 
@@ -992,9 +991,6 @@ local function teleportToPlayer()
     end)
 end
 
--- ============================================
--- TOGGLE FUNCTIONS
--- ============================================
 local function updateButtonVisual(stateName)
     if guiButtons[stateName] and not guiButtons[stateName].isAction then
         local btn = guiButtons[stateName]
@@ -1005,134 +1001,21 @@ local function updateButtonVisual(stateName)
     end
 end
 
-local function toggleAimbot()
-    state.aimbot = not state.aimbot
-    updateButtonVisual("aimbot")
-    showNotification("Aimbot " .. (state.aimbot and "ON" or "OFF"), 2)
-end
+local function toggleAimbot() state.aimbot = not state.aimbot updateButtonVisual("aimbot") showNotification("Aimbot " .. (state.aimbot and "ON" or "OFF"), 2) end
+local function toggleESP() state.esp = not state.esp updateESP() updateButtonVisual("esp") showNotification("ESP " .. (state.esp and "ON" or "OFF"), 2) end
+local function toggleKillAura() state.killaura = not state.killaura if state.killaura then showNotification("Kill Aura ON", 2) if connections.killaura then connections.killaura:Disconnect() end local lastHit = tick() connections.killaura = RunService.Heartbeat:Connect(function() if tick() - lastHit >= CONFIG.KILLAURA_DELAY then performKillAura() lastHit = tick() end end) else if connections.killaura then connections.killaura:Disconnect() connections.killaura = nil end showNotification("Kill Aura OFF", 2) end updateButtonVisual("killaura") end
+local function toggleFastM1() state.fastm1 = not state.fastm1 if state.fastm1 then if connections.fastm1 then connections.fastm1:Disconnect() end local lastClick = tick() connections.fastm1 = RunService.Heartbeat:Connect(function() if tick() - lastClick >= CONFIG.FASTM1_DELAY then performFastM1() lastClick = tick() end end) showNotification("Fast M1 ON", 2) else if connections.fastm1 then connections.fastm1:Disconnect() connections.fastm1 = nil end showNotification("Fast M1 OFF", 2) end updateButtonVisual("fastm1") end
+local function toggleFly() state.fly = not state.fly if state.fly then if connections.flyBodyVelocity then connections.flyBodyVelocity:Destroy() end connections.flyBodyVelocity = Instance.new("BodyVelocity") connections.flyBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge) connections.flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) connections.flyBodyVelocity.Parent = rootPart if connections.fly then connections.fly:Disconnect() end connections.fly = RunService.Heartbeat:Connect(updateFly) showNotification("Fly ON", 3) else if connections.fly then connections.fly:Disconnect() connections.fly = nil end if connections.flyBodyVelocity then connections.flyBodyVelocity:Destroy() connections.flyBodyVelocity = nil end showNotification("Fly OFF", 2) end updateButtonVisual("fly") end
+local function toggleNoClip() state.noclip = not state.noclip updateButtonVisual("noclip") showNotification("NoClip " .. (state.noclip and "ON" or "OFF"), 2) end
+local function toggleInfJump() state.infjump = not state.infjump updateButtonVisual("infjump") showNotification("Infinite Jump " .. (state.infjump and "ON" or "OFF"), 2) end
+local function toggleSpeed() state.speed = not state.speed updateSpeed() updateButtonVisual("speed") showNotification("Speed " .. (state.speed and "ON - " .. CONFIG.SPEED_VALUE or "OFF"), 2) end
+local function toggleFullBright() state.fullbright = not state.fullbright if state.fullbright then enableFullBright() else disableFullBright() end updateButtonVisual("fullbright") showNotification("Full Bright " .. (state.fullbright and "ON" or "OFF"), 2) end
+local function toggleGodMode() state.godmode = not state.godmode updateGodMode() updateButtonVisual("godmode") showNotification("God Mode " .. (state.godmode and "ON" or "OFF"), 2) end
+local function toggleWalkOnWater() state.walkonwater = not state.walkonwater if state.walkonwater then if connections.walkonwater then connections.walkonwater:Disconnect() end connections.walkonwater = RunService.Heartbeat:Connect(updateWalkOnWater) showNotification("Walk on Water ON", 2) else if connections.walkonwater then connections.walkonwater:Disconnect() connections.walkonwater = nil end if waterPlatform then waterPlatform:Destroy() waterPlatform = nil end showNotification("Walk on Water OFF", 2) end updateButtonVisual("walkonwater") end
 
-local function toggleESP()
-    state.esp = not state.esp
-    updateESP()
-    updateButtonVisual("esp")
-    showNotification("ESP " .. (state.esp and "ON" or "OFF"), 2)
-end
-
-local function toggleKillAura()
-    state.killaura = not state.killaura
-    if state.killaura then
-        showNotification("Kill Aura ON", 2)
-        if connections.killaura then connections.killaura:Disconnect() end
-        local lastHit = tick()
-        connections.killaura = RunService.Heartbeat:Connect(function()
-            if tick() - lastHit >= CONFIG.KILLAURA_DELAY then
-                performKillAura()
-                lastHit = tick()
-            end
-        end)
-    else
-        if connections.killaura then connections.killaura:Disconnect(); connections.killaura = nil end
-        showNotification("Kill Aura OFF", 2)
-    end
-    updateButtonVisual("killaura")
-end
-
-local function toggleFastM1()
-    state.fastm1 = not state.fastm1
-    if state.fastm1 then
-        if connections.fastm1 then connections.fastm1:Disconnect() end
-        local lastClick = tick()
-        connections.fastm1 = RunService.Heartbeat:Connect(function()
-            if tick() - lastClick >= CONFIG.FASTM1_DELAY then
-                performFastM1()
-                lastClick = tick()
-            end
-        end)
-        showNotification("Fast M1 ON", 2)
-    else
-        if connections.fastm1 then connections.fastm1:Disconnect(); connections.fastm1 = nil end
-        showNotification("Fast M1 OFF", 2)
-    end
-    updateButtonVisual("fastm1")
-end
-
-local function toggleFly()
-    state.fly = not state.fly
-    if state.fly then
-        if connections.flyBodyVelocity then connections.flyBodyVelocity:Destroy() end
-        connections.flyBodyVelocity = Instance.new("BodyVelocity")
-        connections.flyBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        connections.flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        connections.flyBodyVelocity.Parent = rootPart
-        if connections.fly then connections.fly:Disconnect() end
-        connections.fly = RunService.Heartbeat:Connect(updateFly)
-        showNotification("Fly ON - Use WASD + Space/Shift", 3)
-    else
-        if connections.fly then connections.fly:Disconnect(); connections.fly = nil end
-        if connections.flyBodyVelocity then connections.flyBodyVelocity:Destroy(); connections.flyBodyVelocity = nil end
-        showNotification("Fly OFF", 2)
-    end
-    updateButtonVisual("fly")
-end
-
-local function toggleNoClip()
-    state.noclip = not state.noclip
-    updateButtonVisual("noclip")
-    showNotification("NoClip " .. (state.noclip and "ON" or "OFF"), 2)
-end
-
-local function toggleInfJump()
-    state.infjump = not state.infjump
-    updateButtonVisual("infjump")
-    showNotification("Infinite Jump " .. (state.infjump and "ON" or "OFF"), 2)
-end
-
-local function toggleSpeed()
-    state.speed = not state.speed
-    updateSpeed()
-    updateButtonVisual("speed")
-    showNotification("Speed Hack " .. (state.speed and "ON - " .. CONFIG.SPEED_VALUE or "OFF"), 2)
-end
-
-local function toggleFullBright()
-    state.fullbright = not state.fullbright
-    if state.fullbright then enableFullBright() else disableFullBright() end
-    updateButtonVisual("fullbright")
-    showNotification("Full Bright " .. (state.fullbright and "ON" or "OFF"), 2)
-end
-
-local function toggleGodMode()
-    state.godmode = not state.godmode
-    updateGodMode()
-    updateButtonVisual("godmode")
-    showNotification("God Mode " .. (state.godmode and "ON" or "OFF"), 2)
-end
-
-local function toggleWalkOnWater()
-    state.walkonwater = not state.walkonwater
-    if state.walkonwater then
-        if connections.walkonwater then connections.walkonwater:Disconnect() end
-        connections.walkonwater = RunService.Heartbeat:Connect(updateWalkOnWater)
-        showNotification("Walk on Water ON", 2)
-    else
-        if connections.walkonwater then connections.walkonwater:Disconnect(); connections.walkonwater = nil end
-        if waterPlatform then waterPlatform:Destroy(); waterPlatform = nil end
-        showNotification("Walk on Water OFF", 2)
-    end
-    updateButtonVisual("walkonwater")
-end
-
--- ============================================
--- CONNECT BUTTONS
--- ============================================
 local function connectButtons()
     task.wait(0.1)
-    local buttonMap = {
-        aimbot = toggleAimbot, esp = toggleESP, killaura = toggleKillAura, fastm1 = toggleFastM1,
-        fly = toggleFly, noclip = toggleNoClip, infjump = toggleInfJump, speed = toggleSpeed,
-        fullbright = toggleFullBright, godmode = toggleGodMode, teleport = teleportToPlayer,
-        walkonwater = toggleWalkOnWater,
-    }
+    local buttonMap = {aimbot = toggleAimbot, esp = toggleESP, killaura = toggleKillAura, fastm1 = toggleFastM1, fly = toggleFly, noclip = toggleNoClip, infjump = toggleInfJump, speed = toggleSpeed, fullbright = toggleFullBright, godmode = toggleGodMode, teleport = teleportToPlayer, walkonwater = toggleWalkOnWater}
     for stateName, toggleFunc in pairs(buttonMap) do
         if guiButtons[stateName] and guiButtons[stateName].button then
             guiButtons[stateName].button.MouseButton1Click:Connect(toggleFunc)
@@ -1168,145 +1051,35 @@ local function connectButtons()
     end
 end
 
--- ============================================
--- GUI INITIALIZATION
--- ============================================
 local mainFrame, closeBtn, sidebar, contentFrame, pageTitleRef, actionScrollRef, screenGui = createModernGUI()
-mainFrameRef = mainFrame
-contentScroll = actionScrollRef
-pageTitle = pageTitleRef
-screenGuiRef = screenGui
-
+mainFrameRef = mainFrame contentScroll = actionScrollRef pageTitle = pageTitleRef screenGuiRef = screenGui
 local toggleBtn = createToggleButton(screenGui)
-
 local closePrompt, minimizeBtn, destroyBtn = createClosePrompt(screenGui)
+closeBtn.MouseButton1Click:Connect(function() closePrompt.Visible = true end)
+minimizeBtn.MouseButton1Click:Connect(function() closePrompt.Visible = false guiVisible = false TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0)}):Play() end)
+destroyBtn.MouseButton1Click:Connect(function() screenGui:Destroy() for _, conn in pairs(connections) do if typeof(conn) == "RBXScriptConnection" then conn:Disconnect() elseif typeof(conn) == "Instance" then conn:Destroy() end end end)
 
-closeBtn.MouseButton1Click:Connect(function()
-    closePrompt.Visible = true
-end)
-
-minimizeBtn.MouseButton1Click:Connect(function()
-    closePrompt.Visible = false
-    guiVisible = false
-    TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0)}):Play()
-end)
-
-destroyBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-    for _, conn in pairs(connections) do
-        if typeof(conn) == "RBXScriptConnection" then conn:Disconnect()
-        elseif typeof(conn) == "Instance" then conn:Destroy() end
-    end
-end)
-
-local tabs = {
-    {name = "Combat", icon = "⚔️"},
-    {name = "Movement", icon = "🏃"},
-    {name = "Visual", icon = "👁️"},
-    {name = "Teleport", icon = "📍"},
-    {name = "Themes", icon = "🎨"},
-}
-
+local tabs = {{name = "Combat", icon = "⚔️"}, {name = "Movement", icon = "🏃"}, {name = "Visual", icon = "👁️"}, {name = "Teleport", icon = "📍"}, {name = "Themes", icon = "🎨"}}
 local tabButtons = {}
-for i, tab in ipairs(tabs) do
-    local tabBtn = createTabButton(sidebar, tab.name, tab.icon, i)
-    tabButtons[tab.name] = tabBtn
-    tabBtn.MouseButton1Click:Connect(function()
-        for _, otherTab in pairs(tabButtons) do
-            otherTab.BackgroundColor3 = Theme:GetTheme().Colors.TabNormal
-        end
-        tabBtn.BackgroundColor3 = Theme:GetTheme().Colors.TabSelected
-        updateContentPage(tab.name)
-        connectButtons()
-    end)
-end
-
+for i, tab in ipairs(tabs) do local tabBtn = createTabButton(sidebar, tab.name, tab.icon, i) tabButtons[tab.name] = tabBtn tabBtn.MouseButton1Click:Connect(function() for _, otherTab in pairs(tabButtons) do otherTab.BackgroundColor3 = Theme:GetTheme().Colors.TabNormal end tabBtn.BackgroundColor3 = Theme:GetTheme().Colors.TabSelected updateContentPage(tab.name) connectButtons() end) end
 if tabButtons["Combat"] then tabButtons["Combat"].BackgroundColor3 = Theme:GetTheme().Colors.TabSelected end
-updateContentPage("Combat")
-connectButtons()
+updateContentPage("Combat") connectButtons()
 
--- ============================================
--- KEYBIND INPUT
--- ============================================
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == CONFIG.GUI_TOGGLE_KEY then
-        local targetPos = guiVisible and UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0) or UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2)
-        guiVisible = not guiVisible
-        TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play()
-        return
-    end
-    local keyMap = {
-        [CONFIG.AIMBOT_KEY] = toggleAimbot, [CONFIG.ESP_KEY] = toggleESP, [CONFIG.KILLAURA_KEY] = toggleKillAura,
-        [CONFIG.FASTM1_KEY] = toggleFastM1, [CONFIG.FLY_KEY] = toggleFly, [CONFIG.NOCLIP_KEY] = toggleNoClip,
-        [CONFIG.INFJUMP_KEY] = toggleInfJump, [CONFIG.SPEED_KEY] = toggleSpeed, [CONFIG.FULLBRIGHT_KEY] = toggleFullBright,
-        [CONFIG.GODMODE_KEY] = toggleGodMode, [CONFIG.TELEPORT_KEY] = teleportToPlayer, [CONFIG.WALKONWATER_KEY] = toggleWalkOnWater,
-    }
-    local action = keyMap[input.KeyCode]
-    if action then action()
-    elseif input.KeyCode == Enum.KeyCode.Space and state.infjump and not state.fly and humanoid then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
+UserInputService.InputBegan:Connect(function(input, gameProcessed) if gameProcessed then return end if input.KeyCode == CONFIG.GUI_TOGGLE_KEY then local targetPos = guiVisible and UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0) or UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2) guiVisible = not guiVisible TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play() return end local keyMap = {[CONFIG.AIMBOT_KEY] = toggleAimbot, [CONFIG.ESP_KEY] = toggleESP, [CONFIG.KILLAURA_KEY] = toggleKillAura, [CONFIG.FASTM1_KEY] = toggleFastM1, [CONFIG.FLY_KEY] = toggleFly, [CONFIG.NOCLIP_KEY] = toggleNoClip, [CONFIG.INFJUMP_KEY] = toggleInfJump, [CONFIG.SPEED_KEY] = toggleSpeed, [CONFIG.FULLBRIGHT_KEY] = toggleFullBright, [CONFIG.GODMODE_KEY] = toggleGodMode, [CONFIG.TELEPORT_KEY] = teleportToPlayer, [CONFIG.WALKONWATER_KEY] = toggleWalkOnWater} local action = keyMap[input.KeyCode] if action then action() elseif input.KeyCode == Enum.KeyCode.Space and state.infjump and not state.fly and humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end)
 
--- ============================================
--- MAIN UPDATE LOOPS
--- ============================================
-RunService.RenderStepped:Connect(function()
-    if state.aimbot then
-        local target = getClosestPlayerForAimbot()
-        if target then aimAtTarget(target) end
-    end
-    if state.noclip then updateNoClip() end
-    if state.speed then updateSpeed() end
-end)
+RunService.RenderStepped:Connect(function() if state.aimbot then local target = getClosestPlayerForAimbot() if target then aimAtTarget(target) end end if state.noclip then updateNoClip() end if state.speed then updateSpeed() end end)
 
--- ============================================
--- PLAYER EVENTS
--- ============================================
-Players.PlayerAdded:Connect(function(newPlayer)
-    newPlayer.CharacterAdded:Connect(function()
-        task.wait(1)
-        if state.esp then createESP(newPlayer) end
-    end)
-end)
+Players.PlayerAdded:Connect(function(newPlayer) newPlayer.CharacterAdded:Connect(function() task.wait(1) if state.esp then createESP(newPlayer) end end) end)
+Players.PlayerRemoving:Connect(function(removedPlayer) removeESP(removedPlayer) if selectedTeleportPlayer == removedPlayer then selectedTeleportPlayer = nil end end)
 
-Players.PlayerRemoving:Connect(function(removedPlayer)
-    removeESP(removedPlayer)
-    if selectedTeleportPlayer == removedPlayer then selectedTeleportPlayer = nil end
-end)
+player.CharacterAdded:Connect(function(newChar) character = newChar humanoid = character:WaitForChild("Humanoid") rootPart = character:WaitForChild("HumanoidRootPart") task.wait(0.2) originalSpeed = humanoid.WalkSpeed if state.speed then updateSpeed() end if state.godmode then updateGodMode() end if state.esp then task.wait(0.5) updateESP() end if state.fly then toggleFly() toggleFly() end if state.walkonwater then toggleWalkOnWater() toggleWalkOnWater() end end)
 
--- ============================================
--- RESPAWN HANDLING
--- ============================================
-player.CharacterAdded:Connect(function(newChar)
-    character = newChar
-    humanoid = character:WaitForChild("Humanoid")
-    rootPart = character:WaitForChild("HumanoidRootPart")
-    task.wait(0.2)
-    originalSpeed = humanoid.WalkSpeed
-    if state.speed then updateSpeed() end
-    if state.godmode then updateGodMode() end
-    if state.esp then task.wait(0.5); updateESP() end
-    if state.fly then toggleFly(); toggleFly() end
-    if state.walkonwater then toggleWalkOnWater(); toggleWalkOnWater() end
-end)
-
--- ============================================
--- INITIALIZATION
--- ============================================
-saveOriginalLighting()
-originalSpeed = humanoid.WalkSpeed
-
-showNotification("NullHub V2 Loaded! Press INSERT", 3)
-
+saveOriginalLighting() originalSpeed = humanoid.WalkSpeed
+showNotification("🛡️ NullHub Protected - Loaded!", 3)
 print("========================================")
-print("⚡ NullHub V2 - ULTRA SPEED VERSION ⚡")
-print("========================================")
-print("✅ Theme loaded from GitHub")
-print("✅ Repository: Debbhai/NullHub")
-print("✅ Fixed Fly System")
-print("✅ Ultra Speed: 500k (1M in 2s)")
-print("✅ Speed Cap: 0-1,000,000")
-print("✅ Walk on Water Feature")
+print("⚡ NullHub V2 - MODULAR PROTECTED ⚡")
+print("✅ Anti-Detection Module Loaded")
+print("✅ Theme Module Loaded")
+print("✅ All Features Active")
+print("✅ Speed: 500k (1M in 2s)")
 print("========================================")
