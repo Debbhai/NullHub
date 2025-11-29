@@ -1,6 +1,6 @@
 -- NullHub V2 - Main Script (COMPLETE FIXED VERSION)
 -- Created by Debbhai
--- ✅ Fixed Fly | ✅ Enhanced Speed (100k/5s) | ✅ Walk on Water
+-- ✅ Fixed Fly | ✅ Ultra Speed (1M in 2s) | ✅ Walk on Water
 
 print("[NullHub] Loading...")
 
@@ -50,7 +50,7 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
 
 -- ============================================
--- CONFIG (UPDATED)
+-- CONFIG (✅ UPDATED: 1M in 2s = 500k speed)
 -- ============================================
 local CONFIG = {
     GUI_TOGGLE_KEY = Enum.KeyCode.Insert, AIMBOT_KEY = Enum.KeyCode.E, AIMBOT_FOV = 250, AIMBOT_SMOOTHNESS = 0.15,
@@ -59,7 +59,7 @@ local CONFIG = {
     FASTM1_KEY = Enum.KeyCode.M, FASTM1_DELAY = 0.03, 
     FLY_KEY = Enum.KeyCode.F, FLY_SPEED = 120,
     NOCLIP_KEY = Enum.KeyCode.N, INFJUMP_KEY = Enum.KeyCode.J, SPEED_KEY = Enum.KeyCode.X,
-    SPEED_VALUE = 20000, MIN_SPEED = 0, MAX_SPEED = 200000,
+    SPEED_VALUE = 500000, MIN_SPEED = 0, MAX_SPEED = 1000000, -- ✅ 1M in 2s = 500k speed, cap 0-1M
     FULLBRIGHT_KEY = Enum.KeyCode.B, GODMODE_KEY = Enum.KeyCode.V, 
     TELEPORT_KEY = Enum.KeyCode.Z, TELEPORT_SPEED = 100,
     WALKONWATER_KEY = Enum.KeyCode.U,
@@ -431,7 +431,7 @@ local function createTabButton(parent, tabName, icon, index)
 end
 
 -- ============================================
--- CREATE ACTION ROW
+-- CREATE ACTION ROW (✅ UPDATED PLACEHOLDER)
 -- ============================================
 local function createActionRow(parent, actionData, index)
     local currentTheme = Theme:GetTheme()
@@ -488,7 +488,7 @@ local function createActionRow(parent, actionData, index)
         speedInput.BackgroundTransparency = currentTheme.Transparency.Input
         speedInput.BorderSizePixel = 0
         speedInput.Text = tostring(CONFIG.SPEED_VALUE)
-        speedInput.PlaceholderText = "Speed (0-200000)"
+        speedInput.PlaceholderText = "Speed (0-1000000)" -- ✅ UPDATED
         speedInput.TextColor3 = currentTheme.Colors.TextPrimary
         speedInput.PlaceholderColor3 = currentTheme.Colors.TextPlaceholder
         speedInput.TextSize = Theme.FontSizes.Input
@@ -794,7 +794,7 @@ local function updateFly()
 end
 
 -- ============================================
--- WALK ON WATER (NEW)
+-- WALK ON WATER
 -- ============================================
 local function updateWalkOnWater()
     if not state.walkonwater or not rootPart then return end
@@ -1301,11 +1301,12 @@ originalSpeed = humanoid.WalkSpeed
 showNotification("NullHub V2 Loaded! Press INSERT", 3)
 
 print("========================================")
-print("⚡ NullHub V2 - ENHANCED VERSION ⚡")
+print("⚡ NullHub V2 - ULTRA SPEED VERSION ⚡")
 print("========================================")
 print("✅ Theme loaded from GitHub")
 print("✅ Repository: Debbhai/NullHub")
 print("✅ Fixed Fly System")
-print("✅ Enhanced Speed: 20k (100k in 5s)")
-print("✅ Walk on Water Feature Added")
+print("✅ Ultra Speed: 500k (1M in 2s)")
+print("✅ Speed Cap: 0-1,000,000")
+print("✅ Walk on Water Feature")
 print("========================================")
