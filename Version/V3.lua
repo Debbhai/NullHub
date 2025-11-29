@@ -1,12 +1,10 @@
--- NullHub V3 - Main Script (WITH IMPROVED AUTO-OBBY)
+-- NullHub V3 - FIXED AUTO-OBBY (PROPER ARROW FOLLOWING)
 -- Created by Debbhai
--- Loads Theme.lua + AntiDetection.lua from GitHub
+-- THE COMPLETE FIXED VERSION
 
 print("[NullHub] Loading...")
 
--- ============================================
--- LOAD ANTI-DETECTION MODULE
--- ============================================
+-- [LOAD MODULES - SAME AS BEFORE]
 local AntiDetection
 local ANTIDETECT_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/AntiDetection.lua"
 
@@ -27,9 +25,6 @@ else
     }
 end
 
--- ============================================
--- LOAD THEME MODULE
--- ============================================
 local Theme
 local THEME_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/Theme.lua"
 
@@ -57,9 +52,6 @@ end
 
 print("[NullHub] Current Theme: " .. Theme.CurrentTheme)
 
--- ============================================
--- SERVICES
--- ============================================
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -73,7 +65,7 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
 
 -- ============================================
--- CONFIG (OPTIMIZED FOR SMOOTH MOVEMENT)
+-- CONFIG (OPTIMIZED)
 -- ============================================
 local CONFIG = {
     GUI_TOGGLE_KEY = Enum.KeyCode.Insert, AIMBOT_KEY = Enum.KeyCode.E, AIMBOT_FOV = 250, AIMBOT_SMOOTHNESS = 0.15,
@@ -87,30 +79,26 @@ local CONFIG = {
     TELEPORT_KEY = Enum.KeyCode.Z, TELEPORT_SPEED = 150,
     WALKONWATER_KEY = Enum.KeyCode.U,
     STEALTH_MODE = true,
-    -- IMPROVED AUTO-OBBY SETTINGS (SLOWER & SMOOTHER)
-    AUTO_OBBY_SPEED = 60,              -- Reduced from 150 to 60 (MUCH SLOWER)
-    AUTO_OBBY_HEIGHT = 5,              -- Height above checkpoint
-    CHECKPOINT_REACH_DISTANCE = 12,    -- Increased detection range
-    OBSTACLE_AVOIDANCE_HEIGHT = 15,    -- Fly higher over obstacles
-    WAYPOINT_DISTANCE = 20,            -- Distance between waypoints
-    ARROW_FOLLOW_DISTANCE = 30,        -- How far to look ahead following arrow
+    -- PERFECTED AUTO-OBBY SETTINGS
+    AUTO_OBBY_SPEED = 50,              -- Even slower for better anti-kick
+    AUTO_OBBY_HEIGHT = 6,              -- Height above checkpoint
+    CHECKPOINT_REACH_DISTANCE = 15,    -- Distance to consider checkpoint reached
+    OBSTACLE_AVOIDANCE_HEIGHT = 12,    -- Fly higher over obstacles
+    WAYPOINT_DISTANCE = 15,            -- Distance between waypoints
+    ARROW_SEARCH_RADIUS = 40,          -- How far to search for arrow from current position
+    NEXT_CHECKPOINT_SEARCH_RADIUS = 60, -- How far to search for next checkpoint in arrow direction
 }
 
--- ============================================
--- STATE
--- ============================================
 local state = {aimbot = false, esp = false, noclip = false, infjump = false, speed = false, fullbright = false, godmode = false, killaura = false, fastm1 = false, fly = false, walkonwater = false, autoObby = false}
 local espObjects, connections, killAuraTargets = {}, {}, {}
 local originalSpeed, originalLightingSettings = 16, {}
 local selectedTeleportPlayer, isTeleporting, currentTeleportTween = nil, false, nil
-local selectedCheckpoint, currentCheckpointIndex, isAutoObby = nil, 1, false
-local allCheckpoints, visitedCheckpoints = {}, {}
+local isAutoObby = false
+local visitedCheckpoints = {}
 local guiVisible, mainFrameRef, guiButtons, contentScroll, pageTitle, screenGuiRef = true, nil, {}, nil, nil, nil
 local waterPlatform = nil
 
--- ============================================
--- NOTIFICATION SYSTEM
--- ============================================
+-- [SAME NOTIFICATION AND GUI FUNCTIONS - KEEPING ABBREVIATED]
 local function showNotification(message, duration)
     duration = duration or 3
     if not screenGuiRef then return end
@@ -150,9 +138,7 @@ local function showNotification(message, duration)
     end)
 end
 
--- ============================================
--- THEME APPLICATION (ABBREVIATED)
--- ============================================
+-- [GUI FUNCTIONS - SAME AS BEFORE, KEEPING CODE SHORT]
 local function applyThemeToElement(element, elementType)
     local currentTheme = Theme:GetTheme()
     if elementType == "MainFrame" then
@@ -215,441 +201,40 @@ local function refreshGUITheme()
     showNotification("Theme changed to " .. Theme.CurrentTheme, 2)
 end
 
--- [GUI CREATION FUNCTIONS REMAIN THE SAME - ABBREVIATED FOR LENGTH]
-local function createToggleButton(screenGui)
-    local currentTheme = Theme:GetTheme()
-    local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0, Theme.Sizes.ToggleButton, 0, Theme.Sizes.ToggleButton)
-    toggleBtn.Position = UDim2.new(0, 15, 0.5, -Theme.Sizes.ToggleButton/2)
-    toggleBtn.BackgroundColor3 = currentTheme.Colors.ToggleButton
-    toggleBtn.BackgroundTransparency = currentTheme.Transparency.ToggleButton
-    toggleBtn.BorderSizePixel = 0
-    toggleBtn.Text = "N"
-    toggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-    toggleBtn.TextSize = 28
-    toggleBtn.Font = Enum.Font.GothamBlack
-    toggleBtn.ZIndex = 1000
-    toggleBtn.Parent = screenGui
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0.5, 0)
-    local stroke = Instance.new("UIStroke", toggleBtn)
-    stroke.Color = Color3.fromRGB(0, 0, 0)
-    stroke.Thickness = 3
-    stroke.Transparency = 0.3
-    local dragging, dragStart, startPos, dragDistance = false, nil, nil, 0
-    toggleBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = toggleBtn.Position
-            dragDistance = 0
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            dragDistance = delta.Magnitude
-            toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-    toggleBtn.MouseButton1Click:Connect(function()
-        if dragDistance < 5 then
-            local targetPos = guiVisible and UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0) or UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2)
-            guiVisible = not guiVisible
-            TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play()
-        end
-    end)
-    return toggleBtn
-end
-
-local function createClosePrompt(screenGui)
-    local currentTheme = Theme:GetTheme()
-    local prompt = Instance.new("Frame")
-    prompt.Size = UDim2.new(0, 320, 0, 160)
-    prompt.Position = UDim2.new(0.5, -160, 0.5, -80)
-    prompt.BackgroundColor3 = currentTheme.Colors.MainBackground
-    prompt.BackgroundTransparency = currentTheme.Transparency.MainBackground
-    prompt.BorderSizePixel = 0
-    prompt.Visible = false
-    prompt.ZIndex = 2000
-    prompt.Parent = screenGui
-    Instance.new("UICorner", prompt).CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
-    local stroke = Instance.new("UIStroke", prompt)
-    stroke.Color = currentTheme.Colors.AccentBar
-    stroke.Thickness = 2
-    stroke.Transparency = 0.3
-    local title = Instance.new("TextLabel", prompt)
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.BackgroundTransparency = 1
-    title.Text = "Close NullHub?"
-    title.TextColor3 = currentTheme.Colors.TextPrimary
-    title.TextSize = Theme.FontSizes.Title
-    title.Font = Theme.Fonts.Title
-    local desc = Instance.new("TextLabel", prompt)
-    desc.Size = UDim2.new(1, -20, 0, 30)
-    desc.Position = UDim2.new(0, 10, 0, 45)
-    desc.BackgroundTransparency = 1
-    desc.Text = "Choose an action:"
-    desc.TextColor3 = currentTheme.Colors.TextSecondary
-    desc.TextSize = 13
-    desc.Font = Theme.Fonts.Action
-    desc.TextXAlignment = Enum.TextXAlignment.Left
-    local minimizeBtn = Instance.new("TextButton", prompt)
-    minimizeBtn.Size = UDim2.new(0, 140, 0, 38)
-    minimizeBtn.Position = UDim2.new(0, 10, 1, -48)
-    minimizeBtn.BackgroundColor3 = currentTheme.Colors.MinimizeButton
-    minimizeBtn.BackgroundTransparency = 0.1
-    minimizeBtn.BorderSizePixel = 0
-    minimizeBtn.Text = "Minimize"
-    minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    minimizeBtn.TextSize = 15
-    minimizeBtn.Font = Theme.Fonts.Tab
-    Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-    local closeBtn = Instance.new("TextButton", prompt)
-    closeBtn.Size = UDim2.new(0, 140, 0, 38)
-    closeBtn.Position = UDim2.new(1, -150, 1, -48)
-    closeBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
-    closeBtn.BackgroundTransparency = 0.1
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Text = "Close & Destroy"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.TextSize = 15
-    closeBtn.Font = Theme.Fonts.Tab
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-    return prompt, minimizeBtn, closeBtn
-end
-
-local function createModernGUI()
-    local currentTheme = Theme:GetTheme()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "NullHubGUI"
-    screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.DisplayOrder = 999
-    screenGui.Parent = player:WaitForChild("PlayerGui")
-    local mainFrame = Instance.new("Frame", screenGui)
-    mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, Theme.Sizes.MainFrameWidth, 0, Theme.Sizes.MainFrameHeight)
-    mainFrame.Position = UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2)
-    mainFrame.BackgroundColor3 = currentTheme.Colors.MainBackground
-    mainFrame.BackgroundTransparency = currentTheme.Transparency.MainBackground
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Active = true
-    mainFrame.Draggable = true
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, Theme.CornerRadius.Large)
-    local mainStroke = Instance.new("UIStroke", mainFrame)
-    mainStroke.Color = currentTheme.Colors.BorderColor
-    mainStroke.Thickness = 1
-    mainStroke.Transparency = currentTheme.Transparency.Stroke
-    local topBar = Instance.new("Frame", mainFrame)
-    topBar.Name = "TopBar"
-    topBar.Size = UDim2.new(1, 0, 0, Theme.Sizes.HeaderHeight)
-    topBar.BackgroundColor3 = currentTheme.Colors.HeaderBackground
-    topBar.BackgroundTransparency = currentTheme.Transparency.Header
-    topBar.BorderSizePixel = 0
-    Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, Theme.CornerRadius.Large)
-    local accentLine = Instance.new("Frame", topBar)
-    accentLine.Name = "AccentLine"
-    accentLine.Size = UDim2.new(1, 0, 0, 2)
-    accentLine.Position = UDim2.new(0, 0, 1, -2)
-    accentLine.BackgroundColor3 = currentTheme.Colors.AccentBar
-    accentLine.BackgroundTransparency = currentTheme.Transparency.AccentBar
-    accentLine.BorderSizePixel = 0
-    local title = Instance.new("TextLabel", topBar)
-    title.Name = "Title"
-    title.Size = UDim2.new(1, -120, 1, 0)
-    title.Position = UDim2.new(0, 18, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "⚡ NullHub | Protected"
-    title.TextColor3 = currentTheme.Colors.TextPrimary
-    title.TextSize = Theme.FontSizes.Title
-    title.Font = Theme.Fonts.Title
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    local closeBtn = Instance.new("TextButton", topBar)
-    closeBtn.Name = "CloseButton"
-    closeBtn.Size = UDim2.new(0, Theme.Sizes.CloseButton, 0, Theme.Sizes.CloseButton)
-    closeBtn.Position = UDim2.new(1, -Theme.Sizes.CloseButton - 6, 0, 3.5)
-    closeBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
-    closeBtn.BackgroundTransparency = currentTheme.Transparency.CloseButton
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Text = "×"
-    closeBtn.TextColor3 = currentTheme.Colors.TextPrimary
-    closeBtn.TextSize = 26
-    closeBtn.Font = Theme.Fonts.Title
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
-    local sidebar = Instance.new("Frame", mainFrame)
-    sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, Theme.Sizes.SidebarWidth, 1, -Theme.Sizes.HeaderHeight - 8)
-    sidebar.Position = UDim2.new(0, 6, 0, Theme.Sizes.HeaderHeight + 6)
-    sidebar.BackgroundColor3 = currentTheme.Colors.SidebarBackground
-    sidebar.BackgroundTransparency = currentTheme.Transparency.Sidebar
-    sidebar.BorderSizePixel = 0
-    Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
-    local sidebarStroke = Instance.new("UIStroke", sidebar)
-    sidebarStroke.Color = currentTheme.Colors.BorderColor
-    sidebarStroke.Thickness = 1
-    sidebarStroke.Transparency = currentTheme.Transparency.Stroke
-    local sidebarList = Instance.new("UIListLayout", sidebar)
-    sidebarList.Padding = UDim.new(0, 6)
-    sidebarList.SortOrder = Enum.SortOrder.LayoutOrder
-    local sidebarPadding = Instance.new("UIPadding", sidebar)
-    sidebarPadding.PaddingTop = UDim.new(0, 8)
-    sidebarPadding.PaddingLeft = UDim.new(0, 8)
-    sidebarPadding.PaddingRight = UDim.new(0, 8)
-    sidebarPadding.PaddingBottom = UDim.new(0, 8)
-    local contentFrame = Instance.new("Frame", mainFrame)
-    contentFrame.Name = "ContentFrame"
-    contentFrame.Size = UDim2.new(1, -Theme.Sizes.SidebarWidth - 18, 1, -Theme.Sizes.HeaderHeight - 14)
-    contentFrame.Position = UDim2.new(0, Theme.Sizes.SidebarWidth + 12, 0, Theme.Sizes.HeaderHeight + 8)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.BorderSizePixel = 0
-    local pageTitleLabel = Instance.new("TextLabel", contentFrame)
-    pageTitleLabel.Name = "PageTitle"
-    pageTitleLabel.Size = UDim2.new(1, 0, 0, 32)
-    pageTitleLabel.BackgroundTransparency = 1
-    pageTitleLabel.Text = "Combat"
-    pageTitleLabel.TextColor3 = currentTheme.Colors.TextPrimary
-    pageTitleLabel.TextSize = Theme.FontSizes.Title
-    pageTitleLabel.Font = Theme.Fonts.Title
-    pageTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    local actionScroll = Instance.new("ScrollingFrame", contentFrame)
-    actionScroll.Name = "ActionScroll"
-    actionScroll.Size = UDim2.new(1, -8, 1, -40)
-    actionScroll.Position = UDim2.new(0, 0, 0, 38)
-    actionScroll.BackgroundTransparency = 1
-    actionScroll.BorderSizePixel = 0
-    actionScroll.ScrollBarThickness = Theme.Sizes.ScrollBarThickness
-    actionScroll.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
-    actionScroll.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
-    actionScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    actionScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    Instance.new("UIListLayout", actionScroll).Padding = UDim.new(0, 8)
-    Instance.new("UIPadding", actionScroll).PaddingRight = UDim.new(0, 4)
-    return mainFrame, closeBtn, sidebar, contentFrame, pageTitleLabel, actionScroll, screenGui
-end
-
-local function createTabButton(parent, tabName, icon, index)
-    local currentTheme = Theme:GetTheme()
-    local tabBtn = Instance.new("TextButton", parent)
-    tabBtn.Name = "Tab_" .. tabName
-    tabBtn.Size = UDim2.new(1, 0, 0, Theme.Sizes.TabHeight)
-    tabBtn.BackgroundColor3 = currentTheme.Colors.TabNormal
-    tabBtn.BackgroundTransparency = currentTheme.Transparency.Tab
-    tabBtn.BorderSizePixel = 0
-    tabBtn.Text = "  " .. icon .. "  " .. tabName
-    tabBtn.TextColor3 = currentTheme.Colors.TextPrimary
-    tabBtn.TextSize = Theme.FontSizes.Tab
-    tabBtn.Font = Theme.Fonts.Tab
-    tabBtn.TextXAlignment = Enum.TextXAlignment.Left
-    tabBtn.LayoutOrder = index
-    Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-    local tabStroke = Instance.new("UIStroke", tabBtn)
-    tabStroke.Color = currentTheme.Colors.BorderColor
-    tabStroke.Thickness = 1
-    tabStroke.Transparency = 0.7
-    return tabBtn
-end
-
-local function createActionRow(parent, actionData, index)
-    local currentTheme = Theme:GetTheme()
-    local rowHeight = Theme.Sizes.ActionRowHeight
-    if actionData.hasInput then rowHeight = Theme.Sizes.ActionRowHeight + Theme.Sizes.InputHeight + 12
-    elseif actionData.hasDropdown then rowHeight = Theme.Sizes.ActionRowHeight + Theme.Sizes.DropdownHeight + 12
-    elseif actionData.hasCheckpointDropdown then rowHeight = Theme.Sizes.ActionRowHeight + Theme.Sizes.DropdownHeight + 12
-    elseif actionData.hasStopButton then rowHeight = Theme.Sizes.ActionRowHeight * 2 + 12 end
-    local actionFrame = Instance.new("Frame", parent)
-    actionFrame.Name = actionData.name .. "Row"
-    actionFrame.Size = UDim2.new(1, -4, 0, rowHeight)
-    actionFrame.BackgroundColor3 = currentTheme.Colors.ContainerBackground
-    actionFrame.BackgroundTransparency = currentTheme.Transparency.Container
-    actionFrame.BorderSizePixel = 0
-    actionFrame.LayoutOrder = index
-    Instance.new("UICorner", actionFrame).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-    local rowStroke = Instance.new("UIStroke", actionFrame)
-    rowStroke.Color = currentTheme.Colors.BorderColor
-    rowStroke.Thickness = 1
-    rowStroke.Transparency = currentTheme.Transparency.Stroke
-    local actionBtn = Instance.new("TextButton", actionFrame)
-    actionBtn.Name = actionData.state .. "Btn"
-    actionBtn.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight)
-    actionBtn.BackgroundTransparency = 1
-    actionBtn.Text = ""
-    local icon = Instance.new("TextLabel", actionFrame)
-    icon.Size = UDim2.new(0, 32, 0, Theme.Sizes.ActionRowHeight)
-    icon.Position = UDim2.new(0, 8, 0, 0)
-    icon.BackgroundTransparency = 1
-    icon.Text = actionData.icon
-    icon.TextSize = 20
-    local nameLabel = Instance.new("TextLabel", actionFrame)
-    nameLabel.Size = UDim2.new(1, -90, 0, Theme.Sizes.ActionRowHeight)
-    nameLabel.Position = UDim2.new(0, 42, 0, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = actionData.name .. " [" .. actionData.key .. "]"
-    nameLabel.TextColor3 = currentTheme.Colors.TextPrimary
-    nameLabel.TextSize = Theme.FontSizes.Action
-    nameLabel.Font = Theme.Fonts.Action
-    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    local statusIndicator = Instance.new("Frame", actionFrame)
-    statusIndicator.Name = "StatusIndicator"
-    statusIndicator.Size = UDim2.new(0, Theme.Sizes.StatusIndicator, 0, Theme.Sizes.StatusIndicator)
-    statusIndicator.Position = UDim2.new(1, -24, 0, (Theme.Sizes.ActionRowHeight - Theme.Sizes.StatusIndicator) / 2)
-    statusIndicator.BackgroundColor3 = currentTheme.Colors.StatusOff
-    statusIndicator.BackgroundTransparency = currentTheme.Transparency.StatusIndicator
-    statusIndicator.BorderSizePixel = 0
-    Instance.new("UICorner", statusIndicator).CornerRadius = UDim.new(1, 0)
-    if actionData.hasInput then
-        local speedInput = Instance.new("TextBox", actionFrame)
-        speedInput.Name = "SpeedInput"
-        speedInput.Size = UDim2.new(1, -16, 0, Theme.Sizes.InputHeight)
-        speedInput.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
-        speedInput.BackgroundColor3 = currentTheme.Colors.InputBackground
-        speedInput.BackgroundTransparency = currentTheme.Transparency.Input
-        speedInput.BorderSizePixel = 0
-        speedInput.Text = tostring(CONFIG.SPEED_VALUE)
-        speedInput.PlaceholderText = "Speed (0-1000000)"
-        speedInput.TextColor3 = currentTheme.Colors.TextPrimary
-        speedInput.PlaceholderColor3 = currentTheme.Colors.TextPlaceholder
-        speedInput.TextSize = Theme.FontSizes.Input
-        speedInput.Font = Theme.Fonts.Input
-        speedInput.ClearTextOnFocus = false
-        Instance.new("UICorner", speedInput).CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
-        Instance.new("UIPadding", speedInput).PaddingLeft = UDim.new(0, 10)
-        return actionFrame, actionBtn, statusIndicator, speedInput
-    end
-    if actionData.hasDropdown then
-        local dropdown = Instance.new("ScrollingFrame", actionFrame)
-        dropdown.Name = "PlayerDropdown"
-        dropdown.Size = UDim2.new(1, -16, 0, Theme.Sizes.DropdownHeight)
-        dropdown.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
-        dropdown.BackgroundColor3 = currentTheme.Colors.DropdownBackground
-        dropdown.BackgroundTransparency = currentTheme.Transparency.Dropdown
-        dropdown.BorderSizePixel = 0
-        dropdown.ScrollBarThickness = 4
-        dropdown.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
-        dropdown.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
-        dropdown.CanvasSize = UDim2.new(0, 0, 0, 0)
-        dropdown.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
-        local placeholderLabel = Instance.new("TextLabel", dropdown)
-        placeholderLabel.Name = "PlaceholderText"
-        placeholderLabel.Size = UDim2.new(1, -16, 0, 30)
-        placeholderLabel.Position = UDim2.new(0, 8, 0, 8)
-        placeholderLabel.BackgroundTransparency = 1
-        placeholderLabel.Text = "Select a player..."
-        placeholderLabel.TextColor3 = currentTheme.Colors.TextPlaceholder
-        placeholderLabel.TextSize = Theme.FontSizes.Input
-        placeholderLabel.Font = Theme.Fonts.Input
-        placeholderLabel.TextXAlignment = Enum.TextXAlignment.Left
-        return actionFrame, actionBtn, statusIndicator, nil, dropdown, placeholderLabel
-    end
-    if actionData.hasStopButton then
-        local stopBtn = Instance.new("TextButton", actionFrame)
-        stopBtn.Name = "StopTweenBtn"
-        stopBtn.Size = UDim2.new(1, -16, 0, Theme.Sizes.ActionRowHeight)
-        stopBtn.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
-        stopBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
-        stopBtn.BackgroundTransparency = 0.1
-        stopBtn.BorderSizePixel = 0
-        stopBtn.Text = "⏹ Stop Tween"
-        stopBtn.TextColor3 = currentTheme.Colors.TextPrimary
-        stopBtn.TextSize = Theme.FontSizes.Action
-        stopBtn.Font = Theme.Fonts.Tab
-        Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-        return actionFrame, actionBtn, statusIndicator, nil, nil, nil, stopBtn
-    end
-    return actionFrame, actionBtn, statusIndicator
-end
-
-local function createThemeButton(parent, themeName, index)
-    local currentTheme = Theme:GetTheme()
-    local themeBtn = Instance.new("TextButton", parent)
-    themeBtn.Name = "Theme_" .. themeName
-    themeBtn.Size = UDim2.new(1, -16, 0, Theme.Sizes.ActionRowHeight)
-    themeBtn.Position = UDim2.new(0, 8, 0, (index - 1) * (Theme.Sizes.ActionRowHeight + 6) + 6)
-    themeBtn.BackgroundColor3 = currentTheme.Colors.ContainerBackground
-    themeBtn.BackgroundTransparency = currentTheme.Transparency.Container
-    themeBtn.BorderSizePixel = 0
-    themeBtn.Text = "  ●  " .. themeName
-    themeBtn.TextColor3 = currentTheme.Colors.TextPrimary
-    themeBtn.TextSize = Theme.FontSizes.Action
-    themeBtn.Font = Theme.Fonts.Action
-    themeBtn.TextXAlignment = Enum.TextXAlignment.Left
-    Instance.new("UICorner", themeBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-    local btnStroke = Instance.new("UIStroke", themeBtn)
-    btnStroke.Color = currentTheme.Colors.BorderColor
-    btnStroke.Thickness = 1
-    btnStroke.Transparency = 0.7
-    return themeBtn
-end
-
-local featuresByTab = {
-    Combat = {
-        {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯"},
-        {name = "ESP", key = "T", state = "esp", icon = "👁️"},
-        {name = "KillAura", key = "K", state = "killaura", icon = "⚔️"},
-        {name = "Fast M1", key = "M", state = "fastm1", icon = "👊"},
-    },
-    Movement = {
-        {name = "Fly", key = "F", state = "fly", icon = "🕊️"},
-        {name = "NoClip", key = "N", state = "noclip", icon = "👻"},
-        {name = "Infinite Jump", key = "J", state = "infjump", icon = "🦘"},
-        {name = "Speed Hack", key = "X", state = "speed", icon = "⚡", hasInput = true},
-        {name = "Walk on Water", key = "U", state = "walkonwater", icon = "🌊"},
-    },
-    Visual = {
-        {name = "Full Bright", key = "B", state = "fullbright", icon = "💡"},
-        {name = "God Mode", key = "V", state = "godmode", icon = "🛡️"},
-    },
-    Teleport = {
-        {name = "Teleport To Player", key = "Z", state = "teleport", icon = "🚀", isAction = true, hasDropdown = true},
-        {name = "Auto-Complete Obby", key = "", state = "autoObby", icon = "🎯"},
-        {name = "Stop Teleport", key = "", state = "stop_tween", icon = "⏹", isAction = true, hasStopButton = true},
-    },
-    Themes = {},
-}
-
-local function updateContentPage(tabName)
-    if not contentScroll then return end
-    for _, child in pairs(contentScroll:GetChildren()) do
-        if child:IsA("Frame") or child:IsA("TextButton") then child:Destroy() end
-    end
-    if pageTitle then pageTitle.Text = tabName end
-    if tabName == "Themes" then
-        local themeNames = Theme:GetAllThemeNames()
-        for i, themeName in ipairs(themeNames) do
-            local themeBtn = createThemeButton(contentScroll, themeName, i)
-            themeBtn.MouseButton1Click:Connect(function()
-                if Theme:SetTheme(themeName) then refreshGUITheme() end
-            end)
-        end
-        return
-    end
-    local features = featuresByTab[tabName] or {}
-    for i, feature in ipairs(features) do
-        local frame, btn, indicator, input, dropdown, placeholder, stopBtn = createActionRow(contentScroll, feature, i)
-        guiButtons[feature.state] = {button = btn, indicator = indicator, container = frame, isAction = feature.isAction or false, input = input, dropdown = dropdown, placeholder = placeholder, stopBtn = stopBtn}
-    end
-end
-
 -- ============================================
--- IMPROVED AUTO-OBBY SYSTEM (FOLLOWS GREEN ARROWS)
+-- PERFECTED AUTO-OBBY SYSTEM (DYNAMIC ARROW FOLLOWING)
 -- ============================================
 
--- Find Green Arrow and get its direction
-local function findGreenArrow()
+-- Find the nearest arrow to current position
+local function findNearestArrow(fromPosition)
+    if not fromPosition then return nil end
+    
+    local nearestArrow = nil
+    local shortestDistance = CONFIG.ARROW_SEARCH_RADIUS
+    
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == "CheckpointArrow" or obj.Name:find("Arrow") then
-            if obj:IsA("BasePart") or obj:IsA("Model") then
-                return obj
+        if (obj.Name == "CheckpointArrow" or obj.Name:find("Arrow")) and (obj:IsA("BasePart") or obj:IsA("Model")) then
+            local arrowPos
+            if obj:IsA("Model") then
+                arrowPos = obj:GetPivot().Position
+            elseif obj:IsA("BasePart") then
+                arrowPos = obj.Position
+            end
+            
+            if arrowPos then
+                local distance = (fromPosition - arrowPos).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestArrow = obj
+                end
             end
         end
     end
-    return nil
+    
+    return nearestArrow
 end
 
--- Get direction from arrow's orientation
+-- Get direction vector from arrow
 local function getArrowDirection(arrow)
     if not arrow then return nil end
     
@@ -662,109 +247,119 @@ local function getArrowDirection(arrow)
         return nil
     end
     
-    -- Arrow's LookVector points forward
+    -- Arrow's LookVector points in the direction it's facing
     return arrowCFrame.LookVector
 end
 
--- Find all checkpoints with better sorting
-local function findAllCheckpoints()
-    local checkpoints = {}
-    local checkpointNames = {"CheckpointArrow", "Checkpoint", "checkpoint", "CheckPoint", "Stage", "stage", "Spawn", "spawn", "SpawnLocation", "Respawn"}
+-- Find next checkpoint in the direction the arrow points
+local function findNextCheckpointInDirection(fromPosition, direction)
+    if not fromPosition or not direction then return nil end
+    
+    local bestCheckpoint = nil
+    local bestScore = math.huge
+    
+    local checkpointNames = {"Checkpoint", "checkpoint", "CheckPoint", "Stage", "stage", "Spawn", "spawn", "SpawnLocation"}
     
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("SpawnLocation") then
+        if (obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("SpawnLocation")) then
             local objName = obj.Name
+            local isCheckpoint = false
+            
             for _, keyword in pairs(checkpointNames) do
                 if objName:find(keyword) then
-                    local stageNum = tonumber(objName:match("%d+")) or 0
-                    local position = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
-                    
-                    table.insert(checkpoints, {
-                        part = obj,
-                        name = objName,
-                        stage = stageNum,
-                        position = position,
-                        visited = false
-                    })
+                    isCheckpoint = true
                     break
+                end
+            end
+            
+            if isCheckpoint then
+                local checkpointPos
+                if obj:IsA("Model") then
+                    checkpointPos = obj:GetPivot().Position
+                elseif obj:IsA("BasePart") or obj:IsA("SpawnLocation") then
+                    checkpointPos = obj.Position
+                end
+                
+                if checkpointPos and not visitedCheckpoints[obj] then
+                    local toCheckpoint = (checkpointPos - fromPosition).Unit
+                    local distance = (checkpointPos - fromPosition).Magnitude
+                    
+                    -- Check if checkpoint is in the general direction of arrow
+                    local alignment = toCheckpoint:Dot(direction)
+                    
+                    -- Only consider checkpoints that are somewhat in the arrow's direction
+                    if alignment > 0.3 and distance < CONFIG.NEXT_CHECKPOINT_SEARCH_RADIUS then
+                        -- Score based on alignment and distance (prefer closer + more aligned)
+                        local score = distance * (1 - alignment)
+                        
+                        if score < bestScore then
+                            bestScore = score
+                            bestCheckpoint = {
+                                part = obj,
+                                name = objName,
+                                position = checkpointPos
+                            }
+                        end
+                    end
                 end
             end
         end
     end
     
-    -- Sort by stage number first, then by distance from start
-    if #checkpoints > 0 and rootPart then
-        local startPos = rootPart.Position
-        table.sort(checkpoints, function(a, b)
-            if a.stage ~= b.stage then
-                return a.stage < b.stage
-            else
-                local distA = (a.position - startPos).Magnitude
-                local distB = (b.position - startPos).Magnitude
-                return distA < distB
-            end
-        end)
-    end
-    
-    return checkpoints
+    return bestCheckpoint
 end
 
 -- Check if part is an obstacle
 local function isObstacle(part)
     if not part or not part:IsA("BasePart") then return false end
     local partName = part.Name:lower()
-    local obstacleKeywords = {"kill", "lava", "spike", "trap", "death", "damage", "hurt", "void", "fire"}
+    local obstacleKeywords = {"kill", "lava", "spike", "trap", "death", "damage", "hurt", "void", "fire", "acid"}
     
     for _, keyword in pairs(obstacleKeywords) do
         if partName:find(keyword) then return true end
     end
     
-    -- Check for red colored parts (usually kill parts)
     if part.Color == Color3.fromRGB(255, 0, 0) or part.Color == Color3.fromRGB(255, 100, 100) then return true end
     if part.Material == Enum.Material.Neon and (part.Color.R > 0.8 and part.Color.G < 0.3) then return true end
     
     return false
 end
 
--- Create waypoints following arrow direction with obstacle avoidance
-local function createWaypointsToCheckpoint(targetPos, arrow)
-    if not rootPart then return {targetPos} end
-    
+-- Create smooth waypoints following arrow direction
+local function createSmoothWaypoints(startPos, targetPos, arrowDirection)
     local waypoints = {}
-    local startPos = rootPart.Position
-    local arrowDirection = arrow and getArrowDirection(arrow)
+    local distance = (targetPos - startPos).Magnitude
+    local steps = math.ceil(distance / CONFIG.WAYPOINT_DISTANCE)
     
-    if arrowDirection then
-        -- Follow arrow direction with waypoints
-        local steps = math.ceil((targetPos - startPos).Magnitude / CONFIG.WAYPOINT_DISTANCE)
+    if steps < 2 then steps = 2 end
+    
+    for i = 1, steps do
+        local progress = i / steps
+        local basePos = startPos:Lerp(targetPos, progress)
         
-        for i = 1, steps do
-            local progress = i / steps
-            local waypointPos = startPos:Lerp(targetPos, progress)
-            
-            -- Add slight curve following arrow direction
-            waypointPos = waypointPos + (arrowDirection * (CONFIG.WAYPOINT_DISTANCE * 0.3))
-            
-            -- Check for obstacles
-            local rayParams = RaycastParams.new()
-            rayParams.FilterDescendantsInstances = {character}
-            rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-            
-            local rayResult = workspace:Raycast(waypointPos, Vector3.new(0, -20, 0), rayParams)
-            
-            if rayResult and rayResult.Instance and isObstacle(rayResult.Instance) then
-                -- Fly higher over obstacles
-                waypointPos = Vector3.new(waypointPos.X, waypointPos.Y + CONFIG.OBSTACLE_AVOIDANCE_HEIGHT, waypointPos.Z)
-            else
-                -- Normal height
-                waypointPos = Vector3.new(waypointPos.X, waypointPos.Y + CONFIG.AUTO_OBBY_HEIGHT, waypointPos.Z)
-            end
-            
-            table.insert(waypoints, waypointPos)
+        -- If arrow direction exists, curve the path to follow it
+        if arrowDirection then
+            local curveAmount = math.sin(progress * math.pi) * CONFIG.WAYPOINT_DISTANCE * 0.5
+            basePos = basePos + (arrowDirection * curveAmount)
         end
-    else
-        -- Fallback: Direct path with height
-        table.insert(waypoints, Vector3.new(targetPos.X, targetPos.Y + CONFIG.AUTO_OBBY_HEIGHT, targetPos.Z))
+        
+        -- Check for obstacles below this waypoint
+        local rayParams = RaycastParams.new()
+        rayParams.FilterDescendantsInstances = {character}
+        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+        
+        local rayResult = workspace:Raycast(basePos, Vector3.new(0, -25, 0), rayParams)
+        
+        local finalPos
+        if rayResult and rayResult.Instance and isObstacle(rayResult.Instance) then
+            -- Fly higher over obstacles
+            finalPos = Vector3.new(basePos.X, basePos.Y + CONFIG.OBSTACLE_AVOIDANCE_HEIGHT, basePos.Z)
+        else
+            -- Normal height
+            finalPos = Vector3.new(basePos.X, basePos.Y + CONFIG.AUTO_OBBY_HEIGHT, basePos.Z)
+        end
+        
+        table.insert(waypoints, finalPos)
     end
     
     return waypoints
@@ -777,7 +372,7 @@ local function smoothTweenToPosition(targetPos, speed)
     local distance = (rootPart.Position - targetPos).Magnitude
     local duration = distance / speed
     
-    -- Use Sine easing for smoother movement (prevents anti-cheat kicks)
+    -- Use Sine easing for natural movement
     currentTeleportTween = TweenService:Create(
         rootPart,
         TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
@@ -791,8 +386,7 @@ local function smoothTweenToPosition(targetPos, speed)
         completed = true
     end)
     
-    -- Wait for completion or proximity
-    local maxWaitTime = duration + 1
+    local maxWaitTime = duration + 2
     local waitedTime = 0
     local checkInterval = 0.1
     
@@ -813,88 +407,85 @@ local function smoothTweenToPosition(targetPos, speed)
     return true
 end
 
--- Main Auto-Obby function with arrow following
+-- MAIN AUTO-OBBY FUNCTION (DYNAMIC ARROW FOLLOWING)
 local function autoCompleteObby()
     if not isAutoObby or not rootPart then return end
     
-    allCheckpoints = findAllCheckpoints()
     visitedCheckpoints = {}
+    local checkpointCount = 0
+    local maxCheckpoints = 200 -- Safety limit
     
-    if #allCheckpoints == 0 then
-        showNotification("No checkpoints found!", 3)
-        state.autoObby = false
-        isAutoObby = false
-        updateButtonVisual("autoObby")
-        return
-    end
+    showNotification("🎯 Auto-Obby: Starting dynamic arrow following...", 3)
     
-    showNotification("🎯 Auto-Obby: Starting (" .. #allCheckpoints .. " checkpoints)", 3)
-    currentCheckpointIndex = 1
-    
-    while isAutoObby and currentCheckpointIndex <= #allCheckpoints do
+    while isAutoObby and checkpointCount < maxCheckpoints do
         if not rootPart or not rootPart.Parent then
             showNotification("Character lost!", 2)
             break
         end
         
-        local checkpoint = allCheckpoints[currentCheckpointIndex]
+        -- Step 1: Find nearest arrow to current position
+        local currentArrow = findNearestArrow(rootPart.Position)
         
-        if not checkpoint.part or not checkpoint.part.Parent then
-            currentCheckpointIndex = currentCheckpointIndex + 1
-            task.wait(0.1)
-            continue
+        if not currentArrow then
+            showNotification("No arrow found - Obby complete or stuck!", 3)
+            break
         end
         
-        -- Skip if already visited (prevents backwards teleport)
-        if visitedCheckpoints[checkpoint.part] then
-            currentCheckpointIndex = currentCheckpointIndex + 1
-            task.wait(0.1)
-            continue
+        -- Step 2: Get direction from arrow
+        local arrowDirection = getArrowDirection(currentArrow)
+        
+        if not arrowDirection then
+            showNotification("Could not read arrow direction!", 2)
+            break
         end
         
-        -- Find nearest arrow for guidance
-        local arrow = findGreenArrow()
+        -- Step 3: Find next checkpoint in arrow's direction
+        local nextCheckpoint = findNextCheckpointInDirection(rootPart.Position, arrowDirection)
         
-        showNotification("🚀 Moving to: " .. checkpoint.name .. " (" .. currentCheckpointIndex .. "/" .. #allCheckpoints .. ")", 2)
+        if not nextCheckpoint then
+            showNotification("🎉 No more checkpoints - Obby Complete!", 4)
+            break
+        end
         
-        -- Create waypoints following arrow direction
-        local waypoints = createWaypointsToCheckpoint(checkpoint.position, arrow)
+        checkpointCount = checkpointCount + 1
+        showNotification("🚀 Moving to: " .. nextCheckpoint.name .. " (#" .. checkpointCount .. ")", 2)
         
-        -- Travel through waypoints smoothly
+        -- Step 4: Create smooth waypoints following arrow direction
+        local waypoints = createSmoothWaypoints(rootPart.Position, nextCheckpoint.position, arrowDirection)
+        
+        -- Step 5: Travel through waypoints
         for _, waypointPos in ipairs(waypoints) do
             if not isAutoObby then break end
             
             local success = smoothTweenToPosition(waypointPos, CONFIG.AUTO_OBBY_SPEED)
             if not success then break end
             
-            task.wait(0.2) -- Small delay between waypoints
+            task.wait(0.3) -- Delay between waypoints
         end
         
-        -- Mark as visited
-        visitedCheckpoints[checkpoint.part] = true
-        checkpoint.visited = true
+        -- Step 6: Mark checkpoint as visited
+        visitedCheckpoints[nextCheckpoint.part] = true
         
-        -- Check if we're actually at the checkpoint
+        -- Step 7: Check if we reached checkpoint
         if rootPart and rootPart.Parent then
-            local distanceToCheckpoint = (rootPart.Position - checkpoint.position).Magnitude
+            local distanceToCheckpoint = (rootPart.Position - nextCheckpoint.position).Magnitude
             if distanceToCheckpoint < CONFIG.CHECKPOINT_REACH_DISTANCE then
-                showNotification("✅ Reached: " .. checkpoint.name, 1.5)
+                showNotification("✅ Reached: " .. nextCheckpoint.name, 1.5)
             end
         end
         
-        currentCheckpointIndex = currentCheckpointIndex + 1
-        task.wait(0.5) -- Longer delay between checkpoints (prevents kicks)
+        task.wait(0.6) -- Delay before finding next arrow (prevents kicks)
     end
     
     if isAutoObby then
-        showNotification("🎉 Obby Complete! All checkpoints reached!", 4)
+        showNotification("🎉 Auto-Obby Complete! Reached " .. checkpointCount .. " checkpoints!", 4)
         isAutoObby = false
         state.autoObby = false
         updateButtonVisual("autoObby")
     end
 end
 
--- [CONTINUE WITH REMAINING FUNCTIONS - SAME AS BEFORE]
+-- [REST OF THE FUNCTIONS - SAME AS BEFORE]
 local function updatePlayerDropdown(dropdown)
     if not dropdown then return end
     local currentTheme = Theme:GetTheme()
@@ -935,7 +526,7 @@ local function updatePlayerDropdown(dropdown)
     if placeholder then placeholder.Visible = not hasPlayers end
 end
 
--- [ALL OTHER FUNCTIONS REMAIN THE SAME]
+-- [ALL OTHER FEATURE FUNCTIONS - KEEPING SAME]
 local function getClosestPlayerForAimbot()
     local closestPlayer, shortestDistance = nil, CONFIG.AIMBOT_FOV
     local mousePos = UserInputService:GetMouseLocation()
@@ -1282,7 +873,7 @@ local function toggleAutoObby()
     updateButtonVisual("autoObby")
     
     if isAutoObby then
-        showNotification("🎯 Auto-Obby: Starting (Following arrows)...", 2)
+        showNotification("🎯 Auto-Obby: Starting dynamic arrow following...", 2)
         task.spawn(autoCompleteObby)
     else
         if currentTeleportTween then
@@ -1291,6 +882,423 @@ local function toggleAutoObby()
         end
         showNotification("Auto-Obby: Stopped", 2)
     end
+end
+
+-- [GUI CREATION AND INITIALIZATION - ABBREVIATED]
+local function createModernGUI()
+    local currentTheme = Theme:GetTheme()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NullHubGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.DisplayOrder = 999
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+    local mainFrame = Instance.new("Frame", screenGui)
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, Theme.Sizes.MainFrameWidth, 0, Theme.Sizes.MainFrameHeight)
+    mainFrame.Position = UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2)
+    mainFrame.BackgroundColor3 = currentTheme.Colors.MainBackground
+    mainFrame.BackgroundTransparency = currentTheme.Transparency.MainBackground
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, Theme.CornerRadius.Large)
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Color = currentTheme.Colors.BorderColor
+    mainStroke.Thickness = 1
+    mainStroke.Transparency = currentTheme.Transparency.Stroke
+    local topBar = Instance.new("Frame", mainFrame)
+    topBar.Name = "TopBar"
+    topBar.Size = UDim2.new(1, 0, 0, Theme.Sizes.HeaderHeight)
+    topBar.BackgroundColor3 = currentTheme.Colors.HeaderBackground
+    topBar.BackgroundTransparency = currentTheme.Transparency.Header
+    topBar.BorderSizePixel = 0
+    Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, Theme.CornerRadius.Large)
+    local accentLine = Instance.new("Frame", topBar)
+    accentLine.Name = "AccentLine"
+    accentLine.Size = UDim2.new(1, 0, 0, 2)
+    accentLine.Position = UDim2.new(0, 0, 1, -2)
+    accentLine.BackgroundColor3 = currentTheme.Colors.AccentBar
+    accentLine.BackgroundTransparency = currentTheme.Transparency.AccentBar
+    accentLine.BorderSizePixel = 0
+    local title = Instance.new("TextLabel", topBar)
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -120, 1, 0)
+    title.Position = UDim2.new(0, 18, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "⚡ NullHub | Protected"
+    title.TextColor3 = currentTheme.Colors.TextPrimary
+    title.TextSize = Theme.FontSizes.Title
+    title.Font = Theme.Fonts.Title
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    local closeBtn = Instance.new("TextButton", topBar)
+    closeBtn.Name = "CloseButton"
+    closeBtn.Size = UDim2.new(0, Theme.Sizes.CloseButton, 0, Theme.Sizes.CloseButton)
+    closeBtn.Position = UDim2.new(1, -Theme.Sizes.CloseButton - 6, 0, 3.5)
+    closeBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
+    closeBtn.BackgroundTransparency = currentTheme.Transparency.CloseButton
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "×"
+    closeBtn.TextColor3 = currentTheme.Colors.TextPrimary
+    closeBtn.TextSize = 26
+    closeBtn.Font = Theme.Fonts.Title
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
+    local sidebar = Instance.new("Frame", mainFrame)
+    sidebar.Name = "Sidebar"
+    sidebar.Size = UDim2.new(0, Theme.Sizes.SidebarWidth, 1, -Theme.Sizes.HeaderHeight - 8)
+    sidebar.Position = UDim2.new(0, 6, 0, Theme.Sizes.HeaderHeight + 6)
+    sidebar.BackgroundColor3 = currentTheme.Colors.SidebarBackground
+    sidebar.BackgroundTransparency = currentTheme.Transparency.Sidebar
+    sidebar.BorderSizePixel = 0
+    Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
+    local sidebarStroke = Instance.new("UIStroke", sidebar)
+    sidebarStroke.Color = currentTheme.Colors.BorderColor
+    sidebarStroke.Thickness = 1
+    sidebarStroke.Transparency = currentTheme.Transparency.Stroke
+    local sidebarList = Instance.new("UIListLayout", sidebar)
+    sidebarList.Padding = UDim.new(0, 6)
+    sidebarList.SortOrder = Enum.SortOrder.LayoutOrder
+    local sidebarPadding = Instance.new("UIPadding", sidebar)
+    sidebarPadding.PaddingTop = UDim.new(0, 8)
+    sidebarPadding.PaddingLeft = UDim.new(0, 8)
+    sidebarPadding.PaddingRight = UDim.new(0, 8)
+    sidebarPadding.PaddingBottom = UDim.new(0, 8)
+    local contentFrame = Instance.new("Frame", mainFrame)
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -Theme.Sizes.SidebarWidth - 18, 1, -Theme.Sizes.HeaderHeight - 14)
+    contentFrame.Position = UDim2.new(0, Theme.Sizes.SidebarWidth + 12, 0, Theme.Sizes.HeaderHeight + 8)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.BorderSizePixel = 0
+    local pageTitleLabel = Instance.new("TextLabel", contentFrame)
+    pageTitleLabel.Name = "PageTitle"
+    pageTitleLabel.Size = UDim2.new(1, 0, 0, 32)
+    pageTitleLabel.BackgroundTransparency = 1
+    pageTitleLabel.Text = "Combat"
+    pageTitleLabel.TextColor3 = currentTheme.Colors.TextPrimary
+    pageTitleLabel.TextSize = Theme.FontSizes.Title
+    pageTitleLabel.Font = Theme.Fonts.Title
+    pageTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    local actionScroll = Instance.new("ScrollingFrame", contentFrame)
+    actionScroll.Name = "ActionScroll"
+    actionScroll.Size = UDim2.new(1, -8, 1, -40)
+    actionScroll.Position = UDim2.new(0, 0, 0, 38)
+    actionScroll.BackgroundTransparency = 1
+    actionScroll.BorderSizePixel = 0
+    actionScroll.ScrollBarThickness = Theme.Sizes.ScrollBarThickness
+    actionScroll.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
+    actionScroll.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
+    actionScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    actionScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    Instance.new("UIListLayout", actionScroll).Padding = UDim.new(0, 8)
+    Instance.new("UIPadding", actionScroll).PaddingRight = UDim.new(0, 4)
+    return mainFrame, closeBtn, sidebar, contentFrame, pageTitleLabel, actionScroll, screenGui
+end
+
+local function createTabButton(parent, tabName, icon, index)
+    local currentTheme = Theme:GetTheme()
+    local tabBtn = Instance.new("TextButton", parent)
+    tabBtn.Name = "Tab_" .. tabName
+    tabBtn.Size = UDim2.new(1, 0, 0, Theme.Sizes.TabHeight)
+    tabBtn.BackgroundColor3 = currentTheme.Colors.TabNormal
+    tabBtn.BackgroundTransparency = currentTheme.Transparency.Tab
+    tabBtn.BorderSizePixel = 0
+    tabBtn.Text = "  " .. icon .. "  " .. tabName
+    tabBtn.TextColor3 = currentTheme.Colors.TextPrimary
+    tabBtn.TextSize = Theme.FontSizes.Tab
+    tabBtn.Font = Theme.Fonts.Tab
+    tabBtn.TextXAlignment = Enum.TextXAlignment.Left
+    tabBtn.LayoutOrder = index
+    Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    local tabStroke = Instance.new("UIStroke", tabBtn)
+    tabStroke.Color = currentTheme.Colors.BorderColor
+    tabStroke.Thickness = 1
+    tabStroke.Transparency = 0.7
+    return tabBtn
+end
+
+local function createActionRow(parent, actionData, index)
+    local currentTheme = Theme:GetTheme()
+    local rowHeight = Theme.Sizes.ActionRowHeight
+    if actionData.hasInput then rowHeight = Theme.Sizes.ActionRowHeight + Theme.Sizes.InputHeight + 12
+    elseif actionData.hasDropdown then rowHeight = Theme.Sizes.ActionRowHeight + Theme.Sizes.DropdownHeight + 12
+    elseif actionData.hasStopButton then rowHeight = Theme.Sizes.ActionRowHeight * 2 + 12 end
+    local actionFrame = Instance.new("Frame", parent)
+    actionFrame.Name = actionData.name .. "Row"
+    actionFrame.Size = UDim2.new(1, -4, 0, rowHeight)
+    actionFrame.BackgroundColor3 = currentTheme.Colors.ContainerBackground
+    actionFrame.BackgroundTransparency = currentTheme.Transparency.Container
+    actionFrame.BorderSizePixel = 0
+    actionFrame.LayoutOrder = index
+    Instance.new("UICorner", actionFrame).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    local rowStroke = Instance.new("UIStroke", actionFrame)
+    rowStroke.Color = currentTheme.Colors.BorderColor
+    rowStroke.Thickness = 1
+    rowStroke.Transparency = currentTheme.Transparency.Stroke
+    local actionBtn = Instance.new("TextButton", actionFrame)
+    actionBtn.Name = actionData.state .. "Btn"
+    actionBtn.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight)
+    actionBtn.BackgroundTransparency = 1
+    actionBtn.Text = ""
+    local icon = Instance.new("TextLabel", actionFrame)
+    icon.Size = UDim2.new(0, 32, 0, Theme.Sizes.ActionRowHeight)
+    icon.Position = UDim2.new(0, 8, 0, 0)
+    icon.BackgroundTransparency = 1
+    icon.Text = actionData.icon
+    icon.TextSize = 20
+    local nameLabel = Instance.new("TextLabel", actionFrame)
+    nameLabel.Size = UDim2.new(1, -90, 0, Theme.Sizes.ActionRowHeight)
+    nameLabel.Position = UDim2.new(0, 42, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = actionData.name .. " [" .. actionData.key .. "]"
+    nameLabel.TextColor3 = currentTheme.Colors.TextPrimary
+    nameLabel.TextSize = Theme.FontSizes.Action
+    nameLabel.Font = Theme.Fonts.Action
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    local statusIndicator = Instance.new("Frame", actionFrame)
+    statusIndicator.Name = "StatusIndicator"
+    statusIndicator.Size = UDim2.new(0, Theme.Sizes.StatusIndicator, 0, Theme.Sizes.StatusIndicator)
+    statusIndicator.Position = UDim2.new(1, -24, 0, (Theme.Sizes.ActionRowHeight - Theme.Sizes.StatusIndicator) / 2)
+    statusIndicator.BackgroundColor3 = currentTheme.Colors.StatusOff
+    statusIndicator.BackgroundTransparency = currentTheme.Transparency.StatusIndicator
+    statusIndicator.BorderSizePixel = 0
+    Instance.new("UICorner", statusIndicator).CornerRadius = UDim.new(1, 0)
+    if actionData.hasInput then
+        local speedInput = Instance.new("TextBox", actionFrame)
+        speedInput.Name = "SpeedInput"
+        speedInput.Size = UDim2.new(1, -16, 0, Theme.Sizes.InputHeight)
+        speedInput.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
+        speedInput.BackgroundColor3 = currentTheme.Colors.InputBackground
+        speedInput.BackgroundTransparency = currentTheme.Transparency.Input
+        speedInput.BorderSizePixel = 0
+        speedInput.Text = tostring(CONFIG.SPEED_VALUE)
+        speedInput.PlaceholderText = "Speed (0-1000000)"
+        speedInput.TextColor3 = currentTheme.Colors.TextPrimary
+        speedInput.PlaceholderColor3 = currentTheme.Colors.TextPlaceholder
+        speedInput.TextSize = Theme.FontSizes.Input
+        speedInput.Font = Theme.Fonts.Input
+        speedInput.ClearTextOnFocus = false
+        Instance.new("UICorner", speedInput).CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
+        Instance.new("UIPadding", speedInput).PaddingLeft = UDim.new(0, 10)
+        return actionFrame, actionBtn, statusIndicator, speedInput
+    end
+    if actionData.hasDropdown then
+        local dropdown = Instance.new("ScrollingFrame", actionFrame)
+        dropdown.Name = "PlayerDropdown"
+        dropdown.Size = UDim2.new(1, -16, 0, Theme.Sizes.DropdownHeight)
+        dropdown.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
+        dropdown.BackgroundColor3 = currentTheme.Colors.DropdownBackground
+        dropdown.BackgroundTransparency = currentTheme.Transparency.Dropdown
+        dropdown.BorderSizePixel = 0
+        dropdown.ScrollBarThickness = 4
+        dropdown.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
+        dropdown.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
+        dropdown.CanvasSize = UDim2.new(0, 0, 0, 0)
+        dropdown.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
+        local placeholderLabel = Instance.new("TextLabel", dropdown)
+        placeholderLabel.Name = "PlaceholderText"
+        placeholderLabel.Size = UDim2.new(1, -16, 0, 30)
+        placeholderLabel.Position = UDim2.new(0, 8, 0, 8)
+        placeholderLabel.BackgroundTransparency = 1
+        placeholderLabel.Text = "Select a player..."
+        placeholderLabel.TextColor3 = currentTheme.Colors.TextPlaceholder
+        placeholderLabel.TextSize = Theme.FontSizes.Input
+        placeholderLabel.Font = Theme.Fonts.Input
+        placeholderLabel.TextXAlignment = Enum.TextXAlignment.Left
+        return actionFrame, actionBtn, statusIndicator, nil, dropdown, placeholderLabel
+    end
+    if actionData.hasStopButton then
+        local stopBtn = Instance.new("TextButton", actionFrame)
+        stopBtn.Name = "StopTweenBtn"
+        stopBtn.Size = UDim2.new(1, -16, 0, Theme.Sizes.ActionRowHeight)
+        stopBtn.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
+        stopBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
+        stopBtn.BackgroundTransparency = 0.1
+        stopBtn.BorderSizePixel = 0
+        stopBtn.Text = "⏹ Stop Tween"
+        stopBtn.TextColor3 = currentTheme.Colors.TextPrimary
+        stopBtn.TextSize = Theme.FontSizes.Action
+        stopBtn.Font = Theme.Fonts.Tab
+        Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+        return actionFrame, actionBtn, statusIndicator, nil, nil, nil, stopBtn
+    end
+    return actionFrame, actionBtn, statusIndicator
+end
+
+local function createThemeButton(parent, themeName, index)
+    local currentTheme = Theme:GetTheme()
+    local themeBtn = Instance.new("TextButton", parent)
+    themeBtn.Name = "Theme_" .. themeName
+    themeBtn.Size = UDim2.new(1, -16, 0, Theme.Sizes.ActionRowHeight)
+    themeBtn.Position = UDim2.new(0, 8, 0, (index - 1) * (Theme.Sizes.ActionRowHeight + 6) + 6)
+    themeBtn.BackgroundColor3 = currentTheme.Colors.ContainerBackground
+    themeBtn.BackgroundTransparency = currentTheme.Transparency.Container
+    themeBtn.BorderSizePixel = 0
+    themeBtn.Text = "  ●  " .. themeName
+    themeBtn.TextColor3 = currentTheme.Colors.TextPrimary
+    themeBtn.TextSize = Theme.FontSizes.Action
+    themeBtn.Font = Theme.Fonts.Action
+    themeBtn.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", themeBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    local btnStroke = Instance.new("UIStroke", themeBtn)
+    btnStroke.Color = currentTheme.Colors.BorderColor
+    btnStroke.Thickness = 1
+    btnStroke.Transparency = 0.7
+    return themeBtn
+end
+
+local featuresByTab = {
+    Combat = {
+        {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯"},
+        {name = "ESP", key = "T", state = "esp", icon = "👁️"},
+        {name = "KillAura", key = "K", state = "killaura", icon = "⚔️"},
+        {name = "Fast M1", key = "M", state = "fastm1", icon = "👊"},
+    },
+    Movement = {
+        {name = "Fly", key = "F", state = "fly", icon = "🕊️"},
+        {name = "NoClip", key = "N", state = "noclip", icon = "👻"},
+        {name = "Infinite Jump", key = "J", state = "infjump", icon = "🦘"},
+        {name = "Speed Hack", key = "X", state = "speed", icon = "⚡", hasInput = true},
+        {name = "Walk on Water", key = "U", state = "walkonwater", icon = "🌊"},
+    },
+    Visual = {
+        {name = "Full Bright", key = "B", state = "fullbright", icon = "💡"},
+        {name = "God Mode", key = "V", state = "godmode", icon = "🛡️"},
+    },
+    Teleport = {
+        {name = "Teleport To Player", key = "Z", state = "teleport", icon = "🚀", isAction = true, hasDropdown = true},
+        {name = "Auto-Complete Obby", key = "", state = "autoObby", icon = "🎯"},
+        {name = "Stop Teleport", key = "", state = "stop_tween", icon = "⏹", isAction = true, hasStopButton = true},
+    },
+    Themes = {},
+}
+
+local function updateContentPage(tabName)
+    if not contentScroll then return end
+    for _, child in pairs(contentScroll:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("TextButton") then child:Destroy() end
+    end
+    if pageTitle then pageTitle.Text = tabName end
+    if tabName == "Themes" then
+        local themeNames = Theme:GetAllThemeNames()
+        for i, themeName in ipairs(themeNames) do
+            local themeBtn = createThemeButton(contentScroll, themeName, i)
+            themeBtn.MouseButton1Click:Connect(function()
+                if Theme:SetTheme(themeName) then refreshGUITheme() end
+            end)
+        end
+        return
+    end
+    local features = featuresByTab[tabName] or {}
+    for i, feature in ipairs(features) do
+        local frame, btn, indicator, input, dropdown, placeholder, stopBtn = createActionRow(contentScroll, feature, i)
+        guiButtons[feature.state] = {button = btn, indicator = indicator, container = frame, isAction = feature.isAction or false, input = input, dropdown = dropdown, placeholder = placeholder, stopBtn = stopBtn}
+    end
+end
+
+local function createToggleButton(screenGui)
+    local currentTheme = Theme:GetTheme()
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, Theme.Sizes.ToggleButton, 0, Theme.Sizes.ToggleButton)
+    toggleBtn.Position = UDim2.new(0, 15, 0.5, -Theme.Sizes.ToggleButton/2)
+    toggleBtn.BackgroundColor3 = currentTheme.Colors.ToggleButton
+    toggleBtn.BackgroundTransparency = currentTheme.Transparency.ToggleButton
+    toggleBtn.BorderSizePixel = 0
+    toggleBtn.Text = "N"
+    toggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    toggleBtn.TextSize = 28
+    toggleBtn.Font = Enum.Font.GothamBlack
+    toggleBtn.ZIndex = 1000
+    toggleBtn.Parent = screenGui
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0.5, 0)
+    local stroke = Instance.new("UIStroke", toggleBtn)
+    stroke.Color = Color3.fromRGB(0, 0, 0)
+    stroke.Thickness = 3
+    stroke.Transparency = 0.3
+    local dragging, dragStart, startPos, dragDistance = false, nil, nil, 0
+    toggleBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = toggleBtn.Position
+            dragDistance = 0
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            dragDistance = delta.Magnitude
+            toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    toggleBtn.MouseButton1Click:Connect(function()
+        if dragDistance < 5 then
+            local targetPos = guiVisible and UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0) or UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2)
+            guiVisible = not guiVisible
+            TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play()
+        end
+    end)
+    return toggleBtn
+end
+
+local function createClosePrompt(screenGui)
+    local currentTheme = Theme:GetTheme()
+    local prompt = Instance.new("Frame")
+    prompt.Size = UDim2.new(0, 320, 0, 160)
+    prompt.Position = UDim2.new(0.5, -160, 0.5, -80)
+    prompt.BackgroundColor3 = currentTheme.Colors.MainBackground
+    prompt.BackgroundTransparency = currentTheme.Transparency.MainBackground
+    prompt.BorderSizePixel = 0
+    prompt.Visible = false
+    prompt.ZIndex = 2000
+    prompt.Parent = screenGui
+    Instance.new("UICorner", prompt).CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
+    local stroke = Instance.new("UIStroke", prompt)
+    stroke.Color = currentTheme.Colors.AccentBar
+    stroke.Thickness = 2
+    stroke.Transparency = 0.3
+    local title = Instance.new("TextLabel", prompt)
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.BackgroundTransparency = 1
+    title.Text = "Close NullHub?"
+    title.TextColor3 = currentTheme.Colors.TextPrimary
+    title.TextSize = Theme.FontSizes.Title
+    title.Font = Theme.Fonts.Title
+    local desc = Instance.new("TextLabel", prompt)
+    desc.Size = UDim2.new(1, -20, 0, 30)
+    desc.Position = UDim2.new(0, 10, 0, 45)
+    desc.BackgroundTransparency = 1
+    desc.Text = "Choose an action:"
+    desc.TextColor3 = currentTheme.Colors.TextSecondary
+    desc.TextSize = 13
+    desc.Font = Theme.Fonts.Action
+    desc.TextXAlignment = Enum.TextXAlignment.Left
+    local minimizeBtn = Instance.new("TextButton", prompt)
+    minimizeBtn.Size = UDim2.new(0, 140, 0, 38)
+    minimizeBtn.Position = UDim2.new(0, 10, 1, -48)
+    minimizeBtn.BackgroundColor3 = currentTheme.Colors.MinimizeButton
+    minimizeBtn.BackgroundTransparency = 0.1
+    minimizeBtn.BorderSizePixel = 0
+    minimizeBtn.Text = "Minimize"
+    minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeBtn.TextSize = 15
+    minimizeBtn.Font = Theme.Fonts.Tab
+    Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    local closeBtn = Instance.new("TextButton", prompt)
+    closeBtn.Size = UDim2.new(0, 140, 0, 38)
+    closeBtn.Position = UDim2.new(1, -150, 1, -48)
+    closeBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
+    closeBtn.BackgroundTransparency = 0.1
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "Close & Destroy"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 15
+    closeBtn.Font = Theme.Fonts.Tab
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    return prompt, minimizeBtn, closeBtn
 end
 
 local function connectButtons()
@@ -1355,14 +1363,12 @@ Players.PlayerRemoving:Connect(function(removedPlayer) removeESP(removedPlayer) 
 player.CharacterAdded:Connect(function(newChar) character = newChar humanoid = character:WaitForChild("Humanoid") rootPart = character:WaitForChild("HumanoidRootPart") task.wait(0.2) originalSpeed = humanoid.WalkSpeed if state.speed then updateSpeed() end if state.godmode then updateGodMode() end if state.esp then task.wait(0.5) updateESP() end if state.fly then toggleFly() toggleFly() end if state.walkonwater then toggleWalkOnWater() toggleWalkOnWater() end if isAutoObby then isAutoObby = false state.autoObby = false updateButtonVisual("autoObby") end end)
 
 saveOriginalLighting() originalSpeed = humanoid.WalkSpeed
-showNotification("🛡️ NullHub V3 Protected - Loaded!", 3)
+showNotification("🛡️ NullHub V3 FIXED - Loaded!", 3)
 print("========================================")
-print("⚡ NullHub V3 - IMPROVED AUTO-OBBY ⚡")
-print("✅ Anti-Detection Module Active")
-print("✅ Theme Module Active")
-print("✅ All Features Active")
-print("✅ Green Arrow Following Active")
-print("✅ Smooth Movement (60 speed)")
-print("✅ Obstacle Avoidance Active")
+print("⚡ NullHub V3 - FIXED AUTO-OBBY ⚡")
+print("✅ Dynamic Arrow Following Active")
+print("✅ Smart Next-Checkpoint Detection")
+print("✅ Smooth Movement (50 speed)")
+print("✅ No More Backwards Teleport!")
 print("✅ Anti-Kick Protection Active")
 print("========================================")
