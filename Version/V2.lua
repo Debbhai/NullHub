@@ -1,15 +1,13 @@
--- NullHub V2 - Main Script
+-- NullHub V2 - Main Script (COMPLETE FIXED VERSION)
 -- Created by Debbhai
--- Properly loads Theme.lua from GitHub
+-- ✅ Fixed Fly | ✅ Enhanced Speed (100k/5s) | ✅ Walk on Water
 
 print("[NullHub] Loading...")
 
 -- ============================================
--- LOAD THEME MODULE (FIXED)
+-- LOAD THEME MODULE
 -- ============================================
 local Theme
-
--- Load Theme from your GitHub repo
 local THEME_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/Theme.lua"
 
 local success, result = pcall(function()
@@ -52,26 +50,30 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
 
 -- ============================================
--- CONFIG
+-- CONFIG (UPDATED)
 -- ============================================
 local CONFIG = {
     GUI_TOGGLE_KEY = Enum.KeyCode.Insert, AIMBOT_KEY = Enum.KeyCode.E, AIMBOT_FOV = 250, AIMBOT_SMOOTHNESS = 0.15,
     ESP_KEY = Enum.KeyCode.T, ESP_COLOR = Color3.fromRGB(255, 80, 80), ESP_SHOW_DISTANCE = true,
     KILLAURA_KEY = Enum.KeyCode.K, KILLAURA_RANGE = 25, KILLAURA_DELAY = 0.1,
-    FASTM1_KEY = Enum.KeyCode.M, FASTM1_DELAY = 0.03, FLY_KEY = Enum.KeyCode.F, FLY_SPEED = 60,
+    FASTM1_KEY = Enum.KeyCode.M, FASTM1_DELAY = 0.03, 
+    FLY_KEY = Enum.KeyCode.F, FLY_SPEED = 120,
     NOCLIP_KEY = Enum.KeyCode.N, INFJUMP_KEY = Enum.KeyCode.J, SPEED_KEY = Enum.KeyCode.X,
-    SPEED_VALUE = 100, MIN_SPEED = 0, MAX_SPEED = 500, FULLBRIGHT_KEY = Enum.KeyCode.B,
-    GODMODE_KEY = Enum.KeyCode.V, TELEPORT_KEY = Enum.KeyCode.Z, TELEPORT_SPEED = 100,
+    SPEED_VALUE = 20000, MIN_SPEED = 0, MAX_SPEED = 200000,
+    FULLBRIGHT_KEY = Enum.KeyCode.B, GODMODE_KEY = Enum.KeyCode.V, 
+    TELEPORT_KEY = Enum.KeyCode.Z, TELEPORT_SPEED = 100,
+    WALKONWATER_KEY = Enum.KeyCode.U,
 }
 
 -- ============================================
 -- STATE
 -- ============================================
-local state = {aimbot = false, esp = false, noclip = false, infjump = false, speed = false, fullbright = false, godmode = false, killaura = false, fastm1 = false, fly = false}
+local state = {aimbot = false, esp = false, noclip = false, infjump = false, speed = false, fullbright = false, godmode = false, killaura = false, fastm1 = false, fly = false, walkonwater = false}
 local espObjects, connections, killAuraTargets = {}, {}, {}
 local originalSpeed, originalLightingSettings = 16, {}
 local selectedTeleportPlayer, isTeleporting, currentTeleportTween = nil, false, nil
 local guiVisible, mainFrameRef, guiButtons, contentScroll, pageTitle, screenGuiRef = true, nil, {}, nil, nil, nil
+local waterPlatform = nil
 
 -- ============================================
 -- NOTIFICATION SYSTEM
@@ -486,7 +488,7 @@ local function createActionRow(parent, actionData, index)
         speedInput.BackgroundTransparency = currentTheme.Transparency.Input
         speedInput.BorderSizePixel = 0
         speedInput.Text = tostring(CONFIG.SPEED_VALUE)
-        speedInput.PlaceholderText = "Speed (0-500)"
+        speedInput.PlaceholderText = "Speed (0-200000)"
         speedInput.TextColor3 = currentTheme.Colors.TextPrimary
         speedInput.PlaceholderColor3 = currentTheme.Colors.TextPlaceholder
         speedInput.TextSize = Theme.FontSizes.Input
@@ -580,6 +582,7 @@ local featuresByTab = {
         {name = "NoClip", key = "N", state = "noclip", icon = "👻"},
         {name = "Infinite Jump", key = "J", state = "infjump", icon = "🦘"},
         {name = "Speed Hack", key = "X", state = "speed", icon = "⚡", hasInput = true},
+        {name = "Walk on Water", key = "U", state = "walkonwater", icon = "🌊"},
     },
     Visual = {
         {name = "Full Bright", key = "B", state = "fullbright", icon = "💡"},
@@ -697,7 +700,7 @@ local function aimAtTarget(target)
 end
 
 -- ============================================
--- KILLAURA (FIXED)
+-- KILLAURA
 -- ============================================
 local function findAllTargets()
     killAuraTargets = {}
@@ -771,19 +774,67 @@ local function performFastM1()
 end
 
 -- ============================================
--- FLY
+-- FLY (FIXED)
 -- ============================================
 local function updateFly()
     if not state.fly or not rootPart then return end
     local moveDirection = Vector3.new(0, 0, 0)
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector * CONFIG.FLY_SPEED end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector * CONFIG.FLY_SPEED end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector * CONFIG.FLY_SPEED end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector * CONFIG.FLY_SPEED end
-    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0, CONFIG.FLY_SPEED, 0) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection -= Vector3.new(0, CONFIG.FLY_SPEED, 0) end
-    if connections.flyBodyVelocity then connections.flyBodyVelocity.Velocity = moveDirection end
-    if connections.flyBodyGyro then connections.flyBodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0, 1, 0) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection -= Vector3.new(0, 1, 0) end
+    if moveDirection.Magnitude > 0 then
+        moveDirection = moveDirection.Unit * CONFIG.FLY_SPEED
+    end
+    if connections.flyBodyVelocity then 
+        connections.flyBodyVelocity.Velocity = moveDirection 
+    end
+end
+
+-- ============================================
+-- WALK ON WATER (NEW)
+-- ============================================
+local function updateWalkOnWater()
+    if not state.walkonwater or not rootPart then return end
+    local rayOrigin = rootPart.Position
+    local rayDirection = Vector3.new(0, -10, 0)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    if rayResult and rayResult.Instance then
+        if rayResult.Instance:IsA("Terrain") then
+            local region = game.Workspace.Terrain:ReadVoxels(Region3.new(rayResult.Position - Vector3.new(2,2,2), rayResult.Position + Vector3.new(2,2,2)), 4)
+            local size = region.Size
+            for x = 1, size.X do
+                for y = 1, size.Y do
+                    for z = 1, size.Z do
+                        if region[x][y][z] == Enum.Material.Water then
+                            if not waterPlatform then
+                                waterPlatform = Instance.new("Part")
+                                waterPlatform.Name = "WaterPlatform"
+                                waterPlatform.Size = Vector3.new(10, 0.5, 10)
+                                waterPlatform.Anchored = true
+                                waterPlatform.CanCollide = true
+                                waterPlatform.Transparency = 0.8
+                                waterPlatform.Material = Enum.Material.SmoothPlastic
+                                waterPlatform.Color = Color3.fromRGB(0, 170, 255)
+                                waterPlatform.Parent = workspace
+                            end
+                            waterPlatform.CFrame = CFrame.new(rootPart.Position.X, rayResult.Position.Y + 0.5, rootPart.Position.Z)
+                            return
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if waterPlatform then
+        waterPlatform:Destroy()
+        waterPlatform = nil
+    end
 end
 
 -- ============================================
@@ -1008,27 +1059,17 @@ end
 local function toggleFly()
     state.fly = not state.fly
     if state.fly then
-        if not connections.flyBodyVelocity then
-            connections.flyBodyVelocity = Instance.new("BodyVelocity")
-            connections.flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-            connections.flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            connections.flyBodyVelocity.Parent = rootPart
-        end
-        if not connections.flyBodyGyro then
-            connections.flyBodyGyro = Instance.new("BodyGyro")
-            connections.flyBodyGyro.MaxTorque = Vector3.new(100000, 100000, 100000)
-            connections.flyBodyGyro.P = 10000
-            connections.flyBodyGyro.Parent = rootPart
-        end
+        if connections.flyBodyVelocity then connections.flyBodyVelocity:Destroy() end
+        connections.flyBodyVelocity = Instance.new("BodyVelocity")
+        connections.flyBodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        connections.flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        connections.flyBodyVelocity.Parent = rootPart
         if connections.fly then connections.fly:Disconnect() end
-        connections.fly = RunService.RenderStepped:Connect(updateFly)
-        if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Flying) end
-        showNotification("Fly ON", 2)
+        connections.fly = RunService.Heartbeat:Connect(updateFly)
+        showNotification("Fly ON - Use WASD + Space/Shift", 3)
     else
         if connections.fly then connections.fly:Disconnect(); connections.fly = nil end
         if connections.flyBodyVelocity then connections.flyBodyVelocity:Destroy(); connections.flyBodyVelocity = nil end
-        if connections.flyBodyGyro then connections.flyBodyGyro:Destroy(); connections.flyBodyGyro = nil end
-        if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Freefall) end
         showNotification("Fly OFF", 2)
     end
     updateButtonVisual("fly")
@@ -1067,6 +1108,20 @@ local function toggleGodMode()
     showNotification("God Mode " .. (state.godmode and "ON" or "OFF"), 2)
 end
 
+local function toggleWalkOnWater()
+    state.walkonwater = not state.walkonwater
+    if state.walkonwater then
+        if connections.walkonwater then connections.walkonwater:Disconnect() end
+        connections.walkonwater = RunService.Heartbeat:Connect(updateWalkOnWater)
+        showNotification("Walk on Water ON", 2)
+    else
+        if connections.walkonwater then connections.walkonwater:Disconnect(); connections.walkonwater = nil end
+        if waterPlatform then waterPlatform:Destroy(); waterPlatform = nil end
+        showNotification("Walk on Water OFF", 2)
+    end
+    updateButtonVisual("walkonwater")
+end
+
 -- ============================================
 -- CONNECT BUTTONS
 -- ============================================
@@ -1076,6 +1131,7 @@ local function connectButtons()
         aimbot = toggleAimbot, esp = toggleESP, killaura = toggleKillAura, fastm1 = toggleFastM1,
         fly = toggleFly, noclip = toggleNoClip, infjump = toggleInfJump, speed = toggleSpeed,
         fullbright = toggleFullBright, godmode = toggleGodMode, teleport = teleportToPlayer,
+        walkonwater = toggleWalkOnWater,
     }
     for stateName, toggleFunc in pairs(buttonMap) do
         if guiButtons[stateName] and guiButtons[stateName].button then
@@ -1184,7 +1240,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         [CONFIG.AIMBOT_KEY] = toggleAimbot, [CONFIG.ESP_KEY] = toggleESP, [CONFIG.KILLAURA_KEY] = toggleKillAura,
         [CONFIG.FASTM1_KEY] = toggleFastM1, [CONFIG.FLY_KEY] = toggleFly, [CONFIG.NOCLIP_KEY] = toggleNoClip,
         [CONFIG.INFJUMP_KEY] = toggleInfJump, [CONFIG.SPEED_KEY] = toggleSpeed, [CONFIG.FULLBRIGHT_KEY] = toggleFullBright,
-        [CONFIG.GODMODE_KEY] = toggleGodMode, [CONFIG.TELEPORT_KEY] = teleportToPlayer,
+        [CONFIG.GODMODE_KEY] = toggleGodMode, [CONFIG.TELEPORT_KEY] = teleportToPlayer, [CONFIG.WALKONWATER_KEY] = toggleWalkOnWater,
     }
     local action = keyMap[input.KeyCode]
     if action then action()
@@ -1232,6 +1288,8 @@ player.CharacterAdded:Connect(function(newChar)
     if state.speed then updateSpeed() end
     if state.godmode then updateGodMode() end
     if state.esp then task.wait(0.5); updateESP() end
+    if state.fly then toggleFly(); toggleFly() end
+    if state.walkonwater then toggleWalkOnWater(); toggleWalkOnWater() end
 end)
 
 -- ============================================
@@ -1240,13 +1298,14 @@ end)
 saveOriginalLighting()
 originalSpeed = humanoid.WalkSpeed
 
-showNotification("NullHub V2 Loaded! Theme: " .. Theme.CurrentTheme, 3)
+showNotification("NullHub V2 Loaded! Press INSERT", 3)
 
 print("========================================")
-print("⚡ NullHub V2 - CONNECTED VERSION ⚡")
+print("⚡ NullHub V2 - ENHANCED VERSION ⚡")
 print("========================================")
 print("✅ Theme loaded from GitHub")
 print("✅ Repository: Debbhai/NullHub")
-print("✅ All features working")
-print("✅ Kill Aura fixed")
+print("✅ Fixed Fly System")
+print("✅ Enhanced Speed: 20k (100k in 5s)")
+print("✅ Walk on Water Feature Added")
 print("========================================")
