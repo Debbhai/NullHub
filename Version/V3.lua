@@ -1,4 +1,4 @@
--- NullHub V3 - Main Script (WITH AUTO-OBBY SYSTEM)
+-- NullHub V3 - Main Script (WITH IMPROVED AUTO-OBBY)
 -- Created by Debbhai
 -- Loads Theme.lua + AntiDetection.lua from GitHub
 
@@ -73,7 +73,7 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
 
 -- ============================================
--- CONFIG
+-- CONFIG (OPTIMIZED FOR SMOOTH MOVEMENT)
 -- ============================================
 local CONFIG = {
     GUI_TOGGLE_KEY = Enum.KeyCode.Insert, AIMBOT_KEY = Enum.KeyCode.E, AIMBOT_FOV = 250, AIMBOT_SMOOTHNESS = 0.15,
@@ -87,10 +87,13 @@ local CONFIG = {
     TELEPORT_KEY = Enum.KeyCode.Z, TELEPORT_SPEED = 150,
     WALKONWATER_KEY = Enum.KeyCode.U,
     STEALTH_MODE = true,
-    AUTO_OBBY_SPEED = 150,
-    AUTO_OBBY_HEIGHT = 7,
-    CHECKPOINT_REACH_DISTANCE = 8,
-    OBSTACLE_AVOIDANCE_HEIGHT = 10,
+    -- IMPROVED AUTO-OBBY SETTINGS (SLOWER & SMOOTHER)
+    AUTO_OBBY_SPEED = 60,              -- Reduced from 150 to 60 (MUCH SLOWER)
+    AUTO_OBBY_HEIGHT = 5,              -- Height above checkpoint
+    CHECKPOINT_REACH_DISTANCE = 12,    -- Increased detection range
+    OBSTACLE_AVOIDANCE_HEIGHT = 15,    -- Fly higher over obstacles
+    WAYPOINT_DISTANCE = 20,            -- Distance between waypoints
+    ARROW_FOLLOW_DISTANCE = 30,        -- How far to look ahead following arrow
 }
 
 -- ============================================
@@ -101,7 +104,7 @@ local espObjects, connections, killAuraTargets = {}, {}, {}
 local originalSpeed, originalLightingSettings = 16, {}
 local selectedTeleportPlayer, isTeleporting, currentTeleportTween = nil, false, nil
 local selectedCheckpoint, currentCheckpointIndex, isAutoObby = nil, 1, false
-local allCheckpoints = {}
+local allCheckpoints, visitedCheckpoints = {}, {}
 local guiVisible, mainFrameRef, guiButtons, contentScroll, pageTitle, screenGuiRef = true, nil, {}, nil, nil, nil
 local waterPlatform = nil
 
@@ -148,7 +151,7 @@ local function showNotification(message, duration)
 end
 
 -- ============================================
--- THEME APPLICATION
+-- THEME APPLICATION (ABBREVIATED)
 -- ============================================
 local function applyThemeToElement(element, elementType)
     local currentTheme = Theme:GetTheme()
@@ -212,9 +215,7 @@ local function refreshGUITheme()
     showNotification("Theme changed to " .. Theme.CurrentTheme, 2)
 end
 
--- ============================================
--- TOGGLE BUTTON
--- ============================================
+-- [GUI CREATION FUNCTIONS REMAIN THE SAME - ABBREVIATED FOR LENGTH]
 local function createToggleButton(screenGui)
     local currentTheme = Theme:GetTheme()
     local toggleBtn = Instance.new("TextButton")
@@ -263,9 +264,6 @@ local function createToggleButton(screenGui)
     return toggleBtn
 end
 
--- ============================================
--- CLOSE PROMPT
--- ============================================
 local function createClosePrompt(screenGui)
     local currentTheme = Theme:GetTheme()
     local prompt = Instance.new("Frame")
@@ -323,9 +321,6 @@ local function createClosePrompt(screenGui)
     return prompt, minimizeBtn, closeBtn
 end
 
--- ============================================
--- GUI CREATION
--- ============================================
 local function createModernGUI()
     local currentTheme = Theme:GetTheme()
     local screenGui = Instance.new("ScreenGui")
@@ -639,8 +634,39 @@ local function updateContentPage(tabName)
 end
 
 -- ============================================
--- ADVANCED AUTO-OBBY SYSTEM
+-- IMPROVED AUTO-OBBY SYSTEM (FOLLOWS GREEN ARROWS)
 -- ============================================
+
+-- Find Green Arrow and get its direction
+local function findGreenArrow()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "CheckpointArrow" or obj.Name:find("Arrow") then
+            if obj:IsA("BasePart") or obj:IsA("Model") then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- Get direction from arrow's orientation
+local function getArrowDirection(arrow)
+    if not arrow then return nil end
+    
+    local arrowCFrame
+    if arrow:IsA("Model") then
+        arrowCFrame = arrow:GetPivot()
+    elseif arrow:IsA("BasePart") then
+        arrowCFrame = arrow.CFrame
+    else
+        return nil
+    end
+    
+    -- Arrow's LookVector points forward
+    return arrowCFrame.LookVector
+end
+
+-- Find all checkpoints with better sorting
 local function findAllCheckpoints()
     local checkpoints = {}
     local checkpointNames = {"CheckpointArrow", "Checkpoint", "checkpoint", "CheckPoint", "Stage", "stage", "Spawn", "spawn", "SpawnLocation", "Respawn"}
@@ -652,62 +678,147 @@ local function findAllCheckpoints()
                 if objName:find(keyword) then
                     local stageNum = tonumber(objName:match("%d+")) or 0
                     local position = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
-                    table.insert(checkpoints, {part = obj, name = objName, stage = stageNum, position = position})
+                    
+                    table.insert(checkpoints, {
+                        part = obj,
+                        name = objName,
+                        stage = stageNum,
+                        position = position,
+                        visited = false
+                    })
                     break
                 end
             end
-            local stageValue = obj:FindFirstChild("Stage") or obj:FindFirstChild("Checkpoint")
-            if stageValue and stageValue:IsA("NumberValue") then
-                local position = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
-                table.insert(checkpoints, {part = obj, name = obj.Name .. " (Stage " .. stageValue.Value .. ")", stage = stageValue.Value, position = position})
-            end
         end
     end
     
-    table.sort(checkpoints, function(a, b) return a.stage < b.stage end)
+    -- Sort by stage number first, then by distance from start
+    if #checkpoints > 0 and rootPart then
+        local startPos = rootPart.Position
+        table.sort(checkpoints, function(a, b)
+            if a.stage ~= b.stage then
+                return a.stage < b.stage
+            else
+                local distA = (a.position - startPos).Magnitude
+                local distB = (b.position - startPos).Magnitude
+                return distA < distB
+            end
+        end)
+    end
+    
     return checkpoints
 end
 
+-- Check if part is an obstacle
 local function isObstacle(part)
     if not part or not part:IsA("BasePart") then return false end
     local partName = part.Name:lower()
-    local obstacleKeywords = {"kill", "lava", "spike", "trap", "death", "damage", "hurt", "void"}
+    local obstacleKeywords = {"kill", "lava", "spike", "trap", "death", "damage", "hurt", "void", "fire"}
+    
     for _, keyword in pairs(obstacleKeywords) do
         if partName:find(keyword) then return true end
     end
+    
+    -- Check for red colored parts (usually kill parts)
     if part.Color == Color3.fromRGB(255, 0, 0) or part.Color == Color3.fromRGB(255, 100, 100) then return true end
     if part.Material == Enum.Material.Neon and (part.Color.R > 0.8 and part.Color.G < 0.3) then return true end
+    
     return false
 end
 
-local function getSafePathToCheckpoint(targetPos)
-    if not rootPart then return targetPos end
+-- Create waypoints following arrow direction with obstacle avoidance
+local function createWaypointsToCheckpoint(targetPos, arrow)
+    if not rootPart then return {targetPos} end
+    
+    local waypoints = {}
     local startPos = rootPart.Position
-    local direction = (targetPos - startPos).Unit
-    local distance = (targetPos - startPos).Magnitude
+    local arrowDirection = arrow and getArrowDirection(arrow)
     
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {character}
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    
-    for i = 1, math.floor(distance / 5) do
-        local checkPos = startPos + (direction * (i * 5))
-        local rayResult = workspace:Raycast(checkPos, Vector3.new(0, -20, 0), rayParams)
+    if arrowDirection then
+        -- Follow arrow direction with waypoints
+        local steps = math.ceil((targetPos - startPos).Magnitude / CONFIG.WAYPOINT_DISTANCE)
         
-        if rayResult and rayResult.Instance then
-            if isObstacle(rayResult.Instance) then
-                return Vector3.new(checkPos.X, checkPos.Y + CONFIG.OBSTACLE_AVOIDANCE_HEIGHT, checkPos.Z)
+        for i = 1, steps do
+            local progress = i / steps
+            local waypointPos = startPos:Lerp(targetPos, progress)
+            
+            -- Add slight curve following arrow direction
+            waypointPos = waypointPos + (arrowDirection * (CONFIG.WAYPOINT_DISTANCE * 0.3))
+            
+            -- Check for obstacles
+            local rayParams = RaycastParams.new()
+            rayParams.FilterDescendantsInstances = {character}
+            rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+            
+            local rayResult = workspace:Raycast(waypointPos, Vector3.new(0, -20, 0), rayParams)
+            
+            if rayResult and rayResult.Instance and isObstacle(rayResult.Instance) then
+                -- Fly higher over obstacles
+                waypointPos = Vector3.new(waypointPos.X, waypointPos.Y + CONFIG.OBSTACLE_AVOIDANCE_HEIGHT, waypointPos.Z)
+            else
+                -- Normal height
+                waypointPos = Vector3.new(waypointPos.X, waypointPos.Y + CONFIG.AUTO_OBBY_HEIGHT, waypointPos.Z)
             end
+            
+            table.insert(waypoints, waypointPos)
+        end
+    else
+        -- Fallback: Direct path with height
+        table.insert(waypoints, Vector3.new(targetPos.X, targetPos.Y + CONFIG.AUTO_OBBY_HEIGHT, targetPos.Z))
+    end
+    
+    return waypoints
+end
+
+-- Smooth tween to position
+local function smoothTweenToPosition(targetPos, speed)
+    if not rootPart or not rootPart.Parent then return false end
+    
+    local distance = (rootPart.Position - targetPos).Magnitude
+    local duration = distance / speed
+    
+    -- Use Sine easing for smoother movement (prevents anti-cheat kicks)
+    currentTeleportTween = TweenService:Create(
+        rootPart,
+        TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+        {CFrame = CFrame.new(targetPos)}
+    )
+    
+    local completed = false
+    currentTeleportTween:Play()
+    
+    currentTeleportTween.Completed:Connect(function(playbackState)
+        completed = true
+    end)
+    
+    -- Wait for completion or proximity
+    local maxWaitTime = duration + 1
+    local waitedTime = 0
+    local checkInterval = 0.1
+    
+    while not completed and waitedTime < maxWaitTime and isAutoObby do
+        task.wait(checkInterval)
+        waitedTime = waitedTime + checkInterval
+        
+        if rootPart and rootPart.Parent then
+            local currentDistance = (rootPart.Position - targetPos).Magnitude
+            if currentDistance < 5 then
+                break
+            end
+        else
+            return false
         end
     end
     
-    return Vector3.new(targetPos.X, targetPos.Y + CONFIG.AUTO_OBBY_HEIGHT, targetPos.Z)
+    return true
 end
 
+-- Main Auto-Obby function with arrow following
 local function autoCompleteObby()
     if not isAutoObby or not rootPart then return end
     
     allCheckpoints = findAllCheckpoints()
+    visitedCheckpoints = {}
     
     if #allCheckpoints == 0 then
         showNotification("No checkpoints found!", 3)
@@ -717,7 +828,7 @@ local function autoCompleteObby()
         return
     end
     
-    showNotification("Starting Auto-Obby: " .. #allCheckpoints .. " checkpoints", 3)
+    showNotification("🎯 Auto-Obby: Starting (" .. #allCheckpoints .. " checkpoints)", 3)
     currentCheckpointIndex = 1
     
     while isAutoObby and currentCheckpointIndex <= #allCheckpoints do
@@ -734,46 +845,45 @@ local function autoCompleteObby()
             continue
         end
         
-        local targetPos = getSafePathToCheckpoint(checkpoint.position)
-        local distance = (rootPart.Position - targetPos).Magnitude
+        -- Skip if already visited (prevents backwards teleport)
+        if visitedCheckpoints[checkpoint.part] then
+            currentCheckpointIndex = currentCheckpointIndex + 1
+            task.wait(0.1)
+            continue
+        end
         
-        if distance > CONFIG.CHECKPOINT_REACH_DISTANCE then
-            showNotification("Going to: " .. checkpoint.name .. " (" .. currentCheckpointIndex .. "/" .. #allCheckpoints .. ")", 2)
+        -- Find nearest arrow for guidance
+        local arrow = findGreenArrow()
+        
+        showNotification("🚀 Moving to: " .. checkpoint.name .. " (" .. currentCheckpointIndex .. "/" .. #allCheckpoints .. ")", 2)
+        
+        -- Create waypoints following arrow direction
+        local waypoints = createWaypointsToCheckpoint(checkpoint.position, arrow)
+        
+        -- Travel through waypoints smoothly
+        for _, waypointPos in ipairs(waypoints) do
+            if not isAutoObby then break end
             
-            local duration = distance / CONFIG.AUTO_OBBY_SPEED
-            currentTeleportTween = TweenService:Create(
-                rootPart,
-                TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut),
-                {CFrame = CFrame.new(targetPos)}
-            )
+            local success = smoothTweenToPosition(waypointPos, CONFIG.AUTO_OBBY_SPEED)
+            if not success then break end
             
-            local tweenCompleted = false
-            currentTeleportTween:Play()
-            currentTeleportTween.Completed:Connect(function(playbackState)
-                tweenCompleted = true
-            end)
-            
-            local checkInterval = 0.1
-            local maxWaitTime = duration + 2
-            local waitedTime = 0
-            
-            while not tweenCompleted and waitedTime < maxWaitTime and isAutoObby do
-                task.wait(checkInterval)
-                waitedTime = waitedTime + checkInterval
-                
-                if rootPart and rootPart.Parent then
-                    local currentDistance = (rootPart.Position - checkpoint.position).Magnitude
-                    if currentDistance < CONFIG.CHECKPOINT_REACH_DISTANCE then
-                        break
-                    end
-                end
+            task.wait(0.2) -- Small delay between waypoints
+        end
+        
+        -- Mark as visited
+        visitedCheckpoints[checkpoint.part] = true
+        checkpoint.visited = true
+        
+        -- Check if we're actually at the checkpoint
+        if rootPart and rootPart.Parent then
+            local distanceToCheckpoint = (rootPart.Position - checkpoint.position).Magnitude
+            if distanceToCheckpoint < CONFIG.CHECKPOINT_REACH_DISTANCE then
+                showNotification("✅ Reached: " .. checkpoint.name, 1.5)
             end
-            
-            task.wait(0.3)
         end
         
         currentCheckpointIndex = currentCheckpointIndex + 1
-        task.wait(0.2)
+        task.wait(0.5) -- Longer delay between checkpoints (prevents kicks)
     end
     
     if isAutoObby then
@@ -784,6 +894,7 @@ local function autoCompleteObby()
     end
 end
 
+-- [CONTINUE WITH REMAINING FUNCTIONS - SAME AS BEFORE]
 local function updatePlayerDropdown(dropdown)
     if not dropdown then return end
     local currentTheme = Theme:GetTheme()
@@ -824,9 +935,7 @@ local function updatePlayerDropdown(dropdown)
     if placeholder then placeholder.Visible = not hasPlayers end
 end
 
--- ============================================
--- AIMBOT (USING ANTIDETECTION)
--- ============================================
+-- [ALL OTHER FUNCTIONS REMAIN THE SAME]
 local function getClosestPlayerForAimbot()
     local closestPlayer, shortestDistance = nil, CONFIG.AIMBOT_FOV
     local mousePos = UserInputService:GetMouseLocation()
@@ -861,9 +970,6 @@ local function aimAtTarget(target)
     camera.CFrame = camera.CFrame:Lerp(newCFrame, smoothness)
 end
 
--- ============================================
--- KILLAURA (USING ANTIDETECTION)
--- ============================================
 local function findAllTargets()
     killAuraTargets = {}
     for _, otherPlayer in pairs(Players:GetPlayers()) do
@@ -1176,7 +1282,7 @@ local function toggleAutoObby()
     updateButtonVisual("autoObby")
     
     if isAutoObby then
-        showNotification("Auto-Obby: Starting...", 2)
+        showNotification("🎯 Auto-Obby: Starting (Following arrows)...", 2)
         task.spawn(autoCompleteObby)
     else
         if currentTeleportTween then
@@ -1251,11 +1357,12 @@ player.CharacterAdded:Connect(function(newChar) character = newChar humanoid = c
 saveOriginalLighting() originalSpeed = humanoid.WalkSpeed
 showNotification("🛡️ NullHub V3 Protected - Loaded!", 3)
 print("========================================")
-print("⚡ NullHub V3 - WITH AUTO-OBBY SYSTEM ⚡")
+print("⚡ NullHub V3 - IMPROVED AUTO-OBBY ⚡")
 print("✅ Anti-Detection Module Active")
 print("✅ Theme Module Active")
 print("✅ All Features Active")
-print("✅ Auto-Obby System Active")
+print("✅ Green Arrow Following Active")
+print("✅ Smooth Movement (60 speed)")
 print("✅ Obstacle Avoidance Active")
-print("✅ Speed: 500k (1M in 2s)")
+print("✅ Anti-Kick Protection Active")
 print("========================================")
