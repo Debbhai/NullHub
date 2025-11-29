@@ -1,152 +1,130 @@
--- NullHub V2.lua - FULLY FIXED & WORKING
+-- NullHub V2 - ULTIMATE EDITION
 -- Created by Debbhai
+-- Modern Black UI with Fixed Spacing & Features
 
 -- ============================================
--- COMPLETE THEME FALLBACK (NO NIL VALUES)
+-- SERVICES
 -- ============================================
-local Theme = {
-    -- Colors (Complete, no nil values)
-    Colors = {
-        MainBackground = Color3.fromRGB(15, 15, 20),
-        HeaderBackground = Color3.fromRGB(20, 20, 28),
-        SidebarBackground = Color3.fromRGB(18, 18, 22),
-        ContainerBackground = Color3.fromRGB(25, 25, 35),
-        InputBackground = Color3.fromRGB(35, 35, 45),
-        DropdownBackground = Color3.fromRGB(35, 35, 45),
-        PlayerButtonBg = Color3.fromRGB(45, 45, 55),
-        TabNormal = Color3.fromRGB(25, 25, 30),
-        TabSelected = Color3.fromRGB(35, 35, 45),
-        AccentBar = Color3.fromRGB(255, 215, 0),
-        ScrollBarColor = Color3.fromRGB(218, 165, 32),
-        StatusOff = Color3.fromRGB(200, 50, 50),
-        StatusOn = Color3.fromRGB(218, 165, 32),
-        ContainerOff = Color3.fromRGB(25, 25, 35),
-        ContainerOn = Color3.fromRGB(30, 35, 50),
-        TextPrimary = Color3.fromRGB(255, 255, 255),
-        TextSecondary = Color3.fromRGB(150, 150, 180),
-        TextPlaceholder = Color3.fromRGB(150, 150, 150),
-        BorderColor = Color3.fromRGB(60, 60, 80),
-        CloseButton = Color3.fromRGB(200, 50, 60),
-    },
-    -- Transparency (Complete)
-    Transparency = {
-        MainBackground = 0.15,
-        Header = 0.2,
-        Sidebar = 0.2,
-        Container = 0.3,
-        Input = 0.3,
-        Dropdown = 0.3,
-        PlayerButton = 0.4,
-        CloseButton = 0.2,
-        Stroke = 0.6,
-        AccentBar = 0.3,
-        StatusIndicator = 0.2,
-        ScrollBar = 0.5,
-        Tab = 0.3,
-    },
-    -- Sizes (Complete)
-    Sizes = {
-        MainFrameWidth = 650,
-        MainFrameHeight = 420,
-        SidebarWidth = 140,
-        HeaderHeight = 40,
-        CloseButton = 35,
-        TabHeight = 36,
-        ActionRowHeight = 40,
-        StatusIndicator = 10,
-        InputHeight = 42,
-        DropdownHeight = 58,
-        PlayerButtonHeight = 26,
-        ScrollBarThickness = 4,
-    },
-    -- CornerRadius (Complete)
-    CornerRadius = {
-        Large = 12,
-        Medium = 8,
-        Small = 6,
-        Tiny = 4,
-    },
-    -- Fonts (Complete)
-    Fonts = {
-        Title = Enum.Font.GothamBold,
-        Tab = Enum.Font.Gotham,
-        Action = Enum.Font.Gotham,
-        Input = Enum.Font.Gotham,
-    },
-    -- FontSizes (Complete)
-    FontSizes = {
-        Title = 18,
-        Tab = 14,
-        Action = 14,
-        Input = 14,
-    },
-}
-
--- Try to load external theme (optional)
-pcall(function()
-    local externalTheme = loadstring(game:HttpGet("https://raw.githubusercontent.com/Debbhai/NullHub/main/Theme.lua"))()
-    if externalTheme and externalTheme.Colors then
-        for k, v in pairs(externalTheme.Colors) do
-            Theme.Colors[k] = Theme.Colors[k] or v
-        end
-        for k, v in pairs(externalTheme.Transparency) do
-            Theme.Transparency[k] = Theme.Transparency[k] or v
-        end
-        print("[NullHub] ✅ External theme loaded!")
-    end
-end)
-
-print("[NullHub] ✅ Theme initialized successfully!")
-
--- Services
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
+
+-- ============================================
+-- THEME (BLACK MODERN)
+-- ============================================
+local Theme = {
+    Colors = {
+        MainBackground = Color3.fromRGB(10, 10, 12),
+        HeaderBackground = Color3.fromRGB(15, 15, 18),
+        SidebarBackground = Color3.fromRGB(12, 12, 14),
+        ContainerBackground = Color3.fromRGB(18, 18, 22),
+        InputBackground = Color3.fromRGB(20, 20, 24),
+        DropdownBackground = Color3.fromRGB(22, 22, 26),
+        PlayerButtonBg = Color3.fromRGB(25, 25, 30),
+        TabNormal = Color3.fromRGB(16, 16, 20),
+        TabSelected = Color3.fromRGB(28, 28, 34),
+        AccentBar = Color3.fromRGB(255, 215, 0),
+        ScrollBarColor = Color3.fromRGB(218, 165, 32),
+        StatusOff = Color3.fromRGB(220, 60, 60),
+        StatusOn = Color3.fromRGB(50, 220, 100),
+        ContainerOff = Color3.fromRGB(18, 18, 22),
+        ContainerOn = Color3.fromRGB(25, 35, 45),
+        TextPrimary = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(160, 160, 180),
+        TextPlaceholder = Color3.fromRGB(120, 120, 140),
+        BorderColor = Color3.fromRGB(40, 40, 50),
+        CloseButton = Color3.fromRGB(220, 60, 70),
+        MinimizeButton = Color3.fromRGB(255, 180, 0),
+        ToggleButton = Color3.fromRGB(255, 215, 0),
+    },
+    Transparency = {
+        MainBackground = 0.08,
+        Header = 0.05,
+        Sidebar = 0.1,
+        Container = 0.15,
+        Input = 0.2,
+        Dropdown = 0.15,
+        PlayerButton = 0.25,
+        CloseButton = 0.1,
+        Stroke = 0.5,
+        AccentBar = 0.2,
+        StatusIndicator = 0,
+        ScrollBar = 0.4,
+        Tab = 0.2,
+        ToggleButton = 0.1,
+    },
+    Sizes = {
+        MainFrameWidth = 680,
+        MainFrameHeight = 450,
+        SidebarWidth = 150,
+        HeaderHeight = 45,
+        CloseButton = 38,
+        TabHeight = 40,
+        ActionRowHeight = 46,
+        StatusIndicator = 12,
+        InputHeight = 36,
+        DropdownHeight = 90,
+        PlayerButtonHeight = 28,
+        ScrollBarThickness = 5,
+        ToggleButton = 55,
+    },
+    CornerRadius = {
+        Large = 14,
+        Medium = 10,
+        Small = 7,
+        Tiny = 5,
+    },
+    Fonts = {
+        Title = Enum.Font.GothamBold,
+        Tab = Enum.Font.GothamMedium,
+        Action = Enum.Font.Gotham,
+        Input = Enum.Font.Gotham,
+    },
+    FontSizes = {
+        Title = 19,
+        Tab = 15,
+        Action = 14,
+        Input = 13,
+    },
+}
 
 -- ============================================
 -- CONFIG
 -- ============================================
 local CONFIG = {
-    -- Combat
     AIMBOT_KEY = Enum.KeyCode.E,
-    AIMBOT_FOV = 200,
-    AIMBOT_SMOOTHNESS = 0.2,
+    AIMBOT_FOV = 250,
+    AIMBOT_SMOOTHNESS = 0.15,
     ESP_KEY = Enum.KeyCode.T,
-    ESP_COLOR = Color3.fromRGB(255, 0, 0),
+    ESP_COLOR = Color3.fromRGB(255, 80, 80),
     ESP_SHOW_DISTANCE = true,
     KILLAURA_KEY = Enum.KeyCode.K,
-    KILLAURA_RANGE = 20,
-    KILLAURA_DELAY = 0.15,
+    KILLAURA_RANGE = 25,
+    KILLAURA_DELAY = 0.1,
     FASTM1_KEY = Enum.KeyCode.M,
-    FASTM1_DELAY = 0.05,
-    
-    -- Movement
+    FASTM1_DELAY = 0.03,
     FLY_KEY = Enum.KeyCode.F,
-    FLY_SPEED = 50,
+    FLY_SPEED = 60,
     NOCLIP_KEY = Enum.KeyCode.N,
     INFJUMP_KEY = Enum.KeyCode.J,
     SPEED_KEY = Enum.KeyCode.X,
     SPEED_VALUE = 100,
     MIN_SPEED = 1,
     MAX_SPEED = 500,
-    
-    -- Visual
     FULLBRIGHT_KEY = Enum.KeyCode.B,
     GODMODE_KEY = Enum.KeyCode.V,
-    
-    -- Teleport
     TELEPORT_KEY = Enum.KeyCode.Z,
-    TELEPORT_SPEED = 80,
-    
-    -- GUI Toggle
+    TELEPORT_SPEED = 100,
     GUI_TOGGLE_KEY = Enum.KeyCode.Insert,
 }
 
@@ -172,16 +150,160 @@ local originalLightingSettings = {}
 local connections = {}
 local selectedTeleportPlayer = nil
 local isTeleporting = false
-
 local guiVisible = true
 local mainFrameRef = nil
+local toggleBtnRef = nil
 local guiButtons = {}
 local contentScroll, pageTitle
 
 -- ============================================
--- GUI CREATION
+-- CREATE TOGGLE BUTTON (DRAGGABLE)
 -- ============================================
-local function createSidebarGUI()
+local function createToggleButton(screenGui)
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Name = "ToggleButton"
+    toggleBtn.Size = UDim2.new(0, Theme.Sizes.ToggleButton, 0, Theme.Sizes.ToggleButton)
+    toggleBtn.Position = UDim2.new(0, 15, 0.5, -Theme.Sizes.ToggleButton/2)
+    toggleBtn.BackgroundColor3 = Theme.Colors.ToggleButton
+    toggleBtn.BackgroundTransparency = Theme.Transparency.ToggleButton
+    toggleBtn.BorderSizePixel = 0
+    toggleBtn.Text = "N"
+    toggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    toggleBtn.TextSize = 28
+    toggleBtn.Font = Enum.Font.GothamBlack
+    toggleBtn.ZIndex = 1000
+    toggleBtn.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.5, 0)
+    corner.Parent = toggleBtn
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 0, 0)
+    stroke.Thickness = 3
+    stroke.Transparency = 0.3
+    stroke.Parent = toggleBtn
+    
+    -- Make draggable
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    toggleBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = toggleBtn.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    toggleBtn.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    return toggleBtn
+end
+
+-- ============================================
+-- CREATE CLOSE PROMPT
+-- ============================================
+local function createClosePrompt(screenGui)
+    local prompt = Instance.new("Frame")
+    prompt.Name = "ClosePrompt"
+    prompt.Size = UDim2.new(0, 320, 0, 160)
+    prompt.Position = UDim2.new(0.5, -160, 0.5, -80)
+    prompt.BackgroundColor3 = Theme.Colors.MainBackground
+    prompt.BackgroundTransparency = Theme.Transparency.MainBackground
+    prompt.BorderSizePixel = 0
+    prompt.Visible = false
+    prompt.ZIndex = 2000
+    prompt.Parent = screenGui
+    
+    local promptCorner = Instance.new("UICorner")
+    promptCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
+    promptCorner.Parent = prompt
+    
+    local promptStroke = Instance.new("UIStroke")
+    promptStroke.Color = Theme.Colors.AccentBar
+    promptStroke.Thickness = 2
+    promptStroke.Transparency = 0.3
+    promptStroke.Parent = prompt
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.BackgroundTransparency = 1
+    title.Text = "Close NullHub?"
+    title.TextColor3 = Theme.Colors.TextPrimary
+    title.TextSize = Theme.FontSizes.Title
+    title.Font = Theme.Fonts.Title
+    title.Parent = prompt
+    
+    local desc = Instance.new("TextLabel")
+    desc.Size = UDim2.new(1, -20, 0, 30)
+    desc.Position = UDim2.new(0, 10, 0, 45)
+    desc.BackgroundTransparency = 1
+    desc.Text = "Choose an action:"
+    desc.TextColor3 = Theme.Colors.TextSecondary
+    desc.TextSize = 13
+    desc.Font = Theme.Fonts.Action
+    desc.TextXAlignment = Enum.TextXAlignment.Left
+    desc.Parent = prompt
+    
+    -- Minimize Button
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Size = UDim2.new(0, 140, 0, 38)
+    minimizeBtn.Position = UDim2.new(0, 10, 1, -48)
+    minimizeBtn.BackgroundColor3 = Theme.Colors.MinimizeButton
+    minimizeBtn.BackgroundTransparency = 0.1
+    minimizeBtn.BorderSizePixel = 0
+    minimizeBtn.Text = "Minimize"
+    minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeBtn.TextSize = 15
+    minimizeBtn.Font = Theme.Fonts.Tab
+    minimizeBtn.Parent = prompt
+    
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    minCorner.Parent = minimizeBtn
+    
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 140, 0, 38)
+    closeBtn.Position = UDim2.new(1, -150, 1, -48)
+    closeBtn.BackgroundColor3 = Theme.Colors.CloseButton
+    closeBtn.BackgroundTransparency = 0.1
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "Close & Destroy"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 15
+    closeBtn.Font = Theme.Fonts.Tab
+    closeBtn.Parent = prompt
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
+    closeCorner.Parent = closeBtn
+    
+    return prompt, minimizeBtn, closeBtn
+end
+
+-- ============================================
+-- GUI CREATION (FIXED SPACING)
+-- ============================================
+local function createModernGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NullHubGUI"
     screenGui.ResetOnSpawn = false
@@ -224,34 +346,36 @@ local function createSidebarGUI()
     topCorner.Parent = topBar
     
     local accentLine = Instance.new("Frame")
-    accentLine.Size = UDim2.new(1, 0, 0, 1)
-    accentLine.Position = UDim2.new(0, 0, 1, -1)
+    accentLine.Size = UDim2.new(1, 0, 0, 2)
+    accentLine.Position = UDim2.new(0, 0, 1, -2)
     accentLine.BackgroundColor3 = Theme.Colors.AccentBar
     accentLine.BackgroundTransparency = Theme.Transparency.AccentBar
     accentLine.BorderSizePixel = 0
     accentLine.Parent = topBar
     
+    -- Title (Changed to NullHub | Universal)
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -100, 1, 0)
-    title.Position = UDim2.new(0, 15, 0, 0)
+    title.Size = UDim2.new(1, -120, 1, 0)
+    title.Position = UDim2.new(0, 18, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "NullHub V2 [Insert]"
+    title.Text = "⚡ NullHub | Universal"
     title.TextColor3 = Theme.Colors.TextPrimary
     title.TextSize = Theme.FontSizes.Title
     title.Font = Theme.Fonts.Title
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = topBar
     
+    -- Close Button (Shows Prompt)
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseButton"
     closeBtn.Size = UDim2.new(0, Theme.Sizes.CloseButton, 0, Theme.Sizes.CloseButton)
-    closeBtn.Position = UDim2.new(1, -Theme.Sizes.CloseButton - 5, 0, 2.5)
+    closeBtn.Position = UDim2.new(1, -Theme.Sizes.CloseButton - 6, 0, 3.5)
     closeBtn.BackgroundColor3 = Theme.Colors.CloseButton
     closeBtn.BackgroundTransparency = Theme.Transparency.CloseButton
     closeBtn.BorderSizePixel = 0
     closeBtn.Text = "×"
     closeBtn.TextColor3 = Theme.Colors.TextPrimary
-    closeBtn.TextSize = 24
+    closeBtn.TextSize = 26
     closeBtn.Font = Theme.Fonts.Title
     closeBtn.Parent = topBar
     
@@ -262,8 +386,8 @@ local function createSidebarGUI()
     -- Sidebar
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, Theme.Sizes.SidebarWidth, 1, -Theme.Sizes.HeaderHeight - 5)
-    sidebar.Position = UDim2.new(0, 5, 0, Theme.Sizes.HeaderHeight + 5)
+    sidebar.Size = UDim2.new(0, Theme.Sizes.SidebarWidth, 1, -Theme.Sizes.HeaderHeight - 8)
+    sidebar.Position = UDim2.new(0, 6, 0, Theme.Sizes.HeaderHeight + 6)
     sidebar.BackgroundColor3 = Theme.Colors.SidebarBackground
     sidebar.BackgroundTransparency = Theme.Transparency.Sidebar
     sidebar.BorderSizePixel = 0
@@ -280,29 +404,29 @@ local function createSidebarGUI()
     sidebarStroke.Parent = sidebar
     
     local sidebarList = Instance.new("UIListLayout")
-    sidebarList.Padding = UDim.new(0, 4)
+    sidebarList.Padding = UDim.new(0, 6)
     sidebarList.SortOrder = Enum.SortOrder.LayoutOrder
     sidebarList.Parent = sidebar
     
     local sidebarPadding = Instance.new("UIPadding")
-    sidebarPadding.PaddingTop = UDim.new(0, 6)
-    sidebarPadding.PaddingLeft = UDim.new(0, 6)
-    sidebarPadding.PaddingRight = UDim.new(0, 6)
-    sidebarPadding.PaddingBottom = UDim.new(0, 6)
+    sidebarPadding.PaddingTop = UDim.new(0, 8)
+    sidebarPadding.PaddingLeft = UDim.new(0, 8)
+    sidebarPadding.PaddingRight = UDim.new(0, 8)
+    sidebarPadding.PaddingBottom = UDim.new(0, 8)
     sidebarPadding.Parent = sidebar
     
-    -- Content Area
+    -- Content Area (FIXED SPACING)
     local contentFrame = Instance.new("Frame")
     contentFrame.Name = "ContentFrame"
-    contentFrame.Size = UDim2.new(1, -Theme.Sizes.SidebarWidth - 15, 1, -Theme.Sizes.HeaderHeight - 10)
-    contentFrame.Position = UDim2.new(0, Theme.Sizes.SidebarWidth + 10, 0, Theme.Sizes.HeaderHeight + 5)
+    contentFrame.Size = UDim2.new(1, -Theme.Sizes.SidebarWidth - 18, 1, -Theme.Sizes.HeaderHeight - 14)
+    contentFrame.Position = UDim2.new(0, Theme.Sizes.SidebarWidth + 12, 0, Theme.Sizes.HeaderHeight + 8)
     contentFrame.BackgroundTransparency = 1
     contentFrame.BorderSizePixel = 0
     contentFrame.Parent = mainFrame
     
     local pageTitleLabel = Instance.new("TextLabel")
     pageTitleLabel.Name = "PageTitle"
-    pageTitleLabel.Size = UDim2.new(1, 0, 0, 30)
+    pageTitleLabel.Size = UDim2.new(1, 0, 0, 32)
     pageTitleLabel.BackgroundTransparency = 1
     pageTitleLabel.Text = "Combat"
     pageTitleLabel.TextColor3 = Theme.Colors.TextPrimary
@@ -311,10 +435,11 @@ local function createSidebarGUI()
     pageTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     pageTitleLabel.Parent = contentFrame
     
+    -- Action Scroll (FIXED SPACING)
     local actionScroll = Instance.new("ScrollingFrame")
     actionScroll.Name = "ActionScroll"
-    actionScroll.Size = UDim2.new(1, 0, 1, -35)
-    actionScroll.Position = UDim2.new(0, 0, 0, 35)
+    actionScroll.Size = UDim2.new(1, -8, 1, -40)
+    actionScroll.Position = UDim2.new(0, 0, 0, 38)
     actionScroll.BackgroundTransparency = 1
     actionScroll.BorderSizePixel = 0
     actionScroll.ScrollBarThickness = Theme.Sizes.ScrollBarThickness
@@ -325,13 +450,17 @@ local function createSidebarGUI()
     actionScroll.Parent = contentFrame
     
     local actionList = Instance.new("UIListLayout")
-    actionList.Padding = UDim.new(0, 4)
+    actionList.Padding = UDim.new(0, 8)
     actionList.SortOrder = Enum.SortOrder.LayoutOrder
     actionList.Parent = actionScroll
     
+    local actionPadding = Instance.new("UIPadding")
+    actionPadding.PaddingRight = UDim.new(0, 4)
+    actionPadding.Parent = actionScroll
+    
     screenGui.Parent = player:WaitForChild("PlayerGui")
     
-    return mainFrame, closeBtn, sidebar, contentFrame, pageTitleLabel, actionScroll
+    return mainFrame, closeBtn, sidebar, contentFrame, pageTitleLabel, actionScroll, screenGui
 end
 
 -- ============================================
@@ -359,19 +488,26 @@ local function createTabButton(parent, tabName, icon, index)
     local tabStroke = Instance.new("UIStroke")
     tabStroke.Color = Theme.Colors.BorderColor
     tabStroke.Thickness = 1
-    tabStroke.Transparency = 0.8
+    tabStroke.Transparency = 0.7
     tabStroke.Parent = tabBtn
     
     return tabBtn
 end
 
 -- ============================================
--- CREATE ACTION ROW
+-- CREATE ACTION ROW (FIXED SPACING)
 -- ============================================
 local function createActionRow(parent, actionData, index)
+    local rowHeight = Theme.Sizes.ActionRowHeight
+    if actionData.hasInput then
+        rowHeight = Theme.Sizes.ActionRowHeight + Theme.Sizes.InputHeight + 12
+    elseif actionData.hasDropdown then
+        rowHeight = Theme.Sizes.ActionRowHeight + Theme.Sizes.DropdownHeight + 12
+    end
+    
     local actionFrame = Instance.new("Frame")
     actionFrame.Name = actionData.name .. "Row"
-    actionFrame.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight)
+    actionFrame.Size = UDim2.new(1, -4, 0, rowHeight)
     actionFrame.BackgroundColor3 = Theme.Colors.ContainerBackground
     actionFrame.BackgroundTransparency = Theme.Transparency.Container
     actionFrame.BorderSizePixel = 0
@@ -390,21 +526,22 @@ local function createActionRow(parent, actionData, index)
     
     local actionBtn = Instance.new("TextButton")
     actionBtn.Name = actionData.state .. "Btn"
-    actionBtn.Size = UDim2.new(1, 0, 1, 0)
+    actionBtn.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight)
     actionBtn.BackgroundTransparency = 1
     actionBtn.Text = ""
     actionBtn.Parent = actionFrame
     
     local icon = Instance.new("TextLabel")
-    icon.Size = UDim2.new(0, 30, 1, 0)
+    icon.Size = UDim2.new(0, 32, 0, Theme.Sizes.ActionRowHeight)
+    icon.Position = UDim2.new(0, 8, 0, 0)
     icon.BackgroundTransparency = 1
     icon.Text = actionData.icon
-    icon.TextSize = 18
+    icon.TextSize = 20
     icon.Parent = actionFrame
     
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -70, 1, 0)
-    nameLabel.Position = UDim2.new(0, 35, 0, 0)
+    nameLabel.Size = UDim2.new(1, -90, 0, Theme.Sizes.ActionRowHeight)
+    nameLabel.Position = UDim2.new(0, 42, 0, 0)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Text = actionData.name .. " [" .. actionData.key .. "]"
     nameLabel.TextColor3 = Theme.Colors.TextPrimary
@@ -416,7 +553,7 @@ local function createActionRow(parent, actionData, index)
     local statusIndicator = Instance.new("Frame")
     statusIndicator.Name = "StatusIndicator"
     statusIndicator.Size = UDim2.new(0, Theme.Sizes.StatusIndicator, 0, Theme.Sizes.StatusIndicator)
-    statusIndicator.Position = UDim2.new(1, -20, 0.5, -Theme.Sizes.StatusIndicator/2)
+    statusIndicator.Position = UDim2.new(1, -24, 0, (Theme.Sizes.ActionRowHeight - Theme.Sizes.StatusIndicator) / 2)
     statusIndicator.BackgroundColor3 = Theme.Colors.StatusOff
     statusIndicator.BackgroundTransparency = Theme.Transparency.StatusIndicator
     statusIndicator.BorderSizePixel = 0
@@ -426,18 +563,17 @@ local function createActionRow(parent, actionData, index)
     indicatorCorner.CornerRadius = UDim.new(1, 0)
     indicatorCorner.Parent = statusIndicator
     
+    -- Input Box (FIXED SPACING)
     if actionData.hasInput then
-        actionFrame.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight + Theme.Sizes.InputHeight + 8)
-        
         local speedInput = Instance.new("TextBox")
         speedInput.Name = "SpeedInput"
-        speedInput.Size = UDim2.new(1, -10, 0, Theme.Sizes.InputHeight)
-        speedInput.Position = UDim2.new(0, 5, 0, Theme.Sizes.ActionRowHeight + 4)
+        speedInput.Size = UDim2.new(1, -16, 0, Theme.Sizes.InputHeight)
+        speedInput.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
         speedInput.BackgroundColor3 = Theme.Colors.InputBackground
         speedInput.BackgroundTransparency = Theme.Transparency.Input
         speedInput.BorderSizePixel = 0
         speedInput.Text = tostring(CONFIG.SPEED_VALUE)
-        speedInput.PlaceholderText = "Enter speed (1-500)"
+        speedInput.PlaceholderText = "Speed (1-500)"
         speedInput.TextColor3 = Theme.Colors.TextPrimary
         speedInput.PlaceholderColor3 = Theme.Colors.TextPlaceholder
         speedInput.TextSize = Theme.FontSizes.Input
@@ -449,20 +585,23 @@ local function createActionRow(parent, actionData, index)
         inputCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
         inputCorner.Parent = speedInput
         
+        local inputPadding = Instance.new("UIPadding")
+        inputPadding.PaddingLeft = UDim.new(0, 10)
+        inputPadding.Parent = speedInput
+        
         return actionFrame, actionBtn, statusIndicator, speedInput
     end
     
+    -- Dropdown (FIXED SPACING)
     if actionData.hasDropdown then
-        actionFrame.Size = UDim2.new(1, 0, 0, Theme.Sizes.ActionRowHeight + Theme.Sizes.DropdownHeight + 8)
-        
         local dropdown = Instance.new("ScrollingFrame")
         dropdown.Name = "PlayerDropdown"
-        dropdown.Size = UDim2.new(1, -10, 0, Theme.Sizes.DropdownHeight)
-        dropdown.Position = UDim2.new(0, 5, 0, Theme.Sizes.ActionRowHeight + 4)
+        dropdown.Size = UDim2.new(1, -16, 0, Theme.Sizes.DropdownHeight)
+        dropdown.Position = UDim2.new(0, 8, 0, Theme.Sizes.ActionRowHeight + 6)
         dropdown.BackgroundColor3 = Theme.Colors.DropdownBackground
         dropdown.BackgroundTransparency = Theme.Transparency.Dropdown
         dropdown.BorderSizePixel = 0
-        dropdown.ScrollBarThickness = 3
+        dropdown.ScrollBarThickness = 4
         dropdown.ScrollBarImageColor3 = Theme.Colors.ScrollBarColor
         dropdown.ScrollBarImageTransparency = Theme.Transparency.ScrollBar
         dropdown.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -473,14 +612,17 @@ local function createActionRow(parent, actionData, index)
         dropCorner.CornerRadius = UDim.new(0, Theme.CornerRadius.Tiny)
         dropCorner.Parent = dropdown
         
+        -- FIXED: Proper spacing for placeholder
         local placeholderLabel = Instance.new("TextLabel")
         placeholderLabel.Name = "PlaceholderText"
-        placeholderLabel.Size = UDim2.new(1, 0, 1, 0)
+        placeholderLabel.Size = UDim2.new(1, -16, 0, 30)
+        placeholderLabel.Position = UDim2.new(0, 8, 0, 8)
         placeholderLabel.BackgroundTransparency = 1
         placeholderLabel.Text = "Select a player..."
         placeholderLabel.TextColor3 = Theme.Colors.TextPlaceholder
         placeholderLabel.TextSize = Theme.FontSizes.Input
         placeholderLabel.Font = Theme.Fonts.Input
+        placeholderLabel.TextXAlignment = Enum.TextXAlignment.Left
         placeholderLabel.Parent = dropdown
         
         return actionFrame, actionBtn, statusIndicator, nil, dropdown, placeholderLabel
@@ -547,21 +689,28 @@ local function updateContentPage(tabName)
 end
 
 -- ============================================
--- PLAYER DROPDOWN
+-- PLAYER DROPDOWN (FIXED SPACING)
 -- ============================================
 local function updatePlayerDropdown(dropdown)
     if not dropdown then return end
     
     for _, child in pairs(dropdown:GetChildren()) do
-        if child:IsA("TextButton") or child:IsA("UIListLayout") then
+        if child:IsA("TextButton") or child:IsA("UIListLayout") or child:IsA("UIPadding") then
             child:Destroy()
         end
     end
     
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 2)
+    layout.Padding = UDim.new(0, 4)
     layout.SortOrder = Enum.SortOrder.Name
     layout.Parent = dropdown
+    
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, 6)
+    padding.PaddingLeft = UDim.new(0, 6)
+    padding.PaddingRight = UDim.new(0, 6)
+    padding.PaddingBottom = UDim.new(0, 6)
+    padding.Parent = dropdown
     
     local hasPlayers = false
     
@@ -571,7 +720,7 @@ local function updatePlayerDropdown(dropdown)
             
             local playerBtn = Instance.new("TextButton")
             playerBtn.Name = otherPlayer.Name
-            playerBtn.Size = UDim2.new(1, -4, 0, Theme.Sizes.PlayerButtonHeight)
+            playerBtn.Size = UDim2.new(1, -8, 0, Theme.Sizes.PlayerButtonHeight)
             playerBtn.BackgroundColor3 = Theme.Colors.PlayerButtonBg
             playerBtn.BackgroundTransparency = Theme.Transparency.PlayerButton
             playerBtn.BorderSizePixel = 0
@@ -594,12 +743,12 @@ local function updatePlayerDropdown(dropdown)
                         btn.BackgroundTransparency = Theme.Transparency.PlayerButton
                     end
                 end
-                playerBtn.BackgroundTransparency = 0.2
+                playerBtn.BackgroundTransparency = 0.15
             end)
             
             playerBtn.MouseEnter:Connect(function()
-                if playerBtn.BackgroundTransparency > 0.2 then
-                    TweenService:Create(playerBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+                if playerBtn.BackgroundTransparency > 0.15 then
+                    TweenService:Create(playerBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.15}):Play()
                 end
             end)
             
@@ -618,35 +767,27 @@ local function updatePlayerDropdown(dropdown)
 end
 
 -- ============================================
--- FEATURE FUNCTIONS
+-- ENHANCED AIMBOT (SMOOTH LOCKING)
 -- ============================================
-local function getClosestPlayer(range, checkMouse)
+local function getClosestPlayerForAimbot()
     local closestPlayer = nil
-    local shortestDistance = range or math.huge
-    local mousePos = checkMouse and UserInputService:GetMouseLocation()
+    local shortestDistance = CONFIG.AIMBOT_FOV
+    local mousePos = UserInputService:GetMouseLocation()
     
     for _, otherPlayer in pairs(Players:GetPlayers()) do
         if otherPlayer ~= player and otherPlayer.Character then
             local otherHumanoid = otherPlayer.Character:FindFirstChild("Humanoid")
-            local target = checkMouse and otherPlayer.Character:FindFirstChild("Head") or otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local otherHead = otherPlayer.Character:FindFirstChild("Head")
             
-            if otherHumanoid and target and otherHumanoid.Health > 0 then
-                local distance
-                
-                if checkMouse then
-                    local screenPos, onScreen = camera:WorldToScreenPoint(target.Position)
-                    if onScreen then
-                        distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+            if otherHumanoid and otherHead and otherHumanoid.Health > 0 then
+                local screenPos, onScreen = camera:WorldToScreenPoint(otherHead.Position)
+                if onScreen then
+                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestPlayer = otherPlayer
                     end
-                else
-                    if rootPart then
-                        distance = (rootPart.Position - target.Position).Magnitude
-                    end
-                end
-                
-                if distance and distance < shortestDistance then
-                    shortestDistance = distance
-                    closestPlayer = otherPlayer
                 end
             end
         end
@@ -663,57 +804,114 @@ local function aimAtTarget(target)
     local targetPos = targetHead.Position
     local cameraPos = camera.CFrame.Position
     local newCFrame = CFrame.new(cameraPos, targetPos)
+    
+    -- Smooth interpolation
     camera.CFrame = camera.CFrame:Lerp(newCFrame, CONFIG.AIMBOT_SMOOTHNESS)
 end
 
+-- ============================================
+-- ENHANCED KILLAURA (PLAYERS + NPCS)
+-- ============================================
 local function performKillAura()
-    if not state.killaura or not character or not humanoid then return end
+    if not state.killaura or not character or not humanoid or not rootPart then return end
     
-    local target = getClosestPlayer(CONFIG.KILLAURA_RANGE)
-    if target and target.Character then
-        local targetHumanoid = target.Character:FindFirstChild("Humanoid")
-        if targetHumanoid and targetHumanoid.Health > 0 then
-            local tool = character:FindFirstChildOfClass("Tool")
-            if tool and tool:FindFirstChild("Handle") then
-                for _, descendant in pairs(tool:GetDescendants()) do
-                    if descendant:IsA("RemoteEvent") or descendant:IsA("RemoteFunction") then
-                        pcall(function()
-                            if descendant:IsA("RemoteEvent") then
-                                descendant:FireServer()
-                            else
-                                descendant:InvokeServer()
+    -- Get all humanoids in range
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Humanoid") and obj.Health > 0 then
+            local char = obj.Parent
+            if char and char ~= character then
+                local targetRoot = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+                
+                if targetRoot then
+                    local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                    
+                    if distance <= CONFIG.KILLAURA_RANGE then
+                        -- Try to damage with tool
+                        local tool = character:FindFirstChildOfClass("Tool")
+                        if tool and tool:FindFirstChild("Handle") then
+                            -- Activate tool
+                            tool:Activate()
+                            
+                            -- Fire remote events
+                            for _, descendant in pairs(tool:GetDescendants()) do
+                                if descendant:IsA("RemoteEvent") then
+                                    pcall(function()
+                                        descendant:FireServer()
+                                        descendant:FireServer(obj)
+                                        descendant:FireServer({Hit = targetRoot})
+                                    end)
+                                elseif descendant:IsA("RemoteFunction") then
+                                    pcall(function()
+                                        descendant:InvokeServer()
+                                        descendant:InvokeServer(obj)
+                                        descendant:InvokeServer({Hit = targetRoot})
+                                    end)
+                                end
                             end
+                        end
+                        
+                        -- Also try attacking state
+                        if humanoid then
+                            humanoid:ChangeState(Enum.HumanoidStateType.Attacking)
+                        end
+                        
+                        -- Direct damage attempt (for NPCs)
+                        pcall(function()
+                            obj:TakeDamage(obj.MaxHealth)
                         end)
                     end
                 end
-            elseif humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Attacking)
             end
         end
     end
 end
 
+-- ============================================
+-- ENHANCED FAST M1 (CONTINUOUS AUTO-CLICK)
+-- ============================================
 local function performFastM1()
     if not state.fastm1 then return end
     
+    -- Virtual mouse click (bypasses cooldown)
+    pcall(function()
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+        task.wait(0.01)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+    end)
+    
+    -- Also activate tool
     local tool = character:FindFirstChildOfClass("Tool")
     if tool then
         tool:Activate()
         
+        -- Fire all remotes
         for _, descendant in pairs(tool:GetDescendants()) do
-            if descendant:IsA("RemoteEvent") or descendant:IsA("RemoteFunction") then
+            if descendant:IsA("RemoteEvent") then
                 pcall(function()
-                    if descendant:IsA("RemoteEvent") then
-                        descendant:FireServer()
-                    else
-                        descendant:InvokeServer()
-                    end
+                    descendant:FireServer()
+                    descendant:FireServer(mouse.Hit)
+                    descendant:FireServer({Hit = mouse.Hit})
+                end)
+            elseif descendant:IsA("RemoteFunction") then
+                pcall(function()
+                    descendant:InvokeServer()
+                    descendant:InvokeServer(mouse.Hit)
                 end)
             end
         end
     end
+    
+    -- Also fire mouse click manually
+    pcall(function()
+        mouse1press()
+        task.wait(0.01)
+        mouse1release()
+    end)
 end
 
+-- ============================================
+-- OTHER FEATURE FUNCTIONS
+-- ============================================
 local function updateFly()
     if not state.fly or not rootPart then return end
     
@@ -897,7 +1095,7 @@ local function teleportToPlayer()
     end
     
     if not selectedTeleportPlayer or not selectedTeleportPlayer.Character then
-        warn("[NullHub] No player selected! Select from dropdown.")
+        warn("[NullHub] No player selected!")
         return
     end
     
@@ -1098,7 +1296,8 @@ end
 local function toggleGUI()
     guiVisible = not guiVisible
     if mainFrameRef then
-        mainFrameRef.Visible = guiVisible
+        local targetPos = guiVisible and UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, 0.5, -Theme.Sizes.MainFrameHeight/2) or UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0)
+        TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play()
     end
     print("[NullHub] GUI:", guiVisible and "VISIBLE" or "HIDDEN")
 end
@@ -1162,11 +1361,49 @@ end
 -- ============================================
 -- GUI INITIALIZATION
 -- ============================================
-local mainFrame, closeBtn, sidebar, contentFrame, pageTitleRef, actionScrollRef = createSidebarGUI()
+local mainFrame, closeBtn, sidebar, contentFrame, pageTitleRef, actionScrollRef, screenGui = createModernGUI()
 mainFrameRef = mainFrame
 contentScroll = actionScrollRef
 pageTitle = pageTitleRef
 
+-- Create toggle button
+toggleBtnRef = createToggleButton(screenGui)
+
+-- Create close prompt
+local closePrompt, minimizeBtn, destroyBtn = createClosePrompt(screenGui)
+
+-- Toggle button click
+toggleBtnRef.MouseButton1Click:Connect(toggleGUI)
+
+-- Close button shows prompt
+closeBtn.MouseButton1Click:Connect(function()
+    closePrompt.Visible = true
+end)
+
+-- Minimize button
+minimizeBtn.MouseButton1Click:Connect(function()
+    closePrompt.Visible = false
+    guiVisible = false
+    TweenService:Create(mainFrameRef, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = UDim2.new(0.5, -Theme.Sizes.MainFrameWidth/2, -1, 0)}):Play()
+    print("[NullHub] Minimized")
+end)
+
+-- Destroy button
+destroyBtn.MouseButton1Click:Connect(function()
+    print("[NullHub] Destroyed - Re-execute to use again")
+    screenGui:Destroy()
+    
+    -- Cleanup all connections
+    for _, conn in pairs(connections) do
+        if typeof(conn) == "RBXScriptConnection" then
+            conn:Disconnect()
+        elseif typeof(conn) == "Instance" then
+            conn:Destroy()
+        end
+    end
+end)
+
+-- Create tabs
 local tabs = {
     {name = "Combat", icon = "⚔️"},
     {name = "Movement", icon = "🏃"},
@@ -1195,11 +1432,6 @@ if tabButtons["Combat"] then
 end
 updateContentPage("Combat")
 connectButtons()
-
-closeBtn.MouseButton1Click:Connect(function()
-    guiVisible = false
-    mainFrame.Visible = false
-end)
 
 -- ============================================
 -- KEYBIND INPUT
@@ -1235,7 +1467,7 @@ end)
 -- ============================================
 RunService.RenderStepped:Connect(function()
     if state.aimbot then
-        local target = getClosestPlayer(CONFIG.AIMBOT_FOV, true)
+        local target = getClosestPlayerForAimbot()
         if target then
             aimAtTarget(target)
         end
@@ -1290,13 +1522,14 @@ saveOriginalLighting()
 originalSpeed = humanoid.WalkSpeed
 
 print("========================================")
-print("⚡ NullHub V2 - FULLY FIXED & WORKING ⚡")
+print("⚡ NullHub V2 - ULTIMATE EDITION ⚡")
 print("========================================")
-print("📱 GUI: Press [INSERT] to toggle")
-print("🎯 FEATURES:")
-print("  • Combat: Aimbot, ESP, KillAura, Fast M1")
-print("  • Movement: Fly, NoClip, Speed, Inf Jump")
-print("  • Visual: Full Bright, God Mode")
-print("  • Teleport: Player teleportation")
-print("✅ NO ERRORS - FULLY OPTIMIZED")
+print("✨ Modern Black UI with Fixed Spacing")
+print("🎮 Draggable Toggle Button")
+print("🔧 Enhanced Features:")
+print("  • Smooth Aimbot Lock")
+print("  • KillAura (Players + NPCs)")
+print("  • Continuous Fast M1")
+print("  • All spacing issues fixed")
+print("📱 Press [INSERT] to toggle")
 print("========================================")
