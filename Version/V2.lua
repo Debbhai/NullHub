@@ -134,7 +134,7 @@ local CONFIG = {
     ESP_COLOR = Color3.fromRGB(255, 0, 0),
     ESP_SHOW_DISTANCE = true,
     
-    NOCLIP_KEY = Enum.KeyCode.N,
+    NOCLIP_KEY = Enum.KeyCode.p,
     INFJUMP_KEY = Enum.KeyCode.J,
     SPEED_KEY = Enum.KeyCode.X,
     SPEED_VALUE = 100,
