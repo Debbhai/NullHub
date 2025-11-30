@@ -1,4 +1,4 @@
--- NullHub V1 - Core Features (No Auto-Obby)
+-- NullHub V1 - Core Features (Fixed Walk on Water + New Themes)
 -- Created by Debbhai
 -- Loads Theme.lua + AntiDetection.lua from GitHub
 
@@ -28,7 +28,7 @@ else
 end
 
 -- ============================================
--- LOAD THEME MODULE
+-- LOAD THEME MODULE (WITH NEW THEMES)
 -- ============================================
 local Theme
 local THEME_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/Theme.lua"
@@ -43,11 +43,385 @@ if success2 and result2 then
 else
     print("[NullHub] ⚠️ Loading fallback theme (embedded)")
     Theme = {
-        Themes = {Dark = {Colors = {MainBackground = Color3.fromRGB(10, 10, 12), HeaderBackground = Color3.fromRGB(15, 15, 18), SidebarBackground = Color3.fromRGB(12, 12, 14), ContainerBackground = Color3.fromRGB(18, 18, 22), InputBackground = Color3.fromRGB(20, 20, 24), DropdownBackground = Color3.fromRGB(22, 22, 26), PlayerButtonBg = Color3.fromRGB(25, 25, 30), TabNormal = Color3.fromRGB(16, 16, 20), TabSelected = Color3.fromRGB(28, 28, 34), AccentBar = Color3.fromRGB(255, 215, 0), ScrollBarColor = Color3.fromRGB(218, 165, 32), StatusOff = Color3.fromRGB(220, 60, 60), StatusOn = Color3.fromRGB(50, 220, 100), ContainerOff = Color3.fromRGB(18, 18, 22), ContainerOn = Color3.fromRGB(25, 35, 45), TextPrimary = Color3.fromRGB(255, 255, 255), TextSecondary = Color3.fromRGB(160, 160, 180), TextPlaceholder = Color3.fromRGB(120, 120, 140), BorderColor = Color3.fromRGB(40, 40, 50), CloseButton = Color3.fromRGB(220, 60, 70), MinimizeButton = Color3.fromRGB(255, 180, 0), ToggleButton = Color3.fromRGB(255, 215, 0), NotificationBg = Color3.fromRGB(15, 15, 18)}, Transparency = {MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15, Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1, Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4, Tab = 0.2, ToggleButton = 0.1, Notification = 0.1}}, Light = {Colors = {MainBackground = Color3.fromRGB(245, 245, 250), HeaderBackground = Color3.fromRGB(255, 255, 255), SidebarBackground = Color3.fromRGB(250, 250, 252), ContainerBackground = Color3.fromRGB(255, 255, 255), InputBackground = Color3.fromRGB(248, 248, 250), DropdownBackground = Color3.fromRGB(252, 252, 254), PlayerButtonBg = Color3.fromRGB(245, 245, 248), TabNormal = Color3.fromRGB(240, 240, 245), TabSelected = Color3.fromRGB(230, 230, 240), AccentBar = Color3.fromRGB(100, 100, 255), ScrollBarColor = Color3.fromRGB(100, 100, 255), StatusOff = Color3.fromRGB(255, 100, 100), StatusOn = Color3.fromRGB(100, 200, 100), ContainerOff = Color3.fromRGB(255, 255, 255), ContainerOn = Color3.fromRGB(240, 245, 255), TextPrimary = Color3.fromRGB(20, 20, 30), TextSecondary = Color3.fromRGB(100, 100, 120), TextPlaceholder = Color3.fromRGB(140, 140, 160), BorderColor = Color3.fromRGB(220, 220, 230), CloseButton = Color3.fromRGB(255, 100, 110), MinimizeButton = Color3.fromRGB(255, 200, 0), ToggleButton = Color3.fromRGB(100, 100, 255), NotificationBg = Color3.fromRGB(255, 255, 255)}, Transparency = {MainBackground = 0.05, Header = 0, Sidebar = 0.05, Container = 0, Input = 0.05, Dropdown = 0, PlayerButton = 0.1, CloseButton = 0, Stroke = 0.3, AccentBar = 0, StatusIndicator = 0, ScrollBar = 0.3, Tab = 0.05, ToggleButton = 0, Notification = 0.05}}, Neon = {Colors = {MainBackground = Color3.fromRGB(5, 5, 15), HeaderBackground = Color3.fromRGB(10, 10, 20), SidebarBackground = Color3.fromRGB(8, 8, 18), ContainerBackground = Color3.fromRGB(12, 12, 25), InputBackground = Color3.fromRGB(15, 15, 30), DropdownBackground = Color3.fromRGB(18, 18, 32), PlayerButtonBg = Color3.fromRGB(20, 20, 35), TabNormal = Color3.fromRGB(10, 10, 22), TabSelected = Color3.fromRGB(25, 25, 45), AccentBar = Color3.fromRGB(0, 255, 255), ScrollBarColor = Color3.fromRGB(255, 0, 255), StatusOff = Color3.fromRGB(255, 50, 150), StatusOn = Color3.fromRGB(0, 255, 150), ContainerOff = Color3.fromRGB(12, 12, 25), ContainerOn = Color3.fromRGB(25, 15, 45), TextPrimary = Color3.fromRGB(255, 255, 255), TextSecondary = Color3.fromRGB(150, 200, 255), TextPlaceholder = Color3.fromRGB(100, 150, 200), BorderColor = Color3.fromRGB(100, 0, 255), CloseButton = Color3.fromRGB(255, 0, 100), MinimizeButton = Color3.fromRGB(255, 255, 0), ToggleButton = Color3.fromRGB(0, 255, 255), NotificationBg = Color3.fromRGB(10, 10, 20)}, Transparency = {MainBackground = 0.05, Header = 0.03, Sidebar = 0.08, Container = 0.12, Input = 0.15, Dropdown = 0.12, PlayerButton = 0.2, CloseButton = 0.08, Stroke = 0.3, AccentBar = 0.1, StatusIndicator = 0, ScrollBar = 0.3, Tab = 0.15, ToggleButton = 0.08, Notification = 0.08}}},
+        Themes = {
+            -- ORIGINAL THEMES
+            Dark = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(10, 10, 12),
+                    HeaderBackground = Color3.fromRGB(15, 15, 18),
+                    SidebarBackground = Color3.fromRGB(12, 12, 14),
+                    ContainerBackground = Color3.fromRGB(18, 18, 22),
+                    InputBackground = Color3.fromRGB(20, 20, 24),
+                    DropdownBackground = Color3.fromRGB(22, 22, 26),
+                    PlayerButtonBg = Color3.fromRGB(25, 25, 30),
+                    TabNormal = Color3.fromRGB(16, 16, 20),
+                    TabSelected = Color3.fromRGB(28, 28, 34),
+                    AccentBar = Color3.fromRGB(255, 215, 0),
+                    ScrollBarColor = Color3.fromRGB(218, 165, 32),
+                    StatusOff = Color3.fromRGB(220, 60, 60),
+                    StatusOn = Color3.fromRGB(50, 220, 100),
+                    ContainerOff = Color3.fromRGB(18, 18, 22),
+                    ContainerOn = Color3.fromRGB(25, 35, 45),
+                    TextPrimary = Color3.fromRGB(255, 255, 255),
+                    TextSecondary = Color3.fromRGB(160, 160, 180),
+                    TextPlaceholder = Color3.fromRGB(120, 120, 140),
+                    BorderColor = Color3.fromRGB(40, 40, 50),
+                    CloseButton = Color3.fromRGB(220, 60, 70),
+                    MinimizeButton = Color3.fromRGB(255, 180, 0),
+                    ToggleButton = Color3.fromRGB(255, 215, 0),
+                    NotificationBg = Color3.fromRGB(15, 15, 18)
+                },
+                Transparency = {
+                    MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
+                    Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1,
+                    Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4,
+                    Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
+                }
+            },
+            Light = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(245, 245, 250),
+                    HeaderBackground = Color3.fromRGB(255, 255, 255),
+                    SidebarBackground = Color3.fromRGB(250, 250, 252),
+                    ContainerBackground = Color3.fromRGB(255, 255, 255),
+                    InputBackground = Color3.fromRGB(248, 248, 250),
+                    DropdownBackground = Color3.fromRGB(252, 252, 254),
+                    PlayerButtonBg = Color3.fromRGB(245, 245, 248),
+                    TabNormal = Color3.fromRGB(240, 240, 245),
+                    TabSelected = Color3.fromRGB(230, 230, 240),
+                    AccentBar = Color3.fromRGB(100, 100, 255),
+                    ScrollBarColor = Color3.fromRGB(100, 100, 255),
+                    StatusOff = Color3.fromRGB(255, 100, 100),
+                    StatusOn = Color3.fromRGB(100, 200, 100),
+                    ContainerOff = Color3.fromRGB(255, 255, 255),
+                    ContainerOn = Color3.fromRGB(240, 245, 255),
+                    TextPrimary = Color3.fromRGB(20, 20, 30),
+                    TextSecondary = Color3.fromRGB(100, 100, 120),
+                    TextPlaceholder = Color3.fromRGB(140, 140, 160),
+                    BorderColor = Color3.fromRGB(220, 220, 230),
+                    CloseButton = Color3.fromRGB(255, 100, 110),
+                    MinimizeButton = Color3.fromRGB(255, 200, 0),
+                    ToggleButton = Color3.fromRGB(100, 100, 255),
+                    NotificationBg = Color3.fromRGB(255, 255, 255)
+                },
+                Transparency = {
+                    MainBackground = 0.05, Header = 0, Sidebar = 0.05, Container = 0,
+                    Input = 0.05, Dropdown = 0, PlayerButton = 0.1, CloseButton = 0,
+                    Stroke = 0.3, AccentBar = 0, StatusIndicator = 0, ScrollBar = 0.3,
+                    Tab = 0.05, ToggleButton = 0, Notification = 0.05
+                }
+            },
+            Neon = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(5, 5, 15),
+                    HeaderBackground = Color3.fromRGB(10, 10, 20),
+                    SidebarBackground = Color3.fromRGB(8, 8, 18),
+                    ContainerBackground = Color3.fromRGB(12, 12, 25),
+                    InputBackground = Color3.fromRGB(15, 15, 30),
+                    DropdownBackground = Color3.fromRGB(18, 18, 32),
+                    PlayerButtonBg = Color3.fromRGB(20, 20, 35),
+                    TabNormal = Color3.fromRGB(10, 10, 22),
+                    TabSelected = Color3.fromRGB(25, 25, 45),
+                    AccentBar = Color3.fromRGB(0, 255, 255),
+                    ScrollBarColor = Color3.fromRGB(255, 0, 255),
+                    StatusOff = Color3.fromRGB(255, 50, 150),
+                    StatusOn = Color3.fromRGB(0, 255, 150),
+                    ContainerOff = Color3.fromRGB(12, 12, 25),
+                    ContainerOn = Color3.fromRGB(25, 15, 45),
+                    TextPrimary = Color3.fromRGB(255, 255, 255),
+                    TextSecondary = Color3.fromRGB(150, 200, 255),
+                    TextPlaceholder = Color3.fromRGB(100, 150, 200),
+                    BorderColor = Color3.fromRGB(100, 0, 255),
+                    CloseButton = Color3.fromRGB(255, 0, 100),
+                    MinimizeButton = Color3.fromRGB(255, 255, 0),
+                    ToggleButton = Color3.fromRGB(0, 255, 255),
+                    NotificationBg = Color3.fromRGB(10, 10, 20)
+                },
+                Transparency = {
+                    MainBackground = 0.05, Header = 0.03, Sidebar = 0.08, Container = 0.12,
+                    Input = 0.15, Dropdown = 0.12, PlayerButton = 0.2, CloseButton = 0.08,
+                    Stroke = 0.3, AccentBar = 0.1, StatusIndicator = 0, ScrollBar = 0.3,
+                    Tab = 0.15, ToggleButton = 0.08, Notification = 0.08
+                }
+            },
+            -- NEW THEMES
+            Grayish = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(45, 45, 48),
+                    HeaderBackground = Color3.fromRGB(55, 55, 58),
+                    SidebarBackground = Color3.fromRGB(50, 50, 53),
+                    ContainerBackground = Color3.fromRGB(60, 60, 65),
+                    InputBackground = Color3.fromRGB(65, 65, 70),
+                    DropdownBackground = Color3.fromRGB(68, 68, 73),
+                    PlayerButtonBg = Color3.fromRGB(70, 70, 75),
+                    TabNormal = Color3.fromRGB(55, 55, 60),
+                    TabSelected = Color3.fromRGB(75, 75, 85),
+                    AccentBar = Color3.fromRGB(180, 180, 190),
+                    ScrollBarColor = Color3.fromRGB(160, 160, 170),
+                    StatusOff = Color3.fromRGB(200, 80, 80),
+                    StatusOn = Color3.fromRGB(100, 200, 120),
+                    ContainerOff = Color3.fromRGB(60, 60, 65),
+                    ContainerOn = Color3.fromRGB(80, 85, 95),
+                    TextPrimary = Color3.fromRGB(230, 230, 235),
+                    TextSecondary = Color3.fromRGB(180, 180, 190),
+                    TextPlaceholder = Color3.fromRGB(130, 130, 140),
+                    BorderColor = Color3.fromRGB(80, 80, 85),
+                    CloseButton = Color3.fromRGB(200, 70, 80),
+                    MinimizeButton = Color3.fromRGB(220, 180, 50),
+                    ToggleButton = Color3.fromRGB(180, 180, 190),
+                    NotificationBg = Color3.fromRGB(50, 50, 53)
+                },
+                Transparency = {
+                    MainBackground = 0.1, Header = 0.05, Sidebar = 0.12, Container = 0.15,
+                    Input = 0.18, Dropdown = 0.15, PlayerButton = 0.22, CloseButton = 0.1,
+                    Stroke = 0.4, AccentBar = 0.15, StatusIndicator = 0, ScrollBar = 0.35,
+                    Tab = 0.18, ToggleButton = 0.12, Notification = 0.1
+                }
+            },
+            Onyx = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(15, 15, 17),
+                    HeaderBackground = Color3.fromRGB(20, 20, 23),
+                    SidebarBackground = Color3.fromRGB(18, 18, 20),
+                    ContainerBackground = Color3.fromRGB(25, 25, 28),
+                    InputBackground = Color3.fromRGB(30, 30, 33),
+                    DropdownBackground = Color3.fromRGB(32, 32, 35),
+                    PlayerButtonBg = Color3.fromRGB(35, 35, 38),
+                    TabNormal = Color3.fromRGB(22, 22, 25),
+                    TabSelected = Color3.fromRGB(40, 40, 45),
+                    AccentBar = Color3.fromRGB(200, 200, 210),
+                    ScrollBarColor = Color3.fromRGB(180, 180, 190),
+                    StatusOff = Color3.fromRGB(180, 60, 60),
+                    StatusOn = Color3.fromRGB(80, 200, 120),
+                    ContainerOff = Color3.fromRGB(25, 25, 28),
+                    ContainerOn = Color3.fromRGB(40, 42, 48),
+                    TextPrimary = Color3.fromRGB(240, 240, 245),
+                    TextSecondary = Color3.fromRGB(170, 170, 180),
+                    TextPlaceholder = Color3.fromRGB(120, 120, 130),
+                    BorderColor = Color3.fromRGB(50, 50, 55),
+                    CloseButton = Color3.fromRGB(200, 65, 75),
+                    MinimizeButton = Color3.fromRGB(230, 190, 60),
+                    ToggleButton = Color3.fromRGB(200, 200, 210),
+                    NotificationBg = Color3.fromRGB(20, 20, 23)
+                },
+                Transparency = {
+                    MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.14,
+                    Input = 0.18, Dropdown = 0.14, PlayerButton = 0.23, CloseButton = 0.1,
+                    Stroke = 0.45, AccentBar = 0.18, StatusIndicator = 0, ScrollBar = 0.38,
+                    Tab = 0.18, ToggleButton = 0.1, Notification = 0.1
+                }
+            },
+            Ocean = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(10, 25, 40),
+                    HeaderBackground = Color3.fromRGB(15, 35, 55),
+                    SidebarBackground = Color3.fromRGB(12, 30, 48),
+                    ContainerBackground = Color3.fromRGB(18, 40, 60),
+                    InputBackground = Color3.fromRGB(22, 45, 68),
+                    DropdownBackground = Color3.fromRGB(25, 48, 72),
+                    PlayerButtonBg = Color3.fromRGB(28, 52, 78),
+                    TabNormal = Color3.fromRGB(15, 35, 55),
+                    TabSelected = Color3.fromRGB(30, 60, 90),
+                    AccentBar = Color3.fromRGB(50, 150, 255),
+                    ScrollBarColor = Color3.fromRGB(70, 170, 255),
+                    StatusOff = Color3.fromRGB(200, 80, 100),
+                    StatusOn = Color3.fromRGB(80, 220, 180),
+                    ContainerOff = Color3.fromRGB(18, 40, 60),
+                    ContainerOn = Color3.fromRGB(30, 55, 85),
+                    TextPrimary = Color3.fromRGB(230, 245, 255),
+                    TextSecondary = Color3.fromRGB(150, 190, 220),
+                    TextPlaceholder = Color3.fromRGB(100, 140, 180),
+                    BorderColor = Color3.fromRGB(40, 80, 120),
+                    CloseButton = Color3.fromRGB(220, 80, 100),
+                    MinimizeButton = Color3.fromRGB(255, 200, 80),
+                    ToggleButton = Color3.fromRGB(50, 150, 255),
+                    NotificationBg = Color3.fromRGB(15, 35, 55)
+                },
+                Transparency = {
+                    MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
+                    Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1,
+                    Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4,
+                    Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
+                }
+            },
+            Sunset = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(40, 20, 35),
+                    HeaderBackground = Color3.fromRGB(55, 30, 50),
+                    SidebarBackground = Color3.fromRGB(48, 25, 43),
+                    ContainerBackground = Color3.fromRGB(60, 35, 55),
+                    InputBackground = Color3.fromRGB(68, 40, 63),
+                    DropdownBackground = Color3.fromRGB(72, 43, 67),
+                    PlayerButtonBg = Color3.fromRGB(78, 48, 73),
+                    TabNormal = Color3.fromRGB(55, 30, 50),
+                    TabSelected = Color3.fromRGB(90, 50, 80),
+                    AccentBar = Color3.fromRGB(255, 120, 80),
+                    ScrollBarColor = Color3.fromRGB(255, 140, 100),
+                    StatusOff = Color3.fromRGB(220, 80, 100),
+                    StatusOn = Color3.fromRGB(120, 220, 150),
+                    ContainerOff = Color3.fromRGB(60, 35, 55),
+                    ContainerOn = Color3.fromRGB(85, 50, 75),
+                    TextPrimary = Color3.fromRGB(255, 230, 240),
+                    TextSecondary = Color3.fromRGB(220, 180, 200),
+                    TextPlaceholder = Color3.fromRGB(160, 130, 150),
+                    BorderColor = Color3.fromRGB(100, 60, 90),
+                    CloseButton = Color3.fromRGB(255, 80, 100),
+                    MinimizeButton = Color3.fromRGB(255, 180, 100),
+                    ToggleButton = Color3.fromRGB(255, 120, 80),
+                    NotificationBg = Color3.fromRGB(55, 30, 50)
+                },
+                Transparency = {
+                    MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
+                    Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1,
+                    Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4,
+                    Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
+                }
+            },
+            Forest = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(20, 35, 25),
+                    HeaderBackground = Color3.fromRGB(30, 50, 35),
+                    SidebarBackground = Color3.fromRGB(25, 43, 30),
+                    ContainerBackground = Color3.fromRGB(35, 55, 40),
+                    InputBackground = Color3.fromRGB(40, 63, 48),
+                    DropdownBackground = Color3.fromRGB(43, 67, 52),
+                    PlayerButtonBg = Color3.fromRGB(48, 73, 58),
+                    TabNormal = Color3.fromRGB(30, 50, 35),
+                    TabSelected = Color3.fromRGB(50, 80, 60),
+                    AccentBar = Color3.fromRGB(100, 220, 120),
+                    ScrollBarColor = Color3.fromRGB(120, 230, 140),
+                    StatusOff = Color3.fromRGB(200, 100, 80),
+                    StatusOn = Color3.fromRGB(100, 230, 120),
+                    ContainerOff = Color3.fromRGB(35, 55, 40),
+                    ContainerOn = Color3.fromRGB(50, 75, 60),
+                    TextPrimary = Color3.fromRGB(230, 255, 240),
+                    TextSecondary = Color3.fromRGB(180, 220, 190),
+                    TextPlaceholder = Color3.fromRGB(130, 170, 140),
+                    BorderColor = Color3.fromRGB(60, 90, 70),
+                    CloseButton = Color3.fromRGB(220, 100, 80),
+                    MinimizeButton = Color3.fromRGB(255, 200, 80),
+                    ToggleButton = Color3.fromRGB(100, 220, 120),
+                    NotificationBg = Color3.fromRGB(30, 50, 35)
+                },
+                Transparency = {
+                    MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
+                    Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1,
+                    Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4,
+                    Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
+                }
+            },
+            Purple = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(25, 15, 40),
+                    HeaderBackground = Color3.fromRGB(35, 20, 55),
+                    SidebarBackground = Color3.fromRGB(30, 18, 48),
+                    ContainerBackground = Color3.fromRGB(40, 25, 60),
+                    InputBackground = Color3.fromRGB(48, 30, 70),
+                    DropdownBackground = Color3.fromRGB(52, 33, 75),
+                    PlayerButtonBg = Color3.fromRGB(58, 38, 82),
+                    TabNormal = Color3.fromRGB(35, 20, 55),
+                    TabSelected = Color3.fromRGB(60, 40, 90),
+                    AccentBar = Color3.fromRGB(180, 100, 255),
+                    ScrollBarColor = Color3.fromRGB(200, 120, 255),
+                    StatusOff = Color3.fromRGB(220, 80, 120),
+                    StatusOn = Color3.fromRGB(150, 220, 180),
+                    ContainerOff = Color3.fromRGB(40, 25, 60),
+                    ContainerOn = Color3.fromRGB(60, 40, 85),
+                    TextPrimary = Color3.fromRGB(240, 230, 255),
+                    TextSecondary = Color3.fromRGB(200, 180, 230),
+                    TextPlaceholder = Color3.fromRGB(150, 130, 180),
+                    BorderColor = Color3.fromRGB(80, 50, 120),
+                    CloseButton = Color3.fromRGB(220, 80, 120),
+                    MinimizeButton = Color3.fromRGB(255, 180, 120),
+                    ToggleButton = Color3.fromRGB(180, 100, 255),
+                    NotificationBg = Color3.fromRGB(35, 20, 55)
+                },
+                Transparency = {
+                    MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
+                    Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1,
+                    Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4,
+                    Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
+                }
+            },
+            Midnight = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(8, 8, 15),
+                    HeaderBackground = Color3.fromRGB(12, 12, 22),
+                    SidebarBackground = Color3.fromRGB(10, 10, 18),
+                    ContainerBackground = Color3.fromRGB(15, 15, 25),
+                    InputBackground = Color3.fromRGB(18, 18, 30),
+                    DropdownBackground = Color3.fromRGB(20, 20, 33),
+                    PlayerButtonBg = Color3.fromRGB(23, 23, 38),
+                    TabNormal = Color3.fromRGB(12, 12, 22),
+                    TabSelected = Color3.fromRGB(25, 25, 45),
+                    AccentBar = Color3.fromRGB(100, 150, 255),
+                    ScrollBarColor = Color3.fromRGB(120, 170, 255),
+                    StatusOff = Color3.fromRGB(200, 70, 90),
+                    StatusOn = Color3.fromRGB(100, 220, 170),
+                    ContainerOff = Color3.fromRGB(15, 15, 25),
+                    ContainerOn = Color3.fromRGB(30, 35, 50),
+                    TextPrimary = Color3.fromRGB(230, 240, 255),
+                    TextSecondary = Color3.fromRGB(160, 180, 220),
+                    TextPlaceholder = Color3.fromRGB(110, 130, 170),
+                    BorderColor = Color3.fromRGB(40, 45, 70),
+                    CloseButton = Color3.fromRGB(200, 70, 90),
+                    MinimizeButton = Color3.fromRGB(240, 190, 80),
+                    ToggleButton = Color3.fromRGB(100, 150, 255),
+                    NotificationBg = Color3.fromRGB(12, 12, 22)
+                },
+                Transparency = {
+                    MainBackground = 0.05, Header = 0.03, Sidebar = 0.08, Container = 0.12,
+                    Input = 0.15, Dropdown = 0.12, PlayerButton = 0.2, CloseButton = 0.08,
+                    Stroke = 0.3, AccentBar = 0.15, StatusIndicator = 0, ScrollBar = 0.35,
+                    Tab = 0.15, ToggleButton = 0.08, Notification = 0.08
+                }
+            },
+            Cherry = {
+                Colors = {
+                    MainBackground = Color3.fromRGB(35, 15, 20),
+                    HeaderBackground = Color3.fromRGB(50, 20, 30),
+                    SidebarBackground = Color3.fromRGB(43, 18, 25),
+                    ContainerBackground = Color3.fromRGB(55, 25, 35),
+                    InputBackground = Color3.fromRGB(63, 30, 43),
+                    DropdownBackground = Color3.fromRGB(67, 33, 47),
+                    PlayerButtonBg = Color3.fromRGB(73, 38, 53),
+                    TabNormal = Color3.fromRGB(50, 20, 30),
+                    TabSelected = Color3.fromRGB(80, 35, 50),
+                    AccentBar = Color3.fromRGB(255, 80, 120),
+                    ScrollBarColor = Color3.fromRGB(255, 100, 140),
+                    StatusOff = Color3.fromRGB(220, 80, 80),
+                    StatusOn = Color3.fromRGB(120, 220, 150),
+                    ContainerOff = Color3.fromRGB(55, 25, 35),
+                    ContainerOn = Color3.fromRGB(75, 40, 55),
+                    TextPrimary = Color3.fromRGB(255, 230, 240),
+                    TextSecondary = Color3.fromRGB(220, 180, 200),
+                    TextPlaceholder = Color3.fromRGB(160, 130, 150),
+                    BorderColor = Color3.fromRGB(100, 50, 70),
+                    CloseButton = Color3.fromRGB(255, 80, 100),
+                    MinimizeButton = Color3.fromRGB(255, 180, 120),
+                    ToggleButton = Color3.fromRGB(255, 80, 120),
+                    NotificationBg = Color3.fromRGB(50, 20, 30)
+                },
+                Transparency = {
+                    MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
+                    Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1,
+                    Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4,
+                    Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
+                }
+            }
+        },
         CurrentTheme = "Dark",
-        Sizes = {MainFrameWidth = 680, MainFrameHeight = 450, SidebarWidth = 150, HeaderHeight = 45, CloseButton = 38, TabHeight = 40, ActionRowHeight = 46, StatusIndicator = 12, InputHeight = 36, DropdownHeight = 90, PlayerButtonHeight = 28, ScrollBarThickness = 5, ToggleButton = 55, NotificationWidth = 300, NotificationHeight = 60},
+        Sizes = {
+            MainFrameWidth = 680, MainFrameHeight = 450, SidebarWidth = 150, HeaderHeight = 45,
+            CloseButton = 38, TabHeight = 40, ActionRowHeight = 46, StatusIndicator = 12,
+            InputHeight = 36, DropdownHeight = 90, PlayerButtonHeight = 28, ScrollBarThickness = 5,
+            ToggleButton = 55, NotificationWidth = 300, NotificationHeight = 60
+        },
         CornerRadius = {Large = 14, Medium = 10, Small = 7, Tiny = 5},
-        Fonts = {Title = Enum.Font.GothamBold, Tab = Enum.Font.GothamMedium, Action = Enum.Font.Gotham, Input = Enum.Font.Gotham},
+        Fonts = {
+            Title = Enum.Font.GothamBold, Tab = Enum.Font.GothamMedium,
+            Action = Enum.Font.Gotham, Input = Enum.Font.Gotham
+        },
         FontSizes = {Title = 19, Tab = 15, Action = 14, Input = 13},
     }
     function Theme:GetTheme() return self.Themes[self.CurrentTheme] or self.Themes.Dark end
@@ -222,6 +596,145 @@ local function refreshGUITheme()
 end
 
 -- ============================================
+-- ADVANCED WALK ON WATER (UNIVERSAL - FIXED)
+-- ============================================
+local function updateWalkOnWater()
+    if not state.walkonwater or not rootPart then return end
+    
+    local playerPos = rootPart.Position
+    local detectionHeight = 10
+    local platformHeight = 0.5
+    local shouldCreatePlatform = false
+    
+    -- METHOD 1: Raycast for any surface below player
+    local rayOrigin = playerPos
+    local rayDirection = Vector3.new(0, -detectionHeight, 0)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    
+    if rayResult and rayResult.Instance then
+        local hitInstance = rayResult.Instance
+        local hitPosition = rayResult.Position
+        local distanceToSurface = (playerPos - hitPosition).Magnitude
+        
+        -- METHOD 2: Check if it's Terrain Water (FIXED ALIGNMENT)
+        if hitInstance:IsA("Terrain") then
+            -- Align position to 4-stud grid to prevent warning
+            local alignedPos = Vector3.new(
+                math.floor(hitPosition.X / 4) * 4,
+                math.floor(hitPosition.Y / 4) * 4,
+                math.floor(hitPosition.Z / 4) * 4
+            )
+            
+            -- Create aligned region
+            local regionSize = Vector3.new(4, 4, 4)
+            local region = Region3.new(alignedPos - regionSize, alignedPos + regionSize)
+            region = region:ExpandToGrid(4)
+            
+            pcall(function()
+                local materials, sizes = workspace.Terrain:ReadVoxels(region, 4)
+                local size = materials.Size
+                
+                for x = 1, size.X do
+                    for y = 1, size.Y do
+                        for z = 1, size.Z do
+                            if materials[x][y][z] == Enum.Material.Water then
+                                shouldCreatePlatform = true
+                                break
+                            end
+                        end
+                        if shouldCreatePlatform then break end
+                    end
+                    if shouldCreatePlatform then break end
+                end
+            end)
+        end
+        
+        -- METHOD 3: Check for Part-based water (Blox Fruits, other games)
+        if not shouldCreatePlatform then
+            local partName = hitInstance.Name:lower()
+            local waterKeywords = {"water", "ocean", "sea", "lake", "river", "pool", "liquid"}
+            
+            for _, keyword in pairs(waterKeywords) do
+                if partName:find(keyword) then
+                    shouldCreatePlatform = true
+                    break
+                end
+            end
+        end
+        
+        -- METHOD 4: Check part color (blue/cyan = water)
+        if not shouldCreatePlatform and hitInstance:IsA("BasePart") then
+            local partColor = hitInstance.Color
+            -- Check if part is blue/cyan (common water colors)
+            if (partColor.B > 0.5 and partColor.R < 0.3 and partColor.G < 0.6) or
+               (partColor.B > 0.6 and partColor.G > 0.5 and partColor.R < 0.3) then
+                shouldCreatePlatform = true
+            end
+        end
+        
+        -- METHOD 5: Check material (Water, Ice, Glacier)
+        if not shouldCreatePlatform and hitInstance:IsA("BasePart") then
+            if hitInstance.Material == Enum.Material.Water or 
+               hitInstance.Material == Enum.Material.Ice or
+               hitInstance.Material == Enum.Material.Glacier then
+                shouldCreatePlatform = true
+            end
+        end
+        
+        -- METHOD 6: Universal detection - if player is falling and surface is below
+        if not shouldCreatePlatform and humanoid then
+            if humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+                if distanceToSurface > 3 and distanceToSurface < detectionHeight then
+                    -- Check if part is transparent or has water-like properties
+                    if hitInstance:IsA("BasePart") and 
+                       (hitInstance.Transparency > 0.3 or hitInstance.CanCollide == false) then
+                        shouldCreatePlatform = true
+                    end
+                end
+            end
+        end
+        
+        -- Create or update platform
+        if shouldCreatePlatform then
+            if not waterPlatform then
+                waterPlatform = Instance.new("Part")
+                waterPlatform.Name = "NullHub_WaterPlatform"
+                waterPlatform.Size = Vector3.new(12, platformHeight, 12)
+                waterPlatform.Anchored = true
+                waterPlatform.CanCollide = true
+                waterPlatform.Transparency = 0.7
+                waterPlatform.Material = Enum.Material.SmoothPlastic
+                waterPlatform.Color = Color3.fromRGB(100, 200, 255)
+                waterPlatform.TopSurface = Enum.SurfaceType.Smooth
+                waterPlatform.BottomSurface = Enum.SurfaceType.Smooth
+                waterPlatform.CastShadow = false
+                waterPlatform.Parent = workspace
+            end
+            
+            -- Smooth platform movement
+            local targetY = hitPosition.Y + platformHeight
+            local currentCFrame = waterPlatform.CFrame
+            local targetCFrame = CFrame.new(playerPos.X, targetY, playerPos.Z)
+            
+            -- Lerp for smooth movement
+            waterPlatform.CFrame = currentCFrame:Lerp(targetCFrame, 0.3)
+            
+            return
+        end
+    end
+    
+    -- Remove platform if no water detected
+    if waterPlatform then
+        waterPlatform:Destroy()
+        waterPlatform = nil
+    end
+end
+
+-- ============================================
 -- PLAYER TELEPORT
 -- ============================================
 local function updatePlayerDropdown(dropdown)
@@ -385,47 +898,6 @@ local function updateFly()
     end
     if connections.flyBodyVelocity then 
         connections.flyBodyVelocity.Velocity = moveDirection 
-    end
-end
-
-local function updateWalkOnWater()
-    if not state.walkonwater or not rootPart then return end
-    local rayOrigin = rootPart.Position
-    local rayDirection = Vector3.new(0, -10, 0)
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {character}
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    if rayResult and rayResult.Instance then
-        if rayResult.Instance:IsA("Terrain") then
-            local region = game.Workspace.Terrain:ReadVoxels(Region3.new(rayResult.Position - Vector3.new(2,2,2), rayResult.Position + Vector3.new(2,2,2)), 4)
-            local size = region.Size
-            for x = 1, size.X do
-                for y = 1, size.Y do
-                    for z = 1, size.Z do
-                        if region[x][y][z] == Enum.Material.Water then
-                            if not waterPlatform then
-                                waterPlatform = Instance.new("Part")
-                                waterPlatform.Name = "WaterPlatform"
-                                waterPlatform.Size = Vector3.new(10, 0.5, 10)
-                                waterPlatform.Anchored = true
-                                waterPlatform.CanCollide = true
-                                waterPlatform.Transparency = 0.8
-                                waterPlatform.Material = Enum.Material.SmoothPlastic
-                                waterPlatform.Color = Color3.fromRGB(0, 170, 255)
-                                waterPlatform.Parent = workspace
-                            end
-                            waterPlatform.CFrame = CFrame.new(rootPart.Position.X, rayResult.Position.Y + 0.5, rootPart.Position.Z)
-                            return
-                        end
-                    end
-                end
-            end
-        end
-    end
-    if waterPlatform then
-        waterPlatform:Destroy()
-        waterPlatform = nil
     end
 end
 
@@ -873,7 +1345,7 @@ local function createThemeButton(parent, themeName, index)
 end
 
 -- ============================================
--- FEATURES BY TAB (NO AUTO-OBBY)
+-- FEATURES BY TAB
 -- ============================================
 local featuresByTab = {
     Combat = {
@@ -1143,74 +1615,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if action then
         action()
     elseif input.KeyCode == Enum.KeyCode.Space and state.infjump and not state.fly and humanoid then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
--- ============================================
--- RUNTIME LOOPS
--- ============================================
-RunService.RenderStepped:Connect(function()
-    if state.aimbot then
-        local target = getClosestPlayerForAimbot()
-        if target then aimAtTarget(target) end
-    end
-    if state.noclip then updateNoClip() end
-    if state.speed then updateSpeed() end
-end)
-
--- ============================================
--- PLAYER EVENTS
--- ============================================
-Players.PlayerAdded:Connect(function(newPlayer)
-    newPlayer.CharacterAdded:Connect(function()
-        task.wait(1)
-        if state.esp then createESP(newPlayer) end
-    end)
-end)
-
-Players.PlayerRemoving:Connect(function(removedPlayer)
-    removeESP(removedPlayer)
-    if selectedTeleportPlayer == removedPlayer then
-        selectedTeleportPlayer = nil
-    end
-end)
-
-player.CharacterAdded:Connect(function(newChar)
-    character = newChar
-    humanoid = character:WaitForChild("Humanoid")
-    rootPart = character:WaitForChild("HumanoidRootPart")
-    task.wait(0.2)
-    originalSpeed = humanoid.WalkSpeed
-    if state.speed then updateSpeed() end
-    if state.godmode then updateGodMode() end
-    if state.esp then
-        task.wait(0.5)
-        updateESP()
-    end
-    if state.fly then
-        toggleFly()
-        toggleFly()
-    end
-    if state.walkonwater then
-        toggleWalkOnWater()
-        toggleWalkOnWater()
-    end
-end)
-
--- ============================================
--- FINALIZE
--- ============================================
-saveOriginalLighting()
-originalSpeed = humanoid.WalkSpeed
-showNotification("🛡️ NullHub V1 - Loaded!", 3)
-
-print("========================================")
-print("⚡ NullHub V1 - Core Features ⚡")
-print("✅ Aimbot | ESP | KillAura | Fast M1")
-print("✅ Fly | NoClip | Infinite Jump | Speed")
-print("✅ Walk on Water | Full Bright | God Mode")
-print("✅ Teleport to Player")
-print("✅ Anti-Detection Active")
-print("✅ Theme System Active (Dark/Light/Neon)")
-print("========================================")
