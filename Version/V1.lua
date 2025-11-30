@@ -1,6 +1,6 @@
--- NullHub V1 - Core Features (FIXED Walk on Water for Blox Fruits)
+-- NullHub V1 - Core Features (FIXED Walk on Water - INSTANT RESPONSE)
 -- Created by Debbhai
--- Loads Theme.lua + AntiDetection.lua from GitHub
+-- Optimized for Blox Fruits with instant platform following
 
 print("[NullHub] Loading V1...")
 
@@ -77,8 +77,7 @@ local originalSpeed, originalLightingSettings = 16, {}
 local selectedTeleportPlayer, isTeleporting, currentTeleportTween = nil, false, nil
 local guiVisible, mainFrameRef, guiButtons, contentScroll, pageTitle, screenGuiRef = true, nil, {}, nil, nil, nil
 local waterPlatform = nil
-local waterPlatformHeight = nil
-local lastUpdateTime = 0
+local waterHeight = nil
 
 local function showNotification(message, duration)
     duration = duration or 3
@@ -142,122 +141,138 @@ local function refreshGUITheme()
 end
 
 -- ============================================
--- COMPLETELY REWRITTEN WALK ON WATER (BLOX FRUITS OPTIMIZED)
+-- COMPLETELY REWRITTEN WALK ON WATER (INSTANT RESPONSE + BLOX FRUITS)
 -- ============================================
 local function updateWalkOnWater()
-    if not state.walkonwater or not rootPart then return end
-    
-    local currentTime = tick()
-    if currentTime - lastUpdateTime < 0.1 then return end
-    lastUpdateTime = currentTime
+    if not state.walkonwater or not rootPart or not humanoid then return end
     
     local playerPos = rootPart.Position
-    local shouldCreatePlatform = false
-    local detectedWaterHeight = nil
+    local isOverWater = false
+    local detectedHeight = nil
     
-    local function isBloxFruitsWater(part)
-        if not part then return false end
-        local name = part.Name:lower()
-        if name:find("water") or name:find("ocean") or name:find("sea") then return true end
-        if part.Parent and part.Parent.Name:lower():find("water") then return true end
+    -- MULTIPLE DETECTION METHODS FOR BLOX FRUITS
+    
+    -- METHOD 1: Check all water-related parts in workspace (BLOX FRUITS SPECIFIC)
+    local function scanForWater()
+        -- Check Map folder (common in Blox Fruits)
+        local mapFolder = workspace:FindFirstChild("Map") or workspace:FindFirstChild("World")
+        if mapFolder then
+            for _, obj in pairs(mapFolder:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    local name = obj.Name:lower()
+                    -- Blox Fruits water detection
+                    if name:find("water") or name:find("ocean") or name:find("sea") or obj.Material == Enum.Material.Water then
+                        local objPos = obj.Position
+                        local objSize = obj.Size
+                        -- Check if player is above this water horizontally
+                        local horizontalDist = math.sqrt((playerPos.X - objPos.X)^2 + (playerPos.Z - objPos.Z)^2)
+                        if horizontalDist < objSize.X / 2 + 20 then
+                            local waterTop = objPos.Y + objSize.Y / 2
+                            if playerPos.Y > waterTop - 5 and playerPos.Y < waterTop + 15 then
+                                isOverWater = true
+                                detectedHeight = waterTop
+                                return true
+                            end
+                        end
+                    end
+                end
+            end
+        end
         return false
     end
     
-    local rayOrigin = playerPos + Vector3.new(0, 5, 0)
-    local rayDirection = Vector3.new(0, -30, 0)
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {character, waterPlatform}
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    -- METHOD 2: Raycast downward
+    local rayOrigin = playerPos + Vector3.new(0, 3, 0)
+    local rayDirection = Vector3.new(0, -25, 0)
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {character, waterPlatform}
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
     
-    local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    local rayResult = workspace:Raycast(rayOrigin, rayDirection, rayParams)
     
-    if rayResult and rayResult.Instance then
-        local hitPart = rayResult.Instance
-        local hitY = rayResult.Position.Y
+    if rayResult then
+        local hit = rayResult.Instance
+        local hitPos = rayResult.Position
         
-        if isBloxFruitsWater(hitPart) then
-            shouldCreatePlatform = true
-            detectedWaterHeight = hitY
+        -- Check if hit part is water
+        local isWater = false
+        if hit.Name:lower():find("water") or hit.Name:lower():find("ocean") or hit.Name:lower():find("sea") then
+            isWater = true
+        elseif hit.Material == Enum.Material.Water then
+            isWater = true
+        elseif hit:IsA("BasePart") and hit.Transparency > 0.3 then
+            local color = hit.Color
+            if color.B > 0.6 and color.R < 0.5 then isWater = true end
         end
         
-        if not shouldCreatePlatform and hitPart:IsA("Terrain") then
-            local region = Region3.new(rayResult.Position - Vector3.new(2, 2, 2), rayResult.Position + Vector3.new(2, 2, 2))
+        if isWater then
+            isOverWater = true
+            detectedHeight = hitPos.Y
+        end
+        
+        -- Terrain water check
+        if not isWater and hit:IsA("Terrain") then
+            local region = Region3.new(hitPos - Vector3.new(2, 2, 2), hitPos + Vector3.new(2, 2, 2))
             region = region:ExpandToGrid(4)
             pcall(function()
-                local materials, sizes = workspace.Terrain:ReadVoxels(region, 4)
+                local materials = workspace.Terrain:ReadVoxels(region, 4)
                 if materials[1][1][1] == Enum.Material.Water then
-                    shouldCreatePlatform = true
-                    detectedWaterHeight = hitY
+                    isOverWater = true
+                    detectedHeight = hitPos.Y
                 end
             end)
         end
-        
-        if not shouldCreatePlatform and hitPart:IsA("BasePart") then
-            local color = hitPart.Color
-            if color.B > 0.6 and color.R < 0.4 and color.G < 0.6 then
-                shouldCreatePlatform = true
-                detectedWaterHeight = hitY
-            end
-        end
-        
-        if not shouldCreatePlatform and hitPart:IsA("BasePart") then
-            if hitPart.Material == Enum.Material.Water then
-                shouldCreatePlatform = true
-                detectedWaterHeight = hitY
-            end
-        end
     end
     
-    if not shouldCreatePlatform then
-        local nearbyParts = workspace:GetPartBoundsInRadius(playerPos, 20)
-        for _, part in pairs(nearbyParts) do
-            if isBloxFruitsWater(part) and part:IsA("BasePart") then
-                if playerPos.Y > part.Position.Y - 5 and playerPos.Y < part.Position.Y + 10 then
-                    shouldCreatePlatform = true
-                    detectedWaterHeight = part.Position.Y + (part.Size.Y / 2)
-                    break
-                end
-            end
-        end
+    -- METHOD 3: Fallback scan if raycast fails
+    if not isOverWater then
+        scanForWater()
     end
     
-    if shouldCreatePlatform and detectedWaterHeight then
-        if not waterPlatformHeight then
-            waterPlatformHeight = detectedWaterHeight
+    -- CREATE/UPDATE PLATFORM WITH INSTANT FOLLOWING
+    if isOverWater and detectedHeight then
+        -- Lock water height
+        if not waterHeight then
+            waterHeight = detectedHeight
         else
-            if math.abs(detectedWaterHeight - waterPlatformHeight) > 3 then
-                waterPlatformHeight = detectedWaterHeight
+            if math.abs(detectedHeight - waterHeight) > 2 then
+                waterHeight = detectedHeight
             end
         end
         
         if not waterPlatform then
             waterPlatform = Instance.new("Part")
-            waterPlatform.Name = "NullHub_WaterPlatform"
-            waterPlatform.Size = Vector3.new(8, 0.5, 8)
+            waterPlatform.Name = "WaterPlatform"
+            waterPlatform.Size = Vector3.new(10, 0.8, 10)
             waterPlatform.Anchored = true
             waterPlatform.CanCollide = true
-            waterPlatform.Transparency = 0.7
-            waterPlatform.Material = Enum.Material.ForceField
+            waterPlatform.Transparency = 0.5
+            waterPlatform.Material = Enum.Material.SmoothPlastic
             waterPlatform.Color = Color3.fromRGB(100, 200, 255)
             waterPlatform.TopSurface = Enum.SurfaceType.Smooth
             waterPlatform.BottomSurface = Enum.SurfaceType.Smooth
             waterPlatform.CastShadow = false
+            -- ANTI-DETECTION PROPERTIES FOR BLOX FRUITS
+            waterPlatform.CanQuery = false
+            waterPlatform.CanTouch = false
+            waterPlatform.Massless = true
             waterPlatform.Parent = workspace
         end
         
-        local platformY = waterPlatformHeight + 0.8
-        local targetCFrame = CFrame.new(playerPos.X, platformY, playerPos.Z)
-        waterPlatform.CFrame = waterPlatform.CFrame:Lerp(targetCFrame, 0.2)
+        -- INSTANT POSITION UPDATE (NO LERP)
+        local platformY = waterHeight + 1
+        waterPlatform.CFrame = CFrame.new(playerPos.X, platformY, playerPos.Z)
         
         return
     end
     
+    -- REMOVE PLATFORM
     if waterPlatform then
-        local distance = (rootPart.Position - waterPlatform.Position).Magnitude
-        if distance > 12 or not shouldCreatePlatform then
+        local dist = (rootPart.Position - waterPlatform.Position).Magnitude
+        if dist > 15 or not isOverWater then
             waterPlatform:Destroy()
             waterPlatform = nil
-            waterPlatformHeight = nil
+            waterHeight = nil
         end
     end
 end
@@ -365,7 +380,7 @@ local function toggleInfJump() state.infjump = not state.infjump updateButtonVis
 local function toggleSpeed() state.speed = not state.speed updateSpeed() updateButtonVisual("speed") showNotification("Speed " .. (state.speed and "ON - " .. CONFIG.SPEED_VALUE or "OFF"), 2) end
 local function toggleFullBright() state.fullbright = not state.fullbright if state.fullbright then enableFullBright() else disableFullBright() end updateButtonVisual("fullbright") showNotification("Full Bright " .. (state.fullbright and "ON" or "OFF"), 2) end
 local function toggleGodMode() state.godmode = not state.godmode updateGodMode() updateButtonVisual("godmode") showNotification("God Mode " .. (state.godmode and "ON" or "OFF"), 2) end
-local function toggleWalkOnWater() state.walkonwater = not state.walkonwater if state.walkonwater then if connections.walkonwater then connections.walkonwater:Disconnect() end connections.walkonwater = RunService.Heartbeat:Connect(updateWalkOnWater) showNotification("Walk on Water ON (Blox Fruits)", 2) else if connections.walkonwater then connections.walkonwater:Disconnect() connections.walkonwater = nil end if waterPlatform then waterPlatform:Destroy() waterPlatform = nil end waterPlatformHeight = nil showNotification("Walk on Water OFF", 2) end updateButtonVisual("walkonwater") end
+local function toggleWalkOnWater() state.walkonwater = not state.walkonwater if state.walkonwater then if connections.walkonwater then connections.walkonwater:Disconnect() end connections.walkonwater = RunService.RenderStepped:Connect(updateWalkOnWater) showNotification("Walk on Water ON (Instant)", 2) else if connections.walkonwater then connections.walkonwater:Disconnect() connections.walkonwater = nil end if waterPlatform then waterPlatform:Destroy() waterPlatform = nil end waterHeight = nil showNotification("Walk on Water OFF", 2) end updateButtonVisual("walkonwater") end
 
 local function createModernGUI()
     local currentTheme = Theme:GetTheme()
@@ -541,7 +556,7 @@ print("========================================")
 print("⚡ NullHub V1 - Core Features ⚡")
 print("✅ Aimbot | ESP | KillAura | Fast M1")
 print("✅ Fly | NoClip | Infinite Jump | Speed")
-print("✅ Walk on Water (FIXED for Blox Fruits) | Full Bright | God Mode")
+print("✅ Walk on Water (INSTANT + BLOX FRUITS) | Full Bright | God Mode")
 print("✅ Teleport to Player")
 print("✅ Anti-Detection Active")
 print("✅ 11 Themes Available from GitHub")
