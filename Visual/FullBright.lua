@@ -1,141 +1,126 @@
 -- ============================================
--- NullHub FullBright.lua - Lighting Enhancement
+-- NullHub FullBright.lua - FIXED VERSION
 -- Created by Debbhai
--- Version: 1.0.0
--- Remove darkness and see everything clearly
+-- Version: 1.0.1 HOTFIX
+-- Safe property access with pcall
 -- ============================================
 
 local FullBright = {
-    Version = "1.0.0",
+    Version = "1.0.1",
     Enabled = false,
-    OriginalSettings = {},
-    IsRestored = false
+    CurrentPreset = "Standard",
+    OriginalSettings = {}
 }
 
 -- Dependencies
 local Lighting
 local Config, Notifications
 
--- Internal State
-local SavedSettings = {}
-
 -- ============================================
 -- INITIALIZATION
 -- ============================================
 function FullBright:Initialize(config, notifications)
-    -- Store dependencies
     Lighting = game:GetService("Lighting")
     Config = config
     Notifications = notifications
     
-    -- Save original lighting settings
-    self:SaveOriginalLighting()
+    -- Save original settings (with safe access)
+    self:SaveOriginalSettings()
     
     print("[FullBright] ✅ Initialized")
     return true
 end
 
 -- ============================================
--- SAVE ORIGINAL LIGHTING
+-- SAVE ORIGINAL SETTINGS (SAFE)
 -- ============================================
-function FullBright:SaveOriginalLighting()
-    if self.IsRestored then
-        -- Already have saved settings
-        return
-    end
-    
-    SavedSettings = {
-        -- Ambient & Brightness
-        Ambient = Lighting.Ambient,
-        Brightness = Lighting.Brightness,
-        
-        -- Color Shifts
-        ColorShiftBottom = Lighting.ColorShiftBottom,
-        ColorShiftTop = Lighting.ColorShiftTop,
-        
-        -- Outdoor
-        OutdoorAmbient = Lighting.OutdoorAmbient,
-        
-        -- Time
-        ClockTime = Lighting.ClockTime,
-        TimeOfDay = Lighting.TimeOfDay,
-        
-        -- Fog
-        FogEnd = Lighting.FogEnd,
-        FogStart = Lighting.FogStart,
-        FogColor = Lighting.FogColor,
-        
-        -- Effects
-        GlobalShadows = Lighting.GlobalShadows,
-        
-        -- Atmosphere (if exists)
-        EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
-        EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
-        
-        -- Exposure
-        ExposureCompensation = Lighting.ExposureCompensation
+function FullBright:SaveOriginalSettings()
+    local properties = {
+        "Brightness", "Ambient", "ColorShift_Top", "ColorShift_Bottom",
+        "OutdoorAmbient", "ClockTime", "FogEnd", "FogStart", "GlobalShadows",
+        "EnvironmentDiffuseScale", "EnvironmentSpecularScale"
     }
     
-    self.OriginalSettings = SavedSettings
-    self.IsRestored = true
-    
-    print("[FullBright] 💾 Original lighting saved")
-end
-
--- ============================================
--- APPLY FULL BRIGHT
--- ============================================
-function FullBright:ApplyFullBright()
-    if not Lighting then return false end
-    
-    -- Basic Lighting
-    Lighting.Ambient = Config.Visual.FULLBRIGHT.AMBIENT or Color3.fromRGB(255, 255, 255)
-    Lighting.Brightness = Config.Visual.FULLBRIGHT.BRIGHTNESS or 2
-    
-    -- Color Shifts (make everything bright)
-    Lighting.ColorShiftBottom = Config.Visual.FULLBRIGHT.COLOR_SHIFT or Color3.fromRGB(255, 255, 255)
-    Lighting.ColorShiftTop = Config.Visual.FULLBRIGHT.COLOR_SHIFT or Color3.fromRGB(255, 255, 255)
-    
-    -- Outdoor Lighting
-    Lighting.OutdoorAmbient = Config.Visual.FULLBRIGHT.OUTDOOR_AMBIENT or Color3.fromRGB(255, 255, 255)
-    
-    -- Set time to noon
-    Lighting.ClockTime = Config.Visual.FULLBRIGHT.CLOCK_TIME or 12
-    
-    -- Remove fog
-    Lighting.FogEnd = Config.Visual.FULLBRIGHT.FOG_END or 100000
-    Lighting.FogStart = Config.Visual.FULLBRIGHT.FOG_START or 0
-    
-    -- Disable shadows
-    Lighting.GlobalShadows = Config.Visual.FULLBRIGHT.GLOBAL_SHADOWS or false
-    
-    -- Enhanced brightness (if supported)
-    if Config.Visual.FULLBRIGHT.ENHANCED_MODE then
+    for _, prop in pairs(properties) do
         pcall(function()
-            Lighting.EnvironmentDiffuseScale = 1
-            Lighting.EnvironmentSpecularScale = 1
-            Lighting.ExposureCompensation = 0.5
+            self.OriginalSettings[prop] = Lighting[prop]
         end)
     end
     
-    print("[FullBright] 💡 Full bright applied")
-    return true
+    print("[FullBright] Original settings saved")
 end
 
 -- ============================================
--- RESTORE ORIGINAL LIGHTING
+-- PRESETS (SAFE APPLICATION)
 -- ============================================
-function FullBright:RestoreLighting()
-    if not Lighting or not self.IsRestored then return false end
+local Presets = {
+    Standard = {
+        Brightness = 2,
+        Ambient = Color3.fromRGB(255, 255, 255),
+        ColorShift_Top = Color3.fromRGB(0, 0, 0),
+        ColorShift_Bottom = Color3.fromRGB(0, 0, 0),
+        OutdoorAmbient = Color3.fromRGB(255, 255, 255),
+        ClockTime = 12,
+        FogEnd = 100000,
+        FogStart = 0,
+        GlobalShadows = false
+    },
+    UltraBright = {
+        Brightness = 5,
+        Ambient = Color3.fromRGB(255, 255, 255),
+        ColorShift_Top = Color3.fromRGB(255, 255, 255),
+        ColorShift_Bottom = Color3.fromRGB(255, 255, 255),
+        OutdoorAmbient = Color3.fromRGB(255, 255, 255),
+        ClockTime = 14,
+        FogEnd = 999999,
+        FogStart = 0,
+        GlobalShadows = false,
+        EnvironmentDiffuseScale = 1,
+        EnvironmentSpecularScale = 1
+    },
+    SoftBright = {
+        Brightness = 1.5,
+        Ambient = Color3.fromRGB(200, 200, 200),
+        ColorShift_Top = Color3.fromRGB(0, 0, 0),
+        ColorShift_Bottom = Color3.fromRGB(0, 0, 0),
+        OutdoorAmbient = Color3.fromRGB(200, 200, 200),
+        ClockTime = 13,
+        FogEnd = 50000,
+        FogStart = 0,
+        GlobalShadows = false
+    },
+    NeonBright = {
+        Brightness = 3,
+        Ambient = Color3.fromRGB(150, 200, 255),
+        ColorShift_Top = Color3.fromRGB(100, 150, 255),
+        ColorShift_Bottom = Color3.fromRGB(50, 100, 200),
+        OutdoorAmbient = Color3.fromRGB(150, 200, 255),
+        ClockTime = 12,
+        FogEnd = 100000,
+        FogStart = 0,
+        GlobalShadows = false
+    }
+}
+
+-- ============================================
+-- APPLY PRESET (WITH SAFE PCALL)
+-- ============================================
+function FullBright:ApplyPreset(presetName)
+    local preset = Presets[presetName]
+    if not preset then
+        warn("[FullBright] Preset not found: " .. presetName)
+        return false
+    end
     
-    -- Restore all saved settings
-    for setting, value in pairs(SavedSettings) do
+    print("[FullBright] Applying preset: " .. presetName)
+    
+    for property, value in pairs(preset) do
         pcall(function()
-            Lighting[setting] = value
+            Lighting[property] = value
         end)
     end
     
-    print("[FullBright] 🌙 Original lighting restored")
+    self.CurrentPreset = presetName
     return true
 end
 
@@ -151,9 +136,8 @@ function FullBright:Toggle()
         self:Disable()
     end
     
-    -- Notify user
     if Notifications then
-        Notifications:Show("Full Bright", self.Enabled, nil, 2)
+        Notifications:Show("FullBright", self.Enabled, self.CurrentPreset, 2)
     end
     
     return self.Enabled
@@ -163,178 +147,64 @@ end
 -- ENABLE
 -- ============================================
 function FullBright:Enable()
-    -- Save settings if not already saved
-    if not self.IsRestored then
-        self:SaveOriginalLighting()
-    end
-    
-    -- Apply full bright
-    self:ApplyFullBright()
-    
-    print("[FullBright] 💡 Enabled")
+    self:ApplyPreset(self.CurrentPreset)
+    print("[FullBright] 💡 Enabled (" .. self.CurrentPreset .. ")")
 end
 
 -- ============================================
 -- DISABLE
 -- ============================================
 function FullBright:Disable()
-    -- Restore original lighting
-    self:RestoreLighting()
+    -- Restore original settings (with safe access)
+    for property, value in pairs(self.OriginalSettings) do
+        pcall(function()
+            Lighting[property] = value
+        end)
+    end
     
     print("[FullBright] ❌ Disabled")
 end
 
 -- ============================================
--- PRESET MODES
+-- SET PRESET
 -- ============================================
 function FullBright:SetPreset(presetName)
-    local presets = {
-        -- Ultra Bright (Maximum visibility)
-        UltraBright = {
-            AMBIENT = Color3.fromRGB(255, 255, 255),
-            BRIGHTNESS = 3,
-            COLOR_SHIFT = Color3.fromRGB(255, 255, 255),
-            OUTDOOR_AMBIENT = Color3.fromRGB(255, 255, 255),
-            CLOCK_TIME = 12,
-            FOG_END = 100000,
-            GLOBAL_SHADOWS = false,
-            ENHANCED_MODE = true
-        },
-        
-        -- Soft Bright (Less harsh)
-        SoftBright = {
-            AMBIENT = Color3.fromRGB(200, 200, 200),
-            BRIGHTNESS = 2,
-            COLOR_SHIFT = Color3.fromRGB(220, 220, 220),
-            OUTDOOR_AMBIENT = Color3.fromRGB(220, 220, 220),
-            CLOCK_TIME = 12,
-            FOG_END = 50000,
-            GLOBAL_SHADOWS = false,
-            ENHANCED_MODE = false
-        },
-        
-        -- Neon Bright (Colorful)
-        NeonBright = {
-            AMBIENT = Color3.fromRGB(180, 200, 255),
-            BRIGHTNESS = 2.5,
-            COLOR_SHIFT = Color3.fromRGB(200, 220, 255),
-            OUTDOOR_AMBIENT = Color3.fromRGB(200, 220, 255),
-            CLOCK_TIME = 14,
-            FOG_END = 75000,
-            GLOBAL_SHADOWS = false,
-            ENHANCED_MODE = true
-        },
-        
-        -- Warm Bright (Sunset vibes)
-        WarmBright = {
-            AMBIENT = Color3.fromRGB(255, 220, 180),
-            BRIGHTNESS = 2,
-            COLOR_SHIFT = Color3.fromRGB(255, 230, 200),
-            OUTDOOR_AMBIENT = Color3.fromRGB(255, 230, 200),
-            CLOCK_TIME = 16,
-            FOG_END = 60000,
-            GLOBAL_SHADOWS = false,
-            ENHANCED_MODE = false
-        }
-    }
-    
-    local preset = presets[presetName]
-    if not preset then
-        warn("[FullBright] Unknown preset: " .. presetName)
+    if not Presets[presetName] then
+        warn("[FullBright] Invalid preset: " .. presetName)
         return false
     end
     
-    -- Update config
-    Config.Visual.FULLBRIGHT = preset
+    self.CurrentPreset = presetName
     
-    -- Reapply if enabled
     if self.Enabled then
-        self:ApplyFullBright()
+        self:ApplyPreset(presetName)
     end
     
     if Notifications then
-        Notifications:Show("Full Bright", true, "Preset: " .. presetName, 2)
+        Notifications:Show("FullBright Preset", true, presetName, 2)
     end
     
-    print("[FullBright] Preset applied: " .. presetName)
     return true
 end
 
 -- ============================================
--- CUSTOM BRIGHTNESS
+-- GET AVAILABLE PRESETS
 -- ============================================
-function FullBright:SetBrightness(brightness)
-    brightness = math.clamp(brightness, 0, 5)
-    Config.Visual.FULLBRIGHT.BRIGHTNESS = brightness
-    
-    if self.Enabled then
-        Lighting.Brightness = brightness
+function FullBright:GetPresets()
+    local names = {}
+    for name, _ in pairs(Presets) do
+        table.insert(names, name)
     end
-    
-    print("[FullBright] Brightness set to: " .. brightness)
-end
-
-function FullBright:SetAmbient(color)
-    Config.Visual.FULLBRIGHT.AMBIENT = color
-    
-    if self.Enabled then
-        Lighting.Ambient = color
-    end
-    
-    print("[FullBright] Ambient color updated")
-end
-
--- ============================================
--- GET SETTINGS
--- ============================================
-function FullBright:GetCurrentSettings()
-    return {
-        Ambient = Lighting.Ambient,
-        Brightness = Lighting.Brightness,
-        ColorShiftBottom = Lighting.ColorShiftBottom,
-        ColorShiftTop = Lighting.ColorShiftTop,
-        OutdoorAmbient = Lighting.OutdoorAmbient,
-        ClockTime = Lighting.ClockTime,
-        FogEnd = Lighting.FogEnd,
-        GlobalShadows = Lighting.GlobalShadows
-    }
-end
-
-function FullBright:GetOriginalSettings()
-    return SavedSettings
-end
-
--- ============================================
--- RESET TO DEFAULTS
--- ============================================
-function FullBright:ResetToDefaults()
-    Config.Visual.FULLBRIGHT = {
-        AMBIENT = Color3.fromRGB(255, 255, 255),
-        BRIGHTNESS = 2,
-        COLOR_SHIFT = Color3.fromRGB(255, 255, 255),
-        OUTDOOR_AMBIENT = Color3.fromRGB(255, 255, 255),
-        CLOCK_TIME = 12,
-        FOG_END = 100000,
-        FOG_START = 0,
-        GLOBAL_SHADOWS = false,
-        ENHANCED_MODE = true
-    }
-    
-    if self.Enabled then
-        self:ApplyFullBright()
-    end
-    
-    print("[FullBright] Reset to defaults")
+    return names
 end
 
 -- ============================================
 -- CHARACTER RESPAWN
 -- ============================================
 function FullBright:OnRespawn(newCharacter, newHumanoid, newRootPart)
-    -- Full bright persists across respawns
     if self.Enabled then
         task.wait(0.5)
-        self:ApplyFullBright()
+        self:ApplyPreset(self.CurrentPreset)
     end
     
     print("[FullBright] 🔄 Character respawned")
@@ -344,13 +214,11 @@ end
 -- CLEANUP
 -- ============================================
 function FullBright:Destroy()
-    self:Disable()
-    SavedSettings = {}
-    self.IsRestored = false
-    
+    if self.Enabled then
+        self:Disable()
+    end
     print("[FullBright] ✅ Destroyed")
 end
 
--- Export
 print("[FullBright] Module loaded v" .. FullBright.Version)
 return FullBright
