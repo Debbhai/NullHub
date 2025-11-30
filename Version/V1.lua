@@ -1,429 +1,282 @@
 -- ============================================
--- NullHub V1.lua - Optimized Module Loader
+-- NullHub V1.lua - Module Loader BULLETPROOF
 -- Created by Debbhai
--- Version: 1.0.0 FINAL
--- Reduced from 400+ lines to 280 lines
+-- Version: 1.0.2 HOTFIX
 -- ============================================
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("⚡ NullHub V1 - Optimized Module Loader")
-print("🔧 Initializing modular architecture...")
+print("⚡ NullHub V1 - Module Loader")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
--- ============================================
--- CONFIGURATION
--- ============================================
 local BASE_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/"
-local VERSION = "1.0.0"
-local RETRY_ATTEMPTS = 2
+local VERSION = "1.0.2"
 
--- ============================================
--- SERVICES
--- ============================================
+-- Services
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
 
--- ============================================
--- MODULE LOADER SYSTEM (OPTIMIZED)
--- ============================================
+-- Module Loader System
 local ModuleLoader = {
     Loaded = {},
     Failed = {},
-    LoadOrder = {},
     TotalModules = 0,
-    SuccessCount = 0,
-    FailCount = 0,
-    CurrentProgress = 0
+    SuccessCount = 0
 }
 
--- Progress Bar Display
-function ModuleLoader:UpdateProgress(current, total, moduleName)
-    local percentage = math.floor((current / total) * 100)
-    local barLength = 30
-    local filled = math.floor((percentage / 100) * barLength)
-    local bar = string.rep("█", filled) .. string.rep("░", barLength - filled)
-    
-    print(string.format("[%s] %d%% - %s", bar, percentage, moduleName))
-end
-
--- Load Module with Retry
-function ModuleLoader:Load(path, moduleName)
-    moduleName = moduleName or path
-    
-    -- Check cache
+function ModuleLoader:Load(path, name)
     if self.Loaded[path] then
         return self.Loaded[path]
     end
     
     self.TotalModules = self.TotalModules + 1
-    self.CurrentProgress = self.CurrentProgress + 1
+    print(string.format("📥 Loading %s...", name))
     
-    local url = BASE_URL .. path
-    local result = nil
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet(BASE_URL .. path, true))()
+    end)
     
-    -- Try loading with retries
-    for attempt = 1, RETRY_ATTEMPTS do
-        local success, loadResult = pcall(function()
-            local code = game:HttpGet(url, true)
-            return loadstring(code)()
-        end)
-        
-        if success and loadResult then
-            result = loadResult
-            break
-        elseif attempt < RETRY_ATTEMPTS then
-            warn(string.format("⚠️ Retry %d/%d for %s", attempt, RETRY_ATTEMPTS, moduleName))
-            task.wait(0.5)
-        end
-    end
-    
-    -- Update progress
-    self:UpdateProgress(self.CurrentProgress, self.TotalModules, moduleName)
-    
-    if result then
+    if success and result then
         self.Loaded[path] = result
         self.SuccessCount = self.SuccessCount + 1
-        table.insert(self.LoadOrder, moduleName)
+        print(string.format("✅ %s loaded", name))
         return result
     else
-        self.FailCount = self.FailCount + 1
-        table.insert(self.Failed, {path = path, name = moduleName})
+        table.insert(self.Failed, {name = name, error = tostring(result)})
+        warn(string.format("❌ %s failed: %s", name, tostring(result)))
         return nil
     end
 end
 
-function ModuleLoader:GetStats()
-    return {
-        Total = self.TotalModules,
-        Success = self.SuccessCount,
-        Failed = self.FailCount,
-        Percentage = self.TotalModules > 0 and math.floor((self.SuccessCount / self.TotalModules) * 100) or 0
-    }
-end
-
 function ModuleLoader:PrintReport()
-    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("📊 Module Loading Report:")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print(string.format("✅ Loaded: %d/%d modules", self.SuccessCount, self.TotalModules))
-    
-    if self.FailCount > 0 then
-        warn(string.format("❌ Failed: %d modules", self.FailCount))
+    if #self.Failed > 0 then
+        warn("❌ Failed modules:")
         for _, fail in pairs(self.Failed) do
-            warn(string.format("   - %s", fail.name))
+            warn(" - " .. fail.name)
         end
     end
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 end
 
--- ============================================
--- MODULE DEFINITIONS (CENTRALIZED)
--- ============================================
-local ModuleDefinitions = {
-    Core = {
-        {path = "Core/Theme.lua", name = "Theme", required = true},
-        {path = "Core/AntiDetection.lua", name = "AntiDetection", required = false},
-        {path = "Core/Config.lua", name = "Config", required = true},
-        {path = "Core/GUI.lua", name = "GUI", required = false}
-    },
-    Utility = {
-        {path = "Utility/Notifications.lua", name = "Notifications", required = false}
-    },
-    Combat = {
-        {path = "Combat/Aimbot.lua", name = "Aimbot"},
-        {path = "Combat/ESP.lua", name = "ESP"},
-        {path = "Combat/KillAura.lua", name = "KillAura"},
-        {path = "Combat/FastM1.lua", name = "FastM1"}
-    },
-    Movement = {
-        {path = "Movement/Fly.lua", name = "Fly"},
-        {path = "Movement/NoClip.lua", name = "NoClip"},
-        {path = "Movement/InfiniteJump.lua", name = "InfiniteJump"},
-        {path = "Movement/Speed.lua", name = "Speed"},
-        {path = "Movement/WalkOnWater.lua", name = "WalkOnWater"}
-    },
-    Visual = {
-        {path = "Visual/FullBright.lua", name = "FullBright"},
-        {path = "Visual/GodMode.lua", name = "GodMode"}
-    },
-    Teleport = {
-        {path = "Teleport/TeleportToPlayer.lua", name = "TeleportToPlayer"}
-    }
-}
+-- STAGE 1: Load Core Modules
+print("\n[1/5] Loading Core...")
+local Theme = ModuleLoader:Load("Core/Theme.lua", "Theme")
+local AntiDetection = ModuleLoader:Load("Core/AntiDetection.lua", "AntiDetection")
+local Config = ModuleLoader:Load("Core/Config.lua", "Config")
+local GUI = ModuleLoader:Load("Core/GUI.lua", "GUI")
 
--- ============================================
--- STAGE 1: LOAD CORE MODULES
--- ============================================
-print("\n[Stage 1/5] Loading Core Modules...")
-
-local Theme, AntiDetection, Config, GUI
-
-for _, module in pairs(ModuleDefinitions.Core) do
-    local loaded = ModuleLoader:Load(module.path, module.name)
-    
-    if module.name == "Theme" then Theme = loaded
-    elseif module.name == "AntiDetection" then AntiDetection = loaded
-    elseif module.name == "Config" then Config = loaded
-    elseif module.name == "GUI" then GUI = loaded
-    end
-    
-    -- Check required modules
-    if module.required and not loaded then
-        error(string.format("[NullHub] ❌ Critical: %s failed to load!", module.name))
-    end
-end
-
--- Initialize AntiDetection
 if AntiDetection then
     AntiDetection:Initialize()
 end
 
--- Config Fallback (Minimal)
+-- CRITICAL: Check Theme
+if not Theme then
+    warn("[V1] Theme failed - creating fallback")
+    Theme = {
+        Colors = {
+            NotificationBg = Color3.fromRGB(15, 15, 18),
+            AccentBar = Color3.fromRGB(255, 215, 0),
+            TextPrimary = Color3.fromRGB(255, 255, 255)
+        },
+        Transparency = {Notification = 0.1},
+        Sizes = {NotificationWidth = 300, NotificationHeight = 60},
+        CornerRadius = {Medium = 10},
+        FontSizes = {Action = 14},
+        Fonts = {Action = Enum.Font.Gotham}
+    }
+end
+
+-- CRITICAL: Check Config
 if not Config then
-    warn("[NullHub] ⚠️ Using minimal config")
-    Config = {GUI = {TOGGLE_KEY = Enum.KeyCode.Insert}}
+    warn("[V1] Config failed - creating fallback")
+    Config = {
+        Combat = {}, Movement = {}, Visual = {}, Teleport = {},
+        AntiDetection = {STEALTH_MODE = true}
+    }
 end
 
-print("✅ Core modules loaded")
+-- STAGE 2: Load Utilities
+print("\n[2/5] Loading Utilities...")
+local Notifications = ModuleLoader:Load("Utility/Notifications.lua", "Notifications")
 
--- ============================================
--- STAGE 2: LOAD UTILITY MODULES
--- ============================================
-print("\n[Stage 2/5] Loading Utility Modules...")
+-- STAGE 3: Load Features
+print("\n[3/5] Loading Features...")
 
-local Notifications
+local Combat = {}
+Combat.Aimbot = ModuleLoader:Load("Combat/Aimbot.lua", "Aimbot")
+Combat.ESP = ModuleLoader:Load("Combat/ESP.lua", "ESP")
+Combat.KillAura = ModuleLoader:Load("Combat/KillAura.lua", "KillAura")
+Combat.FastM1 = ModuleLoader:Load("Combat/FastM1.lua", "FastM1")
 
-for _, module in pairs(ModuleDefinitions.Utility) do
-    local loaded = ModuleLoader:Load(module.path, module.name)
-    if module.name == "Notifications" then Notifications = loaded end
-end
+local Movement = {}
+Movement.Fly = ModuleLoader:Load("Movement/Fly.lua", "Fly")
+Movement.NoClip = ModuleLoader:Load("Movement/NoClip.lua", "NoClip")
+Movement.InfiniteJump = ModuleLoader:Load("Movement/InfiniteJump.lua", "InfiniteJump")
+Movement.Speed = ModuleLoader:Load("Movement/Speed.lua", "Speed")
+Movement.WalkOnWater = ModuleLoader:Load("Movement/WalkOnWater.lua", "WalkOnWater")
 
-print("✅ Utility modules loaded")
+local Visual = {}
+Visual.FullBright = ModuleLoader:Load("Visual/FullBright.lua", "FullBright")
+Visual.GodMode = ModuleLoader:Load("Visual/GodMode.lua", "GodMode")
 
--- ============================================
--- STAGE 3: LOAD FEATURE MODULES
--- ============================================
-print("\n[Stage 3/5] Loading Feature Modules...")
+local Teleport = {}
+Teleport.TeleportToPlayer = ModuleLoader:Load("Teleport/TeleportToPlayer.lua", "TeleportToPlayer")
 
--- Load all feature modules
-local Combat, Movement, Visual, Teleport = {}, {}, {}, {}
+-- STAGE 4: Initialize
+print("\n[4/5] Initializing...")
 
-for _, module in pairs(ModuleDefinitions.Combat) do
-    Combat[module.name] = ModuleLoader:Load(module.path, module.name)
-end
-
-for _, module in pairs(ModuleDefinitions.Movement) do
-    Movement[module.name] = ModuleLoader:Load(module.path, module.name)
-end
-
-for _, module in pairs(ModuleDefinitions.Visual) do
-    Visual[module.name] = ModuleLoader:Load(module.path, module.name)
-end
-
-for _, module in pairs(ModuleDefinitions.Teleport) do
-    Teleport[module.name] = ModuleLoader:Load(module.path, module.name)
-end
-
-print("✅ Feature modules loaded")
-
--- ============================================
--- STAGE 4: INITIALIZE MODULES (OPTIMIZED)
--- ============================================
-print("\n[Stage 4/5] Initializing Modules...")
-
--- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NullHubGUI"
 screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.DisplayOrder = 999
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Initialize Notifications
+-- Initialize Notifications with safe Theme
 if Notifications then
-    Notifications:Initialize(screenGui, Theme)
+    local success = pcall(function()
+        Notifications:Initialize(screenGui, Theme)
+    end)
+    if not success then
+        warn("[V1] Notifications initialization failed")
+    end
 end
 
--- Module Initialization Definitions
-local InitializationMap = {
-    -- Combat Modules
-    {module = Combat.Aimbot, params = {player, camera, Config, AntiDetection, Notifications}},
-    {module = Combat.ESP, params = {player, camera, Config, Theme, Notifications}},
-    {module = Combat.KillAura, params = {player, character, Config, AntiDetection, Notifications}},
-    {module = Combat.FastM1, params = {player, character, Config, Notifications}},
-    
-    -- Movement Modules
-    {module = Movement.Fly, params = {player, character, rootPart, camera, Config, Notifications}},
-    {module = Movement.NoClip, params = {player, character, Config, Notifications}},
-    {module = Movement.InfiniteJump, params = {player, humanoid, Config, Notifications}},
-    {module = Movement.Speed, params = {player, humanoid, Config, AntiDetection, Notifications}},
-    {module = Movement.WalkOnWater, params = {player, character, rootPart, humanoid, Config, Notifications}},
-    
-    -- Visual Modules
-    {module = Visual.FullBright, params = {Config, Notifications}},
-    {module = Visual.GodMode, params = {player, humanoid, Config, Notifications}},
-    
-    -- Teleport Modules
-    {module = Teleport.TeleportToPlayer, params = {player, rootPart, Config, Notifications}}
-}
+-- Initialize Combat
+if Combat.Aimbot then 
+    pcall(function() Combat.Aimbot:Initialize(player, camera, Config, AntiDetection, Notifications) end)
+end
+if Combat.ESP then 
+    pcall(function() Combat.ESP:Initialize(player, camera, Config, Theme, Notifications) end)
+end
+if Combat.KillAura then 
+    pcall(function() Combat.KillAura:Initialize(player, character, Config, AntiDetection, Notifications) end)
+end
+if Combat.FastM1 then 
+    pcall(function() Combat.FastM1:Initialize(player, character, Config, Notifications) end)
+end
 
--- Initialize all modules
-for _, init in pairs(InitializationMap) do
-    if init.module and init.module.Initialize then
-        init.module:Initialize(table.unpack(init.params))
-    end
+-- Initialize Movement
+if Movement.Fly then 
+    pcall(function() Movement.Fly:Initialize(player, character, rootPart, camera, Config, Notifications) end)
+end
+if Movement.NoClip then 
+    pcall(function() Movement.NoClip:Initialize(player, character, Config, Notifications) end)
+end
+if Movement.InfiniteJump then 
+    pcall(function() Movement.InfiniteJump:Initialize(player, humanoid, Config, Notifications) end)
+end
+if Movement.Speed then 
+    pcall(function() Movement.Speed:Initialize(player, humanoid, Config, AntiDetection, Notifications) end)
+end
+if Movement.WalkOnWater then 
+    pcall(function() Movement.WalkOnWater:Initialize(player, character, rootPart, humanoid, Config, Notifications) end)
+end
+
+-- Initialize Visual
+if Visual.FullBright then 
+    pcall(function() Visual.FullBright:Initialize(Config, Notifications) end)
+end
+if Visual.GodMode then 
+    pcall(function() Visual.GodMode:Initialize(player, humanoid, Config, Notifications) end)
+end
+
+-- Initialize Teleport
+if Teleport.TeleportToPlayer then 
+    pcall(function() Teleport.TeleportToPlayer:Initialize(player, rootPart, Config, Notifications) end)
 end
 
 print("✅ All modules initialized")
 
--- ============================================
--- STAGE 5: CREATE GUI
--- ============================================
-print("\n[Stage 5/5] Creating GUI...")
+-- STAGE 5: Create GUI
+print("\n[5/5] Creating GUI...")
+
+-- Store modules globally for debugging
+getgenv().NullHub_Combat = Combat
+getgenv().NullHub_Movement = Movement
+getgenv().NullHub_Visual = Visual
+getgenv().NullHub_Teleport = Teleport
 
 if GUI then
-    GUI:Initialize(screenGui, Theme, Config)
-    GUI:RegisterModules({
-        Combat = Combat,
-        Movement = Movement,
-        Visual = Visual,
-        Teleport = Teleport,
-        Notifications = Notifications
-    })
-    GUI:Create()
-    GUI:ConnectButtons()
-    GUI:ConnectKeybinds()
-    print("✅ GUI created")
-else
-    warn("⚠️ GUI unavailable - Using keybind fallback")
-end
-
--- ============================================
--- KEYBIND SYSTEM (OPTIMIZED)
--- ============================================
-local KeybindMap = {
-    -- Combat
-    {key = "AIMBOT_KEY", module = Combat.Aimbot},
-    {key = "ESP_KEY", module = Combat.ESP},
-    {key = "KILLAURA_KEY", module = Combat.KillAura},
-    {key = "FASTM1_KEY", module = Combat.FastM1},
-    
-    -- Movement
-    {key = "FLY_KEY", module = Movement.Fly},
-    {key = "NOCLIP_KEY", module = Movement.NoClip},
-    {key = "INFJUMP_KEY", module = Movement.InfiniteJump},
-    {key = "SPEED_KEY", module = Movement.Speed},
-    {key = "WALKONWATER_KEY", module = Movement.WalkOnWater},
-    
-    -- Visual
-    {key = "FULLBRIGHT_KEY", module = Visual.FullBright},
-    {key = "GODMODE_KEY", module = Visual.GodMode}
-}
-
-if not GUI then
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
+    local guiSuccess = pcall(function()
+        GUI:Initialize(screenGui, Theme, Config)
         
-        -- Check all keybinds
-        for _, bind in pairs(KeybindMap) do
-            local configKey = Config[bind.key]
-            if configKey and input.KeyCode == configKey and bind.module and bind.module.Toggle then
-                bind.module:Toggle()
-            end
-        end
+        -- CRITICAL: Pass modules properly
+        local modules = {
+            Combat = Combat,
+            Movement = Movement,
+            Visual = Visual,
+            Teleport = Teleport,
+            Notifications = Notifications
+        }
         
-        -- Infinite Jump special case
-        if input.KeyCode == Enum.KeyCode.Space and Movement.InfiniteJump and Movement.InfiniteJump.Enabled then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
+        print("[V1] Registering modules with GUI...")
+        print("  Combat modules: " .. (Combat.Aimbot and "✅" or "❌"))
+        print("  Movement modules: " .. (Movement.Fly and "✅" or "❌"))
+        print("  Visual modules: " .. (Visual.FullBright and "✅" or "❌"))
+        print("  Teleport modules: " .. (Teleport.TeleportToPlayer and "✅" or "❌"))
+        
+        GUI:RegisterModules(modules)
+        GUI:Create()
+        GUI:ConnectButtons()
+        GUI:ConnectKeybinds()
     end)
+    
+    if guiSuccess then
+        print("✅ GUI created and connected")
+    else
+        warn("❌ GUI creation failed")
+    end
+else
+    warn("❌ GUI module failed to load")
 end
 
--- ============================================
--- CHARACTER RESPAWN HANDLER (OPTIMIZED)
--- ============================================
+-- Character Respawn Handler
 player.CharacterAdded:Connect(function(newChar)
     task.wait(0.5)
-    character = newChar
-    humanoid = character:WaitForChild("Humanoid")
-    rootPart = character:WaitForChild("HumanoidRootPart")
+    character, humanoid, rootPart = newChar, newChar:WaitForChild("Humanoid"), newChar:WaitForChild("HumanoidRootPart")
     
-    -- Get all modules with OnRespawn
-    local modulesToRespawn = {}
-    for _, mod in pairs({Combat, Movement, Visual, Teleport}) do
-        for _, module in pairs(mod) do
-            if module and module.OnRespawn then
-                table.insert(modulesToRespawn, module)
-            end
+    for _, module in pairs({Combat.Aimbot, Combat.ESP, Combat.KillAura, Combat.FastM1, Movement.Fly, Movement.NoClip, Movement.InfiniteJump, Movement.Speed, Movement.WalkOnWater, Visual.GodMode, Teleport.TeleportToPlayer}) do
+        if module and module.OnRespawn then
+            pcall(function() module:OnRespawn(character, humanoid, rootPart) end)
         end
-    end
-    
-    -- Reinitialize all
-    for _, module in pairs(modulesToRespawn) do
-        module:OnRespawn(character, humanoid, rootPart)
-    end
-    
-    if Notifications then
-        Notifications:Info("Respawned - Features reinitialized", 2)
     end
 end)
 
--- ============================================
--- CLEANUP SYSTEM (OPTIMIZED)
--- ============================================
+-- Cleanup
 local function cleanup()
-    print("[NullHub] Cleaning up...")
-    
-    -- Get all modules with Destroy
-    local modulesToCleanup = {}
     for _, category in pairs({Combat, Movement, Visual, Teleport}) do
         for _, module in pairs(category) do
             if module and module.Destroy then
-                table.insert(modulesToCleanup, module)
+                pcall(function() module:Destroy() end)
             end
         end
     end
     
-    -- Destroy all modules
-    for _, module in pairs(modulesToCleanup) do
-        module:Destroy()
-    end
-    
-    -- Destroy GUI
     if screenGui then
         screenGui:Destroy()
     end
-    
-    print("[NullHub] ✅ Cleanup complete")
 end
 
--- ============================================
--- FINAL REPORT
--- ============================================
 ModuleLoader:PrintReport()
 
-local stats = ModuleLoader:GetStats()
-
 print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("🎉 NullHub V1 Loaded Successfully!")
-print(string.format("📊 %d/%d modules (%d%%)", stats.Success, stats.Total, stats.Percentage))
-print("⌨️  Press [INSERT] to toggle GUI")
+print("🎉 NullHub V1 Loaded!")
+print("⌨️  Press INSERT to toggle GUI")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 if Notifications then
-    Notifications:Success("NullHub V1 Loaded!", 3)
+    pcall(function()
+        Notifications:Success("NullHub Loaded!", 3)
+    end)
 end
 
--- Store globally
 getgenv().NullHubCleanup = cleanup
 
--- Return module access
 return {
     Version = VERSION,
     Combat = Combat,
@@ -432,9 +285,5 @@ return {
     Teleport = Teleport,
     Notifications = Notifications,
     GUI = GUI,
-    Theme = Theme,
-    Config = Config,
-    AntiDetection = AntiDetection,
-    Cleanup = cleanup,
-    Stats = stats
+    Cleanup = cleanup
 }
