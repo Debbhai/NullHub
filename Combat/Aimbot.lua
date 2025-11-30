@@ -1,8 +1,7 @@
 -- ============================================
--- NullHub Aimbot.lua - Smart Aim Assistance
+-- NullHub Aimbot.lua - Auto Aim System
 -- Created by Debbhai
--- Version: 1.0.0
--- FOV-based aimbot with smooth tracking
+-- Version: 1.0.0 FINAL
 -- ============================================
 
 local Aimbot = {
@@ -12,20 +11,17 @@ local Aimbot = {
 }
 
 -- Dependencies
-local Players, UserInputService, RunService, TweenService
-local Player, Camera, Character, Humanoid, RootPart
+local Players, UserInputService, RunService
+local Player, Camera
 local Config, AntiDetection, Notifications
 
 -- Internal State
 local Connection = nil
-local LastUpdate = 0
-local UpdateRate = 0.016 -- ~60 FPS
 
 -- ============================================
 -- INITIALIZATION
 -- ============================================
 function Aimbot:Initialize(player, camera, config, antiDetection, notifications)
-    -- Store dependencies
     Players = game:GetService("Players")
     UserInputService = game:GetService("UserInputService")
     RunService = game:GetService("RunService")
@@ -36,57 +32,48 @@ function Aimbot:Initialize(player, camera, config, antiDetection, notifications)
     AntiDetection = antiDetection
     Notifications = notifications
     
-    Character = Player.Character or Player.CharacterAdded:Wait()
-    Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
-    
     print("[Aimbot] ✅ Initialized")
     return true
 end
 
 -- ============================================
--- TARGET FINDING
+-- GET CLOSEST PLAYER
 -- ============================================
 function Aimbot:GetClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = Config.Combat.AIMBOT.FOV
-    local mousePosition = UserInputService:GetMouseLocation()
+    local closestPlayer, shortestDistance = nil, Config.Combat.AIMBOT.FOV
+    local mousePos = UserInputService:GetMouseLocation()
     
-    -- Iterate through all players
     for _, otherPlayer in pairs(Players:GetPlayers()) do
-        if otherPlayer == Player then continue end
-        if not otherPlayer.Character then continue end
-        
-        local otherHumanoid = otherPlayer.Character:FindFirstChild("Humanoid")
-        local otherHead = otherPlayer.Character:FindFirstChild("Head")
-        
-        -- Validity checks
-        if not otherHumanoid or not otherHead then continue end
-        if otherHumanoid.Health <= 0 then continue end
-        
-        -- Team check (if enabled)
-        if Config.Combat.AIMBOT.TEAM_CHECK then
-            if otherPlayer.Team == Player.Team then continue end
-        end
-        
-        -- Convert world position to screen position
-        local screenPosition, onScreen = Camera:WorldToScreenPoint(otherHead.Position)
-        
-        if onScreen then
-            -- Calculate distance from mouse to target
-            local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - mousePosition).Magnitude
+        if otherPlayer ~= Player and otherPlayer.Character then
+            local otherHumanoid = otherPlayer.Character:FindFirstChild("Humanoid")
+            local otherHead = otherPlayer.Character:FindFirstChild("Head")
             
-            -- Check if within FOV and closer than previous target
-            if distance < shortestDistance then
-                -- Visible check (if enabled)
-                if Config.Combat.AIMBOT.VISIBLE_CHECK then
-                    if self:IsVisible(otherHead) then
-                        shortestDistance = distance
+            if otherHumanoid and otherHead and otherHumanoid.Health > 0 then
+                -- Team check
+                if Config.Combat.AIMBOT.TEAM_CHECK and otherPlayer.Team == Player.Team then
+                    continue
+                end
+                
+                local screenPos, onScreen = Camera:WorldToScreenPoint(otherHead.Position)
+                
+                if onScreen then
+                    -- Visibility check
+                    if Config.Combat.AIMBOT.VISIBLE_CHECK then
+                        local ray = Ray.new(Camera.CFrame.Position, (otherHead.Position - Camera.CFrame.Position).Unit * 500)
+                        local hit = workspace:FindPartOnRayWithIgnoreList(ray, {Player.Character})
+                        
+                        if hit and hit.Parent ~= otherPlayer.Character then
+                            continue
+                        end
+                    end
+                    
+                    local distance = Vector2.new(screenPos.X, screenPos.Y) - mousePos
+                    local magnitude = distance.Magnitude
+                    
+                    if magnitude < shortestDistance then
+                        shortestDistance = magnitude
                         closestPlayer = otherPlayer
                     end
-                else
-                    shortestDistance = distance
-                    closestPlayer = otherPlayer
                 end
             end
         end
@@ -96,74 +83,64 @@ function Aimbot:GetClosestPlayer()
 end
 
 -- ============================================
--- VISIBILITY CHECK
--- ============================================
-function Aimbot:IsVisible(targetPart)
-    if not RootPart then return false end
-    
-    local rayOrigin = Camera.CFrame.Position
-    local rayDirection = (targetPart.Position - rayOrigin).Unit * 500
-    
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {Character}
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    raycastParams.IgnoreWater = true
-    
-    local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    
-    if rayResult then
-        local hitPart = rayResult.Instance
-        return hitPart:IsDescendantOf(targetPart.Parent)
-    end
-    
-    return false
-end
-
--- ============================================
 -- AIM AT TARGET
 -- ============================================
 function Aimbot:AimAtTarget(target)
-    if not target or not target.Character then
-        self.CurrentTarget = nil
-        return
-    end
+    if not target or not target.Character then return end
     
     local targetHead = target.Character:FindFirstChild("Head")
-    if not targetHead then
-        self.CurrentTarget = nil
-        return
-    end
+    if not targetHead then return end
     
-    -- Anti-detection delay
+    -- Add random delay for stealth
     if AntiDetection then
         AntiDetection:AddRandomDelay(Config.AntiDetection.STEALTH_MODE)
     end
     
-    -- Predict target movement
-    local targetPosition = targetHead.Position
+    -- Calculate target position with prediction
+    local targetPos = targetHead.Position
+    
     if Config.Combat.AIMBOT.PREDICT_MOVEMENT then
         local velocity = targetHead.AssemblyLinearVelocity
-        targetPosition = targetPosition + (velocity * Config.Combat.AIMBOT.PREDICTION_FACTOR)
+        targetPos = targetPos + (velocity * Config.Combat.AIMBOT.PREDICTION_FACTOR)
     end
     
     -- Calculate new camera CFrame
-    local cameraPosition = Camera.CFrame.Position
-    local newCFrame = CFrame.new(cameraPosition, targetPosition)
+    local cameraPos = Camera.CFrame.Position
+    local newCFrame = CFrame.new(cameraPos, targetPos)
     
-    -- Get variable smoothness (anti-detection)
+    -- Apply smoothness
     local smoothness = Config.Combat.AIMBOT.SMOOTHNESS
+    
     if AntiDetection then
-        smoothness = AntiDetection:GetVariableSmoothness(
-            smoothness,
-            Config.AntiDetection.STEALTH_MODE
-        )
+        smoothness = AntiDetection:GetVariableSmoothness(smoothness, Config.AntiDetection.STEALTH_MODE)
     end
     
-    -- Smooth camera lerp
     Camera.CFrame = Camera.CFrame:Lerp(newCFrame, smoothness)
+end
+
+-- ============================================
+-- UPDATE AIMBOT
+-- ============================================
+function Aimbot:Update()
+    if not self.Enabled then return end
     
-    -- Store current target
-    self.CurrentTarget = target
+    -- Check if aim key is held
+    local aimKeyHeld = UserInputService:IsKeyDown(Config.Combat.AIMBOT.KEY) or
+                       UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+    
+    if aimKeyHeld then
+        -- Get or update target
+        if not self.CurrentTarget or not Config.Combat.AIMBOT.STICK_TO_TARGET then
+            self.CurrentTarget = self:GetClosestPlayer()
+        end
+        
+        -- Aim at target
+        if self.CurrentTarget then
+            self:AimAtTarget(self.CurrentTarget)
+        end
+    else
+        self.CurrentTarget = nil
+    end
 end
 
 -- ============================================
@@ -178,7 +155,6 @@ function Aimbot:Toggle()
         self:Disable()
     end
     
-    -- Notify user
     if Notifications then
         Notifications:Show("Aimbot", self.Enabled, nil, 2)
     end
@@ -193,17 +169,7 @@ function Aimbot:Enable()
     if Connection then return end
     
     Connection = RunService.RenderStepped:Connect(function()
-        local currentTime = tick()
-        if currentTime - LastUpdate < UpdateRate then return end
-        LastUpdate = currentTime
-        
-        -- Find and aim at closest player
-        local target = self:GetClosestPlayer()
-        if target then
-            self:AimAtTarget(target)
-        else
-            self.CurrentTarget = nil
-        end
+        self:Update()
     end)
     
     print("[Aimbot] 🎯 Enabled")
@@ -223,26 +189,10 @@ function Aimbot:Disable()
 end
 
 -- ============================================
--- UPDATE SETTINGS
--- ============================================
-function Aimbot:SetFOV(fov)
-    Config.Combat.AIMBOT.FOV = math.clamp(fov, 10, 360)
-    print("[Aimbot] FOV set to: " .. fov)
-end
-
-function Aimbot:SetSmoothness(smoothness)
-    Config.Combat.AIMBOT.SMOOTHNESS = math.clamp(smoothness, 0.01, 1)
-    print("[Aimbot] Smoothness set to: " .. smoothness)
-end
-
--- ============================================
 -- CHARACTER RESPAWN
 -- ============================================
 function Aimbot:OnRespawn(newCharacter, newHumanoid, newRootPart)
-    Character = newCharacter
-    Humanoid = newHumanoid
-    RootPart = newRootPart
-    
+    self.CurrentTarget = nil
     print("[Aimbot] 🔄 Character respawned")
 end
 
@@ -251,10 +201,8 @@ end
 -- ============================================
 function Aimbot:Destroy()
     self:Disable()
-    self.CurrentTarget = nil
     print("[Aimbot] ✅ Destroyed")
 end
 
--- Export
 print("[Aimbot] Module loaded v" .. Aimbot.Version)
 return Aimbot
