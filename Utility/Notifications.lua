@@ -1,16 +1,19 @@
 -- ============================================
--- NullHub Notifications.lua - FIXED VERSION
+-- NullHub Notifications.lua - FINAL OPTIMIZED
 -- Created by Debbhai
--- Version: 1.0.1 HOTFIX
--- Safe theme access with fallback
+-- Version: 1.0.2 FINAL
+-- Fixed theme handling & optimized performance
 -- ============================================
 
 local Notifications = {
-    Version = "1.0.1",
+    Version = "1.0.2",
     Queue = {},
     CurrentNotification = nil,
     Initialized = false
 }
+
+-- Services
+local TweenService = game:GetService("TweenService")
 
 -- Configuration
 local Config = {
@@ -23,87 +26,71 @@ local Config = {
 
 -- Icons
 local Icons = {
-    Enable = "✅", Disable = "❌", Success = "✅", Error = "⚠️",
-    Info = "ℹ️", Warning = "⚠️", Loading = "⏳", Update = "🔄"
+    Enable = "✅", 
+    Disable = "❌", 
+    Success = "✅", 
+    Error = "⚠️",
+    Info = "ℹ️", 
+    Warning = "⚠️", 
+    Loading = "⏳", 
+    Update = "🔄"
 }
 
 -- Feature Icons
 local FeatureIcons = {
-    Aimbot = "🎯", ESP = "👁️", KillAura = "⚔️", FastM1 = "👊",
-    Fly = "🕊️", NoClip = "👻", InfiniteJump = "🦘", Speed = "⚡", WalkOnWater = "🌊",
-    FullBright = "💡", GodMode = "🛡️",
+    Aimbot = "🎯", 
+    ESP = "👁️", 
+    KillAura = "⚔️", 
+    FastM1 = "👊",
+    Fly = "🕊️", 
+    NoClip = "👻", 
+    InfiniteJump = "🦘", 
+    Speed = "⚡", 
+    WalkOnWater = "🌊",
+    FullBright = "💡", 
+    GodMode = "🛡️",
     TeleportToPlayer = "🚀",
-    Theme = "🎨", Config = "⚙️"
+    Theme = "🎨", 
+    Config = "⚙️"
 }
 
 -- ============================================
 -- DEFAULT THEME (SAFE FALLBACK)
 -- ============================================
-local function GetDefaultTheme()
-    return {
-        Colors = {
-            NotificationBg = Color3.fromRGB(15, 15, 18),
-            AccentBar = Color3.fromRGB(255, 215, 0),
-            TextPrimary = Color3.fromRGB(255, 255, 255)
-        },
-        Transparency = {
-            Notification = 0.1
-        },
-        Sizes = {
-            NotificationWidth = 300,
-            NotificationHeight = 60
-        },
-        CornerRadius = {
-            Medium = 10
-        },
-        FontSizes = {
-            Action = 14
-        },
-        Fonts = {
-            Action = Enum.Font.Gotham
-        }
+local DefaultTheme = {
+    Colors = {
+        NotificationBg = Color3.fromRGB(15, 15, 18),
+        AccentBar = Color3.fromRGB(255, 215, 0),
+        TextPrimary = Color3.fromRGB(255, 255, 255)
+    },
+    Transparency = {
+        Notification = 0.1
+    },
+    Sizes = {
+        NotificationWidth = 300,
+        NotificationHeight = 60
+    },
+    CornerRadius = {
+        Medium = 10
+    },
+    FontSizes = {
+        Action = 14
+    },
+    Fonts = {
+        Action = Enum.Font.Gotham
     }
-end
-
--- ============================================
--- INITIALIZATION (SAFE)
--- ============================================
-function Notifications:Initialize(screenGui, theme)
-    if not screenGui then
-        warn("[Notifications] No ScreenGui provided!")
-        return false
-    end
-    
-    self.ScreenGui = screenGui
-    
-    -- Safe theme assignment with fallback
-    if theme and type(theme) == "table" then
-        -- Validate theme has required properties
-        if theme.Colors and theme.Colors.NotificationBg then
-            self.Theme = theme
-        else
-            warn("[Notifications] Invalid theme, using default")
-            self.Theme = GetDefaultTheme()
-        end
-    else
-        warn("[Notifications] No theme provided, using default")
-        self.Theme = GetDefaultTheme()
-    end
-    
-    self.Initialized = true
-    print("[Notifications] ✅ Initialized")
-    return true
-end
+}
 
 -- ============================================
 -- SAFE THEME ACCESS
 -- ============================================
-local function SafeGetThemeValue(theme, path, default)
-    local current = theme
+local function SafeGetValue(table, path, default)
+    if not table then return default end
     
-    for part in string.gmatch(path, "[^.]+") do
-        if type(current) == "table" and current[part] ~= nil then
-            current = current[part]
+    local current = table
+    for key in string.gmatch(path, "[^.]+") do
+        if type(current) == "table" and current[key] ~= nil then
+            current = current[key]
         else
             return default
         end
@@ -113,11 +100,74 @@ local function SafeGetThemeValue(theme, path, default)
 end
 
 -- ============================================
--- SHOW NOTIFICATION
+-- EXTRACT THEME DATA (SMART)
+-- ============================================
+local function ExtractTheme(themeInput)
+    if not themeInput then
+        return DefaultTheme
+    end
+    
+    -- If theme has GetTheme method, it's a Theme module
+    if type(themeInput) == "table" and themeInput.GetTheme then
+        local success, themeData = pcall(function()
+            return themeInput:GetTheme()
+        end)
+        
+        if success and themeData then
+            -- Validate extracted theme
+            if themeData.Colors and themeData.Colors.NotificationBg then
+                return themeData
+            end
+        end
+    end
+    
+    -- If theme is already extracted data
+    if type(themeInput) == "table" and themeInput.Colors and themeInput.Colors.NotificationBg then
+        return themeInput
+    end
+    
+    -- Fallback to default
+    return DefaultTheme
+end
+
+-- ============================================
+-- INITIALIZATION (BULLETPROOF)
+-- ============================================
+function Notifications:Initialize(screenGui, theme)
+    if not screenGui then
+        warn("[Notifications] ❌ No ScreenGui provided!")
+        return false
+    end
+    
+    self.ScreenGui = screenGui
+    
+    -- Smart theme extraction
+    local extractedTheme = ExtractTheme(theme)
+    self.Theme = extractedTheme
+    
+    -- Validate theme
+    local isValid = extractedTheme.Colors and 
+                    extractedTheme.Colors.NotificationBg and
+                    extractedTheme.Colors.AccentBar and
+                    extractedTheme.Colors.TextPrimary
+    
+    if isValid then
+        print("[Notifications] ✅ Initialized with theme: " .. (theme and theme.CurrentTheme or "Default"))
+    else
+        warn("[Notifications] ⚠️ Theme validation failed, using defaults")
+        self.Theme = DefaultTheme
+    end
+    
+    self.Initialized = true
+    return true
+end
+
+-- ============================================
+-- SHOW NOTIFICATION (MAIN METHOD)
 -- ============================================
 function Notifications:Show(featureName, isEnabled, customMessage, duration)
     if not self.Initialized then
-        warn("[Notifications] Not initialized!")
+        warn("[Notifications] ❌ Not initialized!")
         return
     end
     
@@ -144,12 +194,14 @@ function Notifications:Show(featureName, isEnabled, customMessage, duration)
         timestamp = tick()
     }
     
+    -- Limit queue size
     if #self.Queue >= Config.MaxQueue then
         table.remove(self.Queue, 1)
     end
     
     table.insert(self.Queue, notificationData)
     
+    -- Process if no current notification
     if not self.CurrentNotification then
         self:ProcessQueue()
     end
@@ -169,24 +221,23 @@ function Notifications:ProcessQueue()
 end
 
 -- ============================================
--- CREATE NOTIFICATION (SAFE)
+-- CREATE NOTIFICATION (OPTIMIZED)
 -- ============================================
 function Notifications:CreateNotification(message, duration)
-    local theme = self.Theme or GetDefaultTheme()
-    local TweenService = game:GetService("TweenService")
+    local theme = self.Theme or DefaultTheme
     
-    -- Safe theme value extraction
-    local bgColor = SafeGetThemeValue(theme, "Colors.NotificationBg", Color3.fromRGB(15, 15, 18))
-    local accentColor = SafeGetThemeValue(theme, "Colors.AccentBar", Color3.fromRGB(255, 215, 0))
-    local textColor = SafeGetThemeValue(theme, "Colors.TextPrimary", Color3.fromRGB(255, 255, 255))
-    local bgTrans = SafeGetThemeValue(theme, "Transparency.Notification", 0.1)
-    local width = SafeGetThemeValue(theme, "Sizes.NotificationWidth", 300)
-    local height = SafeGetThemeValue(theme, "Sizes.NotificationHeight", 60)
-    local cornerRadius = SafeGetThemeValue(theme, "CornerRadius.Medium", 10)
-    local fontSize = SafeGetThemeValue(theme, "FontSizes.Action", 14)
-    local font = SafeGetThemeValue(theme, "Fonts.Action", Enum.Font.Gotham)
+    -- Extract theme values with defaults
+    local bgColor = SafeGetValue(theme, "Colors.NotificationBg", DefaultTheme.Colors.NotificationBg)
+    local accentColor = SafeGetValue(theme, "Colors.AccentBar", DefaultTheme.Colors.AccentBar)
+    local textColor = SafeGetValue(theme, "Colors.TextPrimary", DefaultTheme.Colors.TextPrimary)
+    local bgTrans = SafeGetValue(theme, "Transparency.Notification", DefaultTheme.Transparency.Notification)
+    local width = SafeGetValue(theme, "Sizes.NotificationWidth", DefaultTheme.Sizes.NotificationWidth)
+    local height = SafeGetValue(theme, "Sizes.NotificationHeight", DefaultTheme.Sizes.NotificationHeight)
+    local cornerRadius = SafeGetValue(theme, "CornerRadius.Medium", DefaultTheme.CornerRadius.Medium)
+    local fontSize = SafeGetValue(theme, "FontSizes.Action", DefaultTheme.FontSizes.Action)
+    local font = SafeGetValue(theme, "Fonts.Action", DefaultTheme.Fonts.Action)
     
-    -- Create frame
+    -- Create main frame
     local notification = Instance.new("Frame")
     notification.Name = "Notification"
     notification.Size = UDim2.new(0, width, 0, height)
@@ -201,7 +252,8 @@ function Notifications:CreateNotification(message, duration)
     notification.Position = startPos
     
     -- Rounded corners
-    Instance.new("UICorner", notification).CornerRadius = UDim.new(0, cornerRadius)
+    local corner = Instance.new("UICorner", notification)
+    corner.CornerRadius = UDim.new(0, cornerRadius)
     
     -- Border stroke
     local stroke = Instance.new("UIStroke", notification)
@@ -209,16 +261,20 @@ function Notifications:CreateNotification(message, duration)
     stroke.Thickness = 2
     stroke.Transparency = 1
     
-    -- Accent bar
+    -- Accent bar (left side)
     local accentBar = Instance.new("Frame", notification)
+    accentBar.Name = "AccentBar"
     accentBar.Size = UDim2.new(0, 4, 1, 0)
     accentBar.BackgroundColor3 = accentColor
     accentBar.BorderSizePixel = 0
     accentBar.BackgroundTransparency = 1
-    Instance.new("UICorner", accentBar).CornerRadius = UDim.new(0, cornerRadius)
     
-    -- Text
+    local accentCorner = Instance.new("UICorner", accentBar)
+    accentCorner.CornerRadius = UDim.new(0, cornerRadius)
+    
+    -- Text label
     local text = Instance.new("TextLabel", notification)
+    text.Name = "Text"
     text.Size = UDim2.new(1, -20, 1, 0)
     text.Position = UDim2.new(0, 10, 0, 0)
     text.BackgroundTransparency = 1
@@ -231,48 +287,68 @@ function Notifications:CreateNotification(message, duration)
     text.TextTransparency = 1
     text.TextWrapped = true
     
+    -- Store current notification
     self.CurrentNotification = notification
     
     -- Animate in
     local speed = Config.AnimationSpeed
     
-    TweenService:Create(notification, TweenInfo.new(speed, Enum.EasingStyle.Quint), {
-        Position = endPos,
-        BackgroundTransparency = bgTrans
-    }):Play()
+    local slideIn = TweenService:Create(notification, 
+        TweenInfo.new(speed, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), 
+        {Position = endPos, BackgroundTransparency = bgTrans}
+    )
     
-    TweenService:Create(stroke, TweenInfo.new(speed), {Transparency = 0.3}):Play()
-    TweenService:Create(text, TweenInfo.new(speed), {TextTransparency = 0}):Play()
-    TweenService:Create(accentBar, TweenInfo.new(speed), {BackgroundTransparency = 0}):Play()
+    local strokeIn = TweenService:Create(stroke, 
+        TweenInfo.new(speed), 
+        {Transparency = 0.3}
+    )
+    
+    local textIn = TweenService:Create(text, 
+        TweenInfo.new(speed), 
+        {TextTransparency = 0}
+    )
+    
+    local accentIn = TweenService:Create(accentBar, 
+        TweenInfo.new(speed), 
+        {BackgroundTransparency = 0}
+    )
+    
+    -- Play animations
+    slideIn:Play()
+    strokeIn:Play()
+    textIn:Play()
+    accentIn:Play()
     
     -- Wait then animate out
     task.delay(duration, function()
-        self:AnimateOut(notification, stroke, text, accentBar, width, height)
+        if notification and notification.Parent then
+            self:AnimateOut(notification, stroke, text, accentBar, width, height)
+        end
     end)
 end
 
 -- ============================================
--- GET POSITIONS
+-- GET POSITIONS (OPTIMIZED)
 -- ============================================
 function Notifications:GetPositions(width, height)
-    local m = 10
+    local margin = 10
     
     local positions = {
         TopRight = {
-            start = UDim2.new(1, width + 20, 0, m),
-            finish = UDim2.new(1, -width - m, 0, m)
+            start = UDim2.new(1, width + 20, 0, margin),
+            finish = UDim2.new(1, -width - margin, 0, margin)
         },
         TopLeft = {
-            start = UDim2.new(0, -width - 20, 0, m),
-            finish = UDim2.new(0, m, 0, m)
+            start = UDim2.new(0, -width - 20, 0, margin),
+            finish = UDim2.new(0, margin, 0, margin)
         },
         BottomRight = {
-            start = UDim2.new(1, width + 20, 1, -height - m),
-            finish = UDim2.new(1, -width - m, 1, -height - m)
+            start = UDim2.new(1, width + 20, 1, -height - margin),
+            finish = UDim2.new(1, -width - margin, 1, -height - margin)
         },
         BottomLeft = {
-            start = UDim2.new(0, -width - 20, 1, -height - m),
-            finish = UDim2.new(0, m, 1, -height - m)
+            start = UDim2.new(0, -width - 20, 1, -height - margin),
+            finish = UDim2.new(0, margin, 1, -height - margin)
         },
         Center = {
             start = UDim2.new(0.5, -width/2, 0.5, -height/2 - 50),
@@ -285,12 +361,12 @@ function Notifications:GetPositions(width, height)
 end
 
 -- ============================================
--- ANIMATE OUT
+-- ANIMATE OUT (OPTIMIZED)
 -- ============================================
 function Notifications:AnimateOut(notification, stroke, text, accentBar, width, height)
-    local TweenService = game:GetService("TweenService")
     local speed = Config.AnimationSpeed
     
+    -- Calculate exit position
     local exitPos
     if Config.Position == "TopRight" or Config.Position == "BottomRight" then
         exitPos = UDim2.new(1, width + 20, notification.Position.Y.Scale, notification.Position.Y.Offset)
@@ -300,24 +376,45 @@ function Notifications:AnimateOut(notification, stroke, text, accentBar, width, 
         exitPos = UDim2.new(0.5, -width/2, 0.5, -height/2 - 50)
     end
     
-    TweenService:Create(notification, TweenInfo.new(speed, Enum.EasingStyle.Quint), {
-        Position = exitPos,
-        BackgroundTransparency = 1
-    }):Play()
+    -- Create exit animations
+    local slideOut = TweenService:Create(notification, 
+        TweenInfo.new(speed, Enum.EasingStyle.Quint, Enum.EasingDirection.In), 
+        {Position = exitPos, BackgroundTransparency = 1}
+    )
     
-    TweenService:Create(stroke, TweenInfo.new(speed), {Transparency = 1}):Play()
-    TweenService:Create(text, TweenInfo.new(speed), {TextTransparency = 1}):Play()
-    TweenService:Create(accentBar, TweenInfo.new(speed), {BackgroundTransparency = 1}):Play()
+    local strokeOut = TweenService:Create(stroke, 
+        TweenInfo.new(speed), 
+        {Transparency = 1}
+    )
     
+    local textOut = TweenService:Create(text, 
+        TweenInfo.new(speed), 
+        {TextTransparency = 1}
+    )
+    
+    local accentOut = TweenService:Create(accentBar, 
+        TweenInfo.new(speed), 
+        {BackgroundTransparency = 1}
+    )
+    
+    -- Play exit animations
+    slideOut:Play()
+    strokeOut:Play()
+    textOut:Play()
+    accentOut:Play()
+    
+    -- Cleanup after animation
     task.delay(speed + 0.1, function()
-        notification:Destroy()
+        if notification and notification.Parent then
+            notification:Destroy()
+        end
         self.CurrentNotification = nil
         self:ProcessQueue()
     end)
 end
 
 -- ============================================
--- QUICK METHODS
+-- QUICK METHODS (CONVENIENT)
 -- ============================================
 function Notifications:Success(message, duration)
     self:Show("Success", true, Icons.Success .. " " .. message, duration)
@@ -335,31 +432,92 @@ function Notifications:Warning(message, duration)
     self:Show("Warning", false, Icons.Warning .. " " .. message, duration)
 end
 
+function Notifications:Loading(message, duration)
+    self:Show("Loading", true, Icons.Loading .. " " .. message, duration or 2)
+end
+
 -- ============================================
--- SETTINGS
+-- SETTINGS (CONFIGURATION)
 -- ============================================
 function Notifications:SetPosition(position)
-    local valid = {"TopRight", "TopLeft", "BottomRight", "BottomLeft", "Center"}
-    for _, v in pairs(valid) do
+    local validPositions = {"TopRight", "TopLeft", "BottomRight", "BottomLeft", "Center"}
+    for _, v in ipairs(validPositions) do
         if position == v then
             Config.Position = position
+            print("[Notifications] Position set to: " .. position)
             return true
         end
     end
+    warn("[Notifications] Invalid position: " .. tostring(position))
     return false
 end
 
 function Notifications:SetDuration(seconds)
-    if seconds > 0 and seconds <= 10 then
+    if type(seconds) == "number" and seconds > 0 and seconds <= 10 then
         Config.Duration = seconds
+        print("[Notifications] Duration set to: " .. seconds .. "s")
         return true
     end
+    warn("[Notifications] Invalid duration: " .. tostring(seconds))
     return false
+end
+
+function Notifications:SetAnimationSpeed(speed)
+    if type(speed) == "number" and speed > 0 and speed <= 2 then
+        Config.AnimationSpeed = speed
+        print("[Notifications] Animation speed set to: " .. speed .. "s")
+        return true
+    end
+    warn("[Notifications] Invalid animation speed: " .. tostring(speed))
+    return false
+end
+
+function Notifications:ToggleIcons(enabled)
+    Config.ShowIcon = enabled
+    print("[Notifications] Icons " .. (enabled and "enabled" or "disabled"))
 end
 
 function Notifications:ClearQueue()
     self.Queue = {}
+    print("[Notifications] Queue cleared")
 end
 
-print("[Notifications] Module loaded v" .. Notifications.Version)
+function Notifications:GetQueueSize()
+    return #self.Queue
+end
+
+-- ============================================
+-- DESTROY (CLEANUP)
+-- ============================================
+function Notifications:Destroy()
+    -- Clear queue
+    self.Queue = {}
+    
+    -- Destroy current notification
+    if self.CurrentNotification and self.CurrentNotification.Parent then
+        self.CurrentNotification:Destroy()
+    end
+    
+    self.CurrentNotification = nil
+    self.Initialized = false
+    
+    print("[Notifications] ✅ Destroyed")
+end
+
+-- ============================================
+-- MODULE INFO
+-- ============================================
+function Notifications:PrintInfo()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("🔔 NullHub Notifications v" .. self.Version)
+    print("Position: " .. Config.Position)
+    print("Duration: " .. Config.Duration .. "s")
+    print("Queue: " .. #self.Queue .. "/" .. Config.MaxQueue)
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+end
+
+-- Export for global access
+getgenv().NullHub_Notifications = Notifications
+
+print("[Notifications] ✅ Module loaded v" .. Notifications.Version)
 return Notifications
