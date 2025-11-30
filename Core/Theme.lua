@@ -1,14 +1,16 @@
 -- ============================================
 -- NullHub Theme.lua - Theme Management System
 -- Created by Debbhai
--- Version: 1.0.0 FINAL
--- 11 Themes - Optimized & Compressed
+-- Version: 1.0.1 HOTFIX
+-- Instant theme refresh on all UI elements
 -- ============================================
 
 local Theme = {
-    Version = "1.0.0",
+    Version = "1.0.1",
     CurrentTheme = "Dark",
-    ThemeCount = 11
+    ThemeCount = 11,
+    OnThemeChanged = nil,  -- Callback function
+    GUI = nil  -- Reference to GUI module
 }
 
 -- ============================================
@@ -477,16 +479,43 @@ function Theme:GetTheme()
     return self.Themes[self.CurrentTheme] or self.Themes.Dark
 end
 
--- Set theme
+-- Set theme with instant GUI refresh
 function Theme:SetTheme(themeName)
     if self.Themes[themeName] then
         self.CurrentTheme = themeName
         print("[Theme] ✅ Theme changed to: " .. themeName)
+        
+        -- Call GUI refresh if GUI reference exists
+        if self.GUI and self.GUI.RefreshTheme then
+            pcall(function()
+                self.GUI:RefreshTheme()
+            end)
+        end
+        
+        -- Call callback if exists
+        if self.OnThemeChanged then
+            pcall(function()
+                self.OnThemeChanged(themeName, self:GetTheme())
+            end)
+        end
+        
         return true
     else
         warn("[Theme] ❌ Theme not found: " .. themeName)
         return false
     end
+end
+
+-- Register GUI for instant updates
+function Theme:RegisterGUI(guiModule)
+    self.GUI = guiModule
+    print("[Theme] ✅ GUI registered for instant updates")
+end
+
+-- Set callback for theme changes
+function Theme:SetThemeChangedCallback(callback)
+    self.OnThemeChanged = callback
+    print("[Theme] ✅ Theme change callback registered")
 end
 
 -- Get all theme names
