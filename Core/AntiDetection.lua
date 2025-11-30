@@ -1,70 +1,70 @@
 -- ============================================
 -- NullHub AntiDetection.lua - Protection System
 -- Created by Debbhai
--- Version: 1.0.0
--- Universal anti-detection & protection module
+-- Version: 1.0.0 FINAL
+-- Optimized & Enhanced
 -- ============================================
 
 local AntiDetection = {
     Version = "1.0.0",
-    Author = "Debbhai",
     Initialized = false,
+    Executor = "Unknown",
     Protections = {
         AntiKick = false,
         AntiAFK = false,
         HiddenFromList = false,
-        MetatableProtected = false
+        MetatableProtected = false,
+        NetworkProtected = false
     }
 }
 
--- Internal storage
+-- Internal Storage
 local Connections = {}
 local OriginalFunctions = {}
-local IsProtected = false
 
 -- ============================================
--- EXECUTOR DETECTION
+-- EXECUTOR DETECTION (OPTIMIZED)
 -- ============================================
 function AntiDetection:DetectExecutor()
     local executors = {
         {name = "Synapse X", check = function() return syn and syn.request end},
         {name = "Script-Ware", check = function() return isscriptware and isscriptware() end},
         {name = "KRNL", check = function() return KRNL_LOADED end},
-        {name = "Fluxus", check = function() return fluxus and fluxus.execute end},
+        {name = "Fluxus", check = function() return fluxus end},
         {name = "Arceus X", check = function() return identifyexecutor and identifyexecutor():lower():find("arceus") end},
-        {name = "Hydrogen", check = function() return hydrogen and hydrogen.execute end},
-        {name = "Nezur", check = function() return nezur end},
-        {name = "Delta", check = function() return is_delta_executor end}
+        {name = "Solara", check = function() return identifyexecutor and identifyexecutor():lower():find("solara") end},
+        {name = "Wave", check = function() return identifyexecutor and identifyexecutor():lower():find("wave") end}
     }
     
     for _, executor in ipairs(executors) do
         local success, result = pcall(executor.check)
         if success and result then
-            print("[AntiDetection] Detected executor: " .. executor.name)
+            self.Executor = executor.name
+            print("[AntiDetection] Detected: " .. executor.name)
             return executor.name
         end
     end
     
-    -- Try identifyexecutor function
+    -- Fallback to identifyexecutor
     local success, executor = pcall(function()
         return identifyexecutor and identifyexecutor() or "Unknown"
     end)
     
     if success and executor ~= "Unknown" then
-        print("[AntiDetection] Detected executor: " .. executor)
+        self.Executor = executor
+        print("[AntiDetection] Detected: " .. executor)
         return executor
     end
     
-    print("[AntiDetection] Executor: Unknown (Basic)")
+    print("[AntiDetection] Executor: Unknown")
     return "Unknown"
 end
 
 -- ============================================
--- ENHANCED ANTI-KICK PROTECTION
+-- ANTI-KICK PROTECTION (ENHANCED)
 -- ============================================
 function AntiDetection:SetupAntiKick()
     if self.Protections.AntiKick then
-        warn("[AntiDetection] Anti-Kick already active!")
         return true
     end
     
@@ -75,39 +75,34 @@ function AntiDetection:SetupAntiKick()
             local oldNamecall = mt.__namecall
             
             setreadonly(mt, false)
-            
             mt.__namecall = newcclosure(function(self, ...)
                 local method = getnamecallmethod()
                 local args = {...}
                 
-                -- Block kick methods
+                -- Block Kick
                 if method == "Kick" or method == "kick" then
-                    warn("[AntiDetection] 🛡️ Blocked Kick attempt!")
-                    return wait(9e9) -- Infinite wait
+                    warn("[AntiDetection] 🛡️ Blocked Kick!")
+                    return wait(9e9)
                 end
                 
-                -- Block FireServer/InvokeServer to anti-cheat remotes
+                -- Block suspicious remotes
                 if method == "FireServer" or method == "InvokeServer" then
                     local selfStr = tostring(self):lower()
-                    local suspicious = {
-                        "anti", "detect", "kick", "ban", "flag", 
-                        "report", "cheat", "hack", "exploit", "ac"
-                    }
+                    local suspicious = {"anti", "detect", "kick", "ban", "flag", "report", "cheat", "ac"}
                     
                     for _, keyword in ipairs(suspicious) do
                         if selfStr:find(keyword) then
-                            warn("[AntiDetection] 🛡️ Blocked suspicious remote: " .. tostring(self))
+                            warn("[AntiDetection] 🛡️ Blocked: " .. tostring(self))
                             return
                         end
                     end
                     
-                    -- Check arguments for suspicious patterns
+                    -- Check arguments
                     for _, arg in ipairs(args) do
                         if type(arg) == "string" then
-                            local argLower = arg:lower()
                             for _, keyword in ipairs(suspicious) do
-                                if argLower:find(keyword) then
-                                    warn("[AntiDetection] 🛡️ Blocked suspicious argument: " .. arg)
+                                if arg:lower():find(keyword) then
+                                    warn("[AntiDetection] 🛡️ Blocked arg: " .. arg)
                                     return
                                 end
                             end
@@ -133,12 +128,12 @@ function AntiDetection:SetupAntiKick()
             OriginalFunctions.PlayerKick = oldKick
         end
         
-        -- Method 3: Monitor for teleport attempts (some games kick via teleport)
+        -- Method 3: Block Teleport Kicks
         local TeleportService = game:GetService("TeleportService")
         local oldTeleport = TeleportService.Teleport
         TeleportService.Teleport = function(placeId, player, ...)
             if player == game.Players.LocalPlayer then
-                warn("[AntiDetection] 🛡️ Blocked suspicious teleport!")
+                warn("[AntiDetection] 🛡️ Blocked teleport kick!")
                 return
             end
             return oldTeleport(placeId, player, ...)
@@ -146,23 +141,17 @@ function AntiDetection:SetupAntiKick()
         OriginalFunctions.Teleport = oldTeleport
         
         self.Protections.AntiKick = true
-        print("[AntiDetection] ✅ Anti-Kick Active (Multi-Layer)")
+        print("[AntiDetection] ✅ Anti-Kick Active (3 Layers)")
     end)
     
-    if not success then
-        warn("[AntiDetection] ⚠️ Anti-Kick setup failed (Executor limitation)")
-        return false
-    end
-    
-    return true
+    return success
 end
 
 -- ============================================
--- ENHANCED ANTI-AFK SYSTEM
+-- ANTI-AFK SYSTEM (ENHANCED)
 -- ============================================
 function AntiDetection:SetupAntiAFK()
     if self.Protections.AntiAFK then
-        warn("[AntiDetection] Anti-AFK already active!")
         return true
     end
     
@@ -171,15 +160,14 @@ function AntiDetection:SetupAntiAFK()
         local VirtualUser = game:GetService("VirtualUser")
         local player = Players.LocalPlayer
         
-        -- Method 1: Idled event
+        -- Method 1: Idled Event
         Connections.AntiAFK = player.Idled:Connect(function()
             VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            task.wait(0.5)
+            task.wait(0.1)
             VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            print("[AntiDetection] 🔄 Anti-AFK Triggered")
         end)
         
-        -- Method 2: Periodic movement simulation
+        -- Method 2: Periodic Simulation
         task.spawn(function()
             while task.wait(300) do -- Every 5 minutes
                 if player and player.Character then
@@ -190,25 +178,18 @@ function AntiDetection:SetupAntiAFK()
         end)
         
         self.Protections.AntiAFK = true
-        print("[AntiDetection] ✅ Anti-AFK Active (Multi-Method)")
+        print("[AntiDetection] ✅ Anti-AFK Active")
     end)
     
-    if not success then
-        warn("[AntiDetection] ⚠️ Anti-AFK setup failed")
-        return false
-    end
-    
-    return true
+    return success
 end
 
 -- ============================================
--- STEALTH HELPERS (Enhanced)
+-- STEALTH HELPERS (ENHANCED)
 -- ============================================
 function AntiDetection:AddRandomDelay(stealthMode)
     if not stealthMode then return end
-    
-    -- Variable delay between 1-50ms
-    local delay = math.random(10, 500) / 10000 -- 0.001 to 0.05 seconds
+    local delay = math.random(10, 500) / 10000 -- 1-50ms
     task.wait(delay)
 end
 
@@ -217,8 +198,8 @@ function AntiDetection:SmoothTransition(targetValue, currentValue, smoothness, s
         return targetValue
     end
     
-    -- Add slight randomness to smoothness
-    local randomFactor = 1 + (math.random(-10, 10) / 100) -- ±10%
+    -- Add randomness (±10%)
+    local randomFactor = 1 + (math.random(-10, 10) / 100)
     local adjustedSmoothness = smoothness * randomFactor
     
     return currentValue + (targetValue - currentValue) * adjustedSmoothness
@@ -229,8 +210,8 @@ function AntiDetection:GetVariableSmoothness(baseSmoothness, stealthMode)
         return baseSmoothness
     end
     
-    -- Add random variation (±5%)
-    local variation = math.random(-50, 50) / 1000 -- -0.05 to 0.05
+    -- Add variation (±5%)
+    local variation = math.random(-50, 50) / 1000
     return math.clamp(baseSmoothness + variation, 0.01, 0.99)
 end
 
@@ -241,25 +222,20 @@ function AntiDetection:RandomizeValue(value, variationPercent)
 end
 
 function AntiDetection:HumanizeMouse(targetPosition, currentPosition, smoothness)
-    -- Simulate human-like mouse movement with slight curves
     local distance = (targetPosition - currentPosition).Magnitude
-    
     if distance < 50 then
-        return targetPosition -- Small movements are direct
+        return targetPosition
     end
     
-    -- Add slight curve to movement
+    -- Add curve to movement
     local midPoint = (targetPosition + currentPosition) / 2
-    local curve = Vector2.new(
-        math.random(-20, 20),
-        math.random(-20, 20)
-    )
+    local curve = Vector2.new(math.random(-20, 20), math.random(-20, 20))
     
     return currentPosition + (midPoint + curve - currentPosition) * smoothness
 end
 
 -- ============================================
--- HIDE FROM DETECTION (Enhanced)
+-- HIDE FROM PLAYER LIST
 -- ============================================
 function AntiDetection:HideFromPlayerList()
     if self.Protections.HiddenFromList then
@@ -267,9 +243,7 @@ function AntiDetection:HideFromPlayerList()
     end
     
     local success = pcall(function()
-        local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-        
-        -- Method 1: Hide from CoreGui PlayerList
+        -- Hide from CoreGui PlayerList
         local coreGui = game:GetService("CoreGui")
         if coreGui:FindFirstChild("RobloxGui") then
             local robloxGui = coreGui.RobloxGui
@@ -278,66 +252,33 @@ function AntiDetection:HideFromPlayerList()
             end
         end
         
-        -- Method 2: Set display name to invisible character
-        local player = game:GetService("Players").LocalPlayer
-        if player.DisplayName then
-            -- Note: This may not work on all games
-            pcall(function()
-                player.DisplayName = "‎" -- Invisible character
-            end)
-        end
-        
         self.Protections.HiddenFromList = true
-        print("[AntiDetection] ✅ Hidden from player list")
+        print("[AntiDetection] ✅ Hidden from list")
     end)
     
     return success
 end
 
 -- ============================================
--- ANTI-SCREENSHOT PROTECTION
--- ============================================
-function AntiDetection:SetupAntiScreenshot()
-    local success = pcall(function()
-        -- Hide GUI when screenshot is taken
-        local ScreenshotService = game:GetService("ScreenshotService")
-        
-        Connections.AntiScreenshot = ScreenshotService.ScreenshotSaving:Connect(function()
-            warn("[AntiDetection] 📸 Screenshot detected - Hiding GUI")
-            -- Trigger GUI hide event
-            if getgenv().NullHubGUI then
-                getgenv().NullHubGUI.Enabled = false
-                task.wait(1)
-                getgenv().NullHubGUI.Enabled = true
-            end
-        end)
-        
-        print("[AntiDetection] ✅ Anti-Screenshot Active")
-    end)
-    
-    return success
-end
-
--- ============================================
--- NETWORK LOGGING PROTECTION
+-- NETWORK PROTECTION
 -- ============================================
 function AntiDetection:SetupNetworkProtection()
     local success = pcall(function()
-        local HttpService = game:GetService("HttpService")
+        if not hookfunction then return end
         
-        -- Hook HTTP requests to detect logging attempts
-        if hookfunction then
-            local oldHttpGet = HttpService.GetAsync
-            hookfunction(HttpService.GetAsync, function(self, url, ...)
-                if url:lower():find("log") or url:lower():find("report") or url:lower():find("detect") then
-                    warn("[AntiDetection] 🌐 Blocked suspicious HTTP request: " .. url)
-                    return "{}"
-                end
-                return oldHttpGet(self, url, ...)
-            end)
-            
-            print("[AntiDetection] ✅ Network Protection Active")
-        end
+        local HttpService = game:GetService("HttpService")
+        local oldHttpGet = HttpService.GetAsync
+        
+        hookfunction(HttpService.GetAsync, function(self, url, ...)
+            if url:lower():find("log") or url:lower():find("report") or url:lower():find("detect") then
+                warn("[AntiDetection] 🌐 Blocked HTTP: " .. url)
+                return "{}"
+            end
+            return oldHttpGet(self, url, ...)
+        end)
+        
+        self.Protections.NetworkProtected = true
+        print("[AntiDetection] ✅ Network Protection Active")
     end)
     
     return success
@@ -348,10 +289,9 @@ end
 -- ============================================
 function AntiDetection:SetupRemoteSpyProtection()
     local success = pcall(function()
-        -- Detect and disable common remote spy tools
         local spyNames = {
-            "SimpleSpy", "RemoteSpy", "Hydroxide", "Dex", 
-            "DarkDex", "IY", "InfiniteYield"
+            "SimpleSpy", "RemoteSpy", "Hydroxide", 
+            "Dex", "DarkDex", "IY", "InfiniteYield"
         }
         
         for _, spyName in ipairs(spyNames) do
@@ -373,24 +313,11 @@ end
 function AntiDetection:GetStatus()
     return {
         Initialized = self.Initialized,
+        Executor = self.Executor,
         Protections = self.Protections,
-        ActiveConnections = #Connections,
+        ActiveConnections = self:GetConnectionCount(),
         Version = self.Version
     }
-end
-
-function AntiDetection:PrintStatus()
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("🛡️  NullHub AntiDetection v" .. self.Version)
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("Status: " .. (self.Initialized and "Active" or "Inactive"))
-    print("\nProtections:")
-    print("  Anti-Kick: " .. (self.Protections.AntiKick and "✅" or "❌"))
-    print("  Anti-AFK: " .. (self.Protections.AntiAFK and "✅" or "❌"))
-    print("  Hidden: " .. (self.Protections.HiddenFromList and "✅" or "❌"))
-    print("  Metatable: " .. (self.Protections.MetatableProtected and "✅" or "❌"))
-    print("\nActive Connections: " .. self:GetConnectionCount())
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 end
 
 function AntiDetection:GetConnectionCount()
@@ -401,17 +328,28 @@ function AntiDetection:GetConnectionCount()
     return count
 end
 
+function AntiDetection:PrintStatus()
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("🛡️ NullHub AntiDetection v" .. self.Version)
+    print("Executor: " .. self.Executor)
+    print("Status: " .. (self.Initialized and "Active" or "Inactive"))
+    print("\nProtections:")
+    for name, status in pairs(self.Protections) do
+        print(string.format("  %s: %s", name, status and "✅" or "❌"))
+    end
+    print("Active Connections: " .. self:GetConnectionCount())
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+end
+
 -- ============================================
 -- DISABLE PROTECTIONS
 -- ============================================
 function AntiDetection:DisableAntiKick()
     if not self.Protections.AntiKick then return end
     
-    -- Restore original functions
     if OriginalFunctions.PlayerKick then
         game:GetService("Players").LocalPlayer.Kick = OriginalFunctions.PlayerKick
     end
-    
     if OriginalFunctions.Teleport then
         game:GetService("TeleportService").Teleport = OriginalFunctions.Teleport
     end
@@ -434,56 +372,47 @@ function AntiDetection:DisableAll()
     self:DisableAntiKick()
     self:DisableAntiAFK()
     
-    -- Disconnect all connections
     for name, connection in pairs(Connections) do
         if connection and connection.Disconnect then
             connection:Disconnect()
         end
     end
-    Connections = {}
     
+    Connections = {}
     self.Initialized = false
     print("[AntiDetection] ⚠️ All protections disabled")
 end
 
 -- ============================================
--- INITIALIZE ALL PROTECTIONS
+-- INITIALIZE (OPTIMIZED)
 -- ============================================
-function AntiDetection:Initialize(config)
+function AntiDetection:Initialize()
     if self.Initialized then
-        warn("[AntiDetection] Already initialized!")
         return true
     end
     
-    print("[AntiDetection] Initializing protection system...")
+    print("[AntiDetection] Initializing...")
     
     -- Detect executor
-    local executor = self:DetectExecutor()
+    self:DetectExecutor()
     
     -- Setup protections
     local results = {
-        AntiKick = self:SetupAntiKick(),
-        AntiAFK = self:SetupAntiAFK(),
-        HideFromList = self:HideFromPlayerList(),
-        AntiScreenshot = self:SetupAntiScreenshot(),
-        NetworkProtection = self:SetupNetworkProtection(),
-        RemoteSpyProtection = self:SetupRemoteSpyProtection()
+        self:SetupAntiKick(),
+        self:SetupAntiAFK(),
+        self:HideFromPlayerList(),
+        self:SetupNetworkProtection(),
+        self:SetupRemoteSpyProtection()
     }
     
     -- Count successes
     local successCount = 0
-    local totalCount = 0
-    for name, success in pairs(results) do
-        totalCount = totalCount + 1
-        if success then
-            successCount = successCount + 1
-        end
+    for _, success in pairs(results) do
+        if success then successCount = successCount + 1 end
     end
     
     self.Initialized = true
-    
-    print(string.format("[AntiDetection] ✅ Initialized (%d/%d protections active)", successCount, totalCount))
-    self:PrintStatus()
+    print(string.format("[AntiDetection] ✅ Initialized (%d/5 protections)", successCount))
     
     return true
 end
@@ -497,6 +426,5 @@ function AntiDetection:Destroy()
     print("[AntiDetection] ✅ Cleaned up")
 end
 
--- Export
 print("[AntiDetection] Module loaded v" .. AntiDetection.Version)
 return AntiDetection
