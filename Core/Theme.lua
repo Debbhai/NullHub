@@ -1,59 +1,98 @@
 -- ============================================
 -- NullHub Theme.lua - Theme Management System
 -- Created by Debbhai
--- Version: 1.0.0
--- 11 Beautiful themes with hot-swapping support
+-- Version: 1.0.0 FINAL
+-- 11 Themes - Optimized & Compressed
 -- ============================================
 
 local Theme = {
     Version = "1.0.0",
-    Author = "Debbhai",
     CurrentTheme = "Dark",
-    ThemeCount = 0
+    ThemeCount = 11
 }
 
 -- ============================================
--- THEME DEFINITIONS (11 Themes)
+-- SHARED SIZE DEFINITIONS
 -- ============================================
+Theme.Sizes = {
+    -- Main Frame
+    MainFrameWidth = 680,
+    MainFrameHeight = 450,
+    
+    -- Components
+    SidebarWidth = 150,
+    HeaderHeight = 45,
+    CloseButton = 38,
+    TabHeight = 40,
+    ActionRowHeight = 46,
+    StatusIndicator = 12,
+    
+    -- Input Elements
+    InputHeight = 36,
+    DropdownHeight = 90,
+    PlayerButtonHeight = 28,
+    ScrollBarThickness = 5,
+    ToggleButton = 55,
+    
+    -- Notifications
+    NotificationWidth = 300,
+    NotificationHeight = 60
+}
 
+-- ============================================
+-- CORNER RADIUS
+-- ============================================
+Theme.CornerRadius = {
+    Large = 14,
+    Medium = 10,
+    Small = 7,
+    Tiny = 5
+}
+
+-- ============================================
+-- FONTS
+-- ============================================
+Theme.Fonts = {
+    Title = Enum.Font.GothamBold,
+    Tab = Enum.Font.GothamMedium,
+    Action = Enum.Font.Gotham,
+    Input = Enum.Font.Gotham
+}
+
+Theme.FontSizes = {
+    Title = 19,
+    Tab = 15,
+    Action = 14,
+    Input = 13
+}
+
+-- ============================================
+-- THEME DEFINITIONS
+-- ============================================
 Theme.Themes = {
-    -- ==========================================
+    
     -- DARK THEME (Default)
-    -- ==========================================
     Dark = {
         Description = "Classic dark theme with golden accents",
         Colors = {
-            -- Main Colors
             MainBackground = Color3.fromRGB(10, 10, 12),
             HeaderBackground = Color3.fromRGB(15, 15, 18),
             SidebarBackground = Color3.fromRGB(12, 12, 14),
             ContainerBackground = Color3.fromRGB(18, 18, 22),
-            
-            -- Input Colors
             InputBackground = Color3.fromRGB(20, 20, 24),
             DropdownBackground = Color3.fromRGB(22, 22, 26),
             PlayerButtonBg = Color3.fromRGB(25, 25, 30),
-            
-            -- Tab Colors
             TabNormal = Color3.fromRGB(16, 16, 20),
             TabSelected = Color3.fromRGB(28, 28, 34),
-            
-            -- Accent Colors
             AccentBar = Color3.fromRGB(255, 215, 0),
             ScrollBarColor = Color3.fromRGB(218, 165, 32),
-            
-            -- Status Colors
             StatusOff = Color3.fromRGB(220, 60, 60),
             StatusOn = Color3.fromRGB(50, 220, 100),
             ContainerOff = Color3.fromRGB(18, 18, 22),
             ContainerOn = Color3.fromRGB(25, 35, 45),
-            
-            -- Text Colors
             TextPrimary = Color3.fromRGB(255, 255, 255),
             TextSecondary = Color3.fromRGB(160, 160, 180),
             TextPlaceholder = Color3.fromRGB(120, 120, 140),
-            
-            -- UI Colors
             BorderColor = Color3.fromRGB(40, 40, 50),
             CloseButton = Color3.fromRGB(220, 60, 70),
             MinimizeButton = Color3.fromRGB(255, 180, 0),
@@ -61,27 +100,14 @@ Theme.Themes = {
             NotificationBg = Color3.fromRGB(15, 15, 18)
         },
         Transparency = {
-            MainBackground = 0.08,
-            Header = 0.05,
-            Sidebar = 0.1,
-            Container = 0.15,
-            Input = 0.2,
-            Dropdown = 0.15,
-            PlayerButton = 0.25,
-            CloseButton = 0.1,
-            Stroke = 0.5,
-            AccentBar = 0.2,
-            StatusIndicator = 0,
-            ScrollBar = 0.4,
-            Tab = 0.2,
-            ToggleButton = 0.1,
-            Notification = 0.1
+            MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
+            Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1,
+            Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4,
+            Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
         }
     },
     
-    -- ==========================================
     -- LIGHT THEME
-    -- ==========================================
     Light = {
         Description = "Clean light theme for daytime use",
         Colors = {
@@ -117,9 +143,7 @@ Theme.Themes = {
         }
     },
     
-    -- ==========================================
     -- NEON THEME
-    -- ==========================================
     Neon = {
         Description = "Vibrant neon theme with cyberpunk vibes",
         Colors = {
@@ -155,9 +179,7 @@ Theme.Themes = {
         }
     },
     
-    -- ==========================================
     -- GRAYISH THEME
-    -- ==========================================
     Grayish = {
         Description = "Professional gray theme",
         Colors = {
@@ -193,9 +215,7 @@ Theme.Themes = {
         }
     },
     
-    -- ==========================================
     -- ONYX THEME
-    -- ==========================================
     Onyx = {
         Description = "Deep black theme with subtle highlights",
         Colors = {
@@ -231,9 +251,7 @@ Theme.Themes = {
         }
     },
     
-    -- ==========================================
     -- OCEAN THEME
-    -- ==========================================
     Ocean = {
         Description = "Cool blue ocean theme",
         Colors = {
@@ -269,9 +287,7 @@ Theme.Themes = {
         }
     },
     
-    -- ==========================================
     -- SUNSET THEME
-    -- ==========================================
     Sunset = {
         Description = "Warm sunset theme with orange accents",
         Colors = {
@@ -307,9 +323,7 @@ Theme.Themes = {
         }
     },
     
-    -- ==========================================
     -- FOREST THEME
-    -- ==========================================
     Forest = {
         Description = "Natural green forest theme",
         Colors = {
@@ -333,7 +347,7 @@ Theme.Themes = {
             TextPlaceholder = Color3.fromRGB(130, 170, 140),
             BorderColor = Color3.fromRGB(60, 90, 70),
             CloseButton = Color3.fromRGB(220, 100, 80),
-            MinimizeButton = Color3.fromRGB(255, 200, 80),
+            MinimizeButton = Color3.fromRGB(255, 200, 100),
             ToggleButton = Color3.fromRGB(100, 220, 120),
             NotificationBg = Color3.fromRGB(30, 50, 35)
         },
@@ -345,11 +359,9 @@ Theme.Themes = {
         }
     },
     
-    -- ==========================================
     -- PURPLE THEME
-    -- ==========================================
     Purple = {
-        Description = "Royal purple theme with mystical vibes",
+        Description = "Royal purple theme",
         Colors = {
             MainBackground = Color3.fromRGB(25, 15, 40),
             HeaderBackground = Color3.fromRGB(35, 20, 55),
@@ -359,19 +371,19 @@ Theme.Themes = {
             DropdownBackground = Color3.fromRGB(52, 33, 75),
             PlayerButtonBg = Color3.fromRGB(58, 38, 82),
             TabNormal = Color3.fromRGB(35, 20, 55),
-            TabSelected = Color3.fromRGB(60, 40, 90),
+            TabSelected = Color3.fromRGB(60, 35, 90),
             AccentBar = Color3.fromRGB(180, 100, 255),
             ScrollBarColor = Color3.fromRGB(200, 120, 255),
             StatusOff = Color3.fromRGB(220, 80, 120),
-            StatusOn = Color3.fromRGB(150, 220, 180),
+            StatusOn = Color3.fromRGB(150, 100, 255),
             ContainerOff = Color3.fromRGB(40, 25, 60),
             ContainerOn = Color3.fromRGB(60, 40, 85),
-            TextPrimary = Color3.fromRGB(240, 230, 255),
-            TextSecondary = Color3.fromRGB(200, 180, 230),
-            TextPlaceholder = Color3.fromRGB(150, 130, 180),
-            BorderColor = Color3.fromRGB(80, 50, 120),
+            TextPrimary = Color3.fromRGB(245, 235, 255),
+            TextSecondary = Color3.fromRGB(200, 180, 220),
+            TextPlaceholder = Color3.fromRGB(150, 130, 170),
+            BorderColor = Color3.fromRGB(80, 50, 110),
             CloseButton = Color3.fromRGB(220, 80, 120),
-            MinimizeButton = Color3.fromRGB(255, 180, 120),
+            MinimizeButton = Color3.fromRGB(255, 180, 100),
             ToggleButton = Color3.fromRGB(180, 100, 255),
             NotificationBg = Color3.fromRGB(35, 20, 55)
         },
@@ -383,73 +395,69 @@ Theme.Themes = {
         }
     },
     
-    -- ==========================================
-    -- MIDNIGHT THEME
-    -- ==========================================
-    Midnight = {
-        Description = "Deep blue midnight theme",
+    -- CRIMSON THEME
+    Crimson = {
+        Description = "Bold red crimson theme",
         Colors = {
-            MainBackground = Color3.fromRGB(8, 8, 15),
-            HeaderBackground = Color3.fromRGB(12, 12, 22),
-            SidebarBackground = Color3.fromRGB(10, 10, 18),
-            ContainerBackground = Color3.fromRGB(15, 15, 25),
-            InputBackground = Color3.fromRGB(18, 18, 30),
-            DropdownBackground = Color3.fromRGB(20, 20, 33),
-            PlayerButtonBg = Color3.fromRGB(23, 23, 38),
-            TabNormal = Color3.fromRGB(12, 12, 22),
-            TabSelected = Color3.fromRGB(25, 25, 45),
-            AccentBar = Color3.fromRGB(100, 150, 255),
-            ScrollBarColor = Color3.fromRGB(120, 170, 255),
-            StatusOff = Color3.fromRGB(200, 70, 90),
-            StatusOn = Color3.fromRGB(100, 220, 170),
-            ContainerOff = Color3.fromRGB(15, 15, 25),
-            ContainerOn = Color3.fromRGB(30, 35, 50),
-            TextPrimary = Color3.fromRGB(230, 240, 255),
-            TextSecondary = Color3.fromRGB(160, 180, 220),
-            TextPlaceholder = Color3.fromRGB(110, 130, 170),
-            BorderColor = Color3.fromRGB(40, 45, 70),
-            CloseButton = Color3.fromRGB(200, 70, 90),
-            MinimizeButton = Color3.fromRGB(240, 190, 80),
-            ToggleButton = Color3.fromRGB(100, 150, 255),
-            NotificationBg = Color3.fromRGB(12, 12, 22)
+            MainBackground = Color3.fromRGB(35, 10, 15),
+            HeaderBackground = Color3.fromRGB(50, 15, 20),
+            SidebarBackground = Color3.fromRGB(43, 12, 18),
+            ContainerBackground = Color3.fromRGB(55, 18, 25),
+            InputBackground = Color3.fromRGB(63, 22, 30),
+            DropdownBackground = Color3.fromRGB(67, 25, 33),
+            PlayerButtonBg = Color3.fromRGB(73, 28, 38),
+            TabNormal = Color3.fromRGB(50, 15, 20),
+            TabSelected = Color3.fromRGB(80, 25, 35),
+            AccentBar = Color3.fromRGB(255, 50, 80),
+            ScrollBarColor = Color3.fromRGB(255, 80, 100),
+            StatusOff = Color3.fromRGB(180, 60, 80),
+            StatusOn = Color3.fromRGB(100, 220, 150),
+            ContainerOff = Color3.fromRGB(55, 18, 25),
+            ContainerOn = Color3.fromRGB(75, 30, 42),
+            TextPrimary = Color3.fromRGB(255, 240, 245),
+            TextSecondary = Color3.fromRGB(220, 180, 190),
+            TextPlaceholder = Color3.fromRGB(170, 130, 140),
+            BorderColor = Color3.fromRGB(100, 40, 50),
+            CloseButton = Color3.fromRGB(255, 50, 80),
+            MinimizeButton = Color3.fromRGB(255, 180, 100),
+            ToggleButton = Color3.fromRGB(255, 50, 80),
+            NotificationBg = Color3.fromRGB(50, 15, 20)
         },
         Transparency = {
-            MainBackground = 0.05, Header = 0.03, Sidebar = 0.08, Container = 0.12,
-            Input = 0.15, Dropdown = 0.12, PlayerButton = 0.2, CloseButton = 0.08,
-            Stroke = 0.3, AccentBar = 0.15, StatusIndicator = 0, ScrollBar = 0.35,
-            Tab = 0.15, ToggleButton = 0.08, Notification = 0.08
+            MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
+            Input = 0.2, Dropdown = 0.15, PlayerButton = 0.25, CloseButton = 0.1,
+            Stroke = 0.5, AccentBar = 0.2, StatusIndicator = 0, ScrollBar = 0.4,
+            Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
         }
     },
     
-    -- ==========================================
-    -- CHERRY THEME
-    -- ==========================================
-    Cherry = {
-        Description = "Sweet cherry red theme",
+    -- MIDNIGHT THEME
+    Midnight = {
+        Description = "Deep midnight blue theme",
         Colors = {
-            MainBackground = Color3.fromRGB(35, 15, 20),
-            HeaderBackground = Color3.fromRGB(50, 20, 30),
-            SidebarBackground = Color3.fromRGB(43, 18, 25),
-            ContainerBackground = Color3.fromRGB(55, 25, 35),
-            InputBackground = Color3.fromRGB(63, 30, 43),
-            DropdownBackground = Color3.fromRGB(67, 33, 47),
-            PlayerButtonBg = Color3.fromRGB(73, 38, 53),
-            TabNormal = Color3.fromRGB(50, 20, 30),
-            TabSelected = Color3.fromRGB(80, 35, 50),
-            AccentBar = Color3.fromRGB(255, 80, 120),
-            ScrollBarColor = Color3.fromRGB(255, 100, 140),
-            StatusOff = Color3.fromRGB(220, 80, 80),
-            StatusOn = Color3.fromRGB(120, 220, 150),
-            ContainerOff = Color3.fromRGB(55, 25, 35),
-            ContainerOn = Color3.fromRGB(75, 40, 55),
-            TextPrimary = Color3.fromRGB(255, 230, 240),
-            TextSecondary = Color3.fromRGB(220, 180, 200),
-            TextPlaceholder = Color3.fromRGB(160, 130, 150),
-            BorderColor = Color3.fromRGB(100, 50, 70),
-            CloseButton = Color3.fromRGB(255, 80, 100),
-            MinimizeButton = Color3.fromRGB(255, 180, 120),
-            ToggleButton = Color3.fromRGB(255, 80, 120),
-            NotificationBg = Color3.fromRGB(50, 20, 30)
+            MainBackground = Color3.fromRGB(8, 12, 25),
+            HeaderBackground = Color3.fromRGB(12, 18, 35),
+            SidebarBackground = Color3.fromRGB(10, 15, 30),
+            ContainerBackground = Color3.fromRGB(15, 22, 40),
+            InputBackground = Color3.fromRGB(18, 26, 48),
+            DropdownBackground = Color3.fromRGB(20, 28, 52),
+            PlayerButtonBg = Color3.fromRGB(24, 32, 58),
+            TabNormal = Color3.fromRGB(12, 18, 35),
+            TabSelected = Color3.fromRGB(25, 38, 65),
+            AccentBar = Color3.fromRGB(80, 150, 255),
+            ScrollBarColor = Color3.fromRGB(100, 170, 255),
+            StatusOff = Color3.fromRGB(200, 80, 100),
+            StatusOn = Color3.fromRGB(80, 200, 255),
+            ContainerOff = Color3.fromRGB(15, 22, 40),
+            ContainerOn = Color3.fromRGB(28, 42, 70),
+            TextPrimary = Color3.fromRGB(230, 240, 255),
+            TextSecondary = Color3.fromRGB(160, 180, 220),
+            TextPlaceholder = Color3.fromRGB(110, 130, 170),
+            BorderColor = Color3.fromRGB(35, 55, 90),
+            CloseButton = Color3.fromRGB(220, 80, 100),
+            MinimizeButton = Color3.fromRGB(255, 200, 80),
+            ToggleButton = Color3.fromRGB(80, 150, 255),
+            NotificationBg = Color3.fromRGB(12, 18, 35)
         },
         Transparency = {
             MainBackground = 0.08, Header = 0.05, Sidebar = 0.1, Container = 0.15,
@@ -461,74 +469,15 @@ Theme.Themes = {
 }
 
 -- ============================================
--- SIZE DEFINITIONS
--- ============================================
-Theme.Sizes = {
-    -- Main Window
-    MainFrameWidth = 680,
-    MainFrameHeight = 450,
-    
-    -- Components
-    SidebarWidth = 150,
-    HeaderHeight = 45,
-    
-    -- Buttons
-    CloseButton = 38,
-    TabHeight = 40,
-    ToggleButton = 55,
-    
-    -- Rows & Inputs
-    ActionRowHeight = 46,
-    StatusIndicator = 12,
-    InputHeight = 36,
-    DropdownHeight = 90,
-    PlayerButtonHeight = 28,
-    
-    -- Scrollbar
-    ScrollBarThickness = 5,
-    
-    -- Notifications
-    NotificationWidth = 300,
-    NotificationHeight = 60
-}
-
--- ============================================
--- CORNER RADIUS DEFINITIONS
--- ============================================
-Theme.CornerRadius = {
-    Large = 14,
-    Medium = 10,
-    Small = 7,
-    Tiny = 5
-}
-
--- ============================================
--- FONT DEFINITIONS
--- ============================================
-Theme.Fonts = {
-    Title = Enum.Font.GothamBold,
-    Tab = Enum.Font.GothamMedium,
-    Action = Enum.Font.Gotham,
-    Input = Enum.Font.Gotham
-}
-
-Theme.FontSizes = {
-    Title = 19,
-    Tab = 15,
-    Action = 14,
-    Input = 13
-}
-
--- ============================================
--- CORE FUNCTIONS
+-- THEME FUNCTIONS
 -- ============================================
 
--- Get current theme data
+-- Get current theme
 function Theme:GetTheme()
     return self.Themes[self.CurrentTheme] or self.Themes.Dark
 end
 
--- Set theme by name
+-- Set theme
 function Theme:SetTheme(themeName)
     if self.Themes[themeName] then
         self.CurrentTheme = themeName
@@ -546,82 +495,24 @@ function Theme:GetAllThemeNames()
     for name, _ in pairs(self.Themes) do
         table.insert(names, name)
     end
-    table.sort(names) -- Alphabetical order
+    table.sort(names)
     return names
 end
 
--- Get theme count
-function Theme:GetThemeCount()
-    local count = 0
-    for _ in pairs(self.Themes) do
-        count = count + 1
-    end
-    self.ThemeCount = count
-    return count
-end
-
--- Validate theme structure
-function Theme:ValidateTheme(themeName)
-    local theme = self.Themes[themeName]
-    if not theme then return false, "Theme not found" end
-    
-    -- Check Colors
-    if not theme.Colors then return false, "Missing Colors table" end
-    if not theme.Colors.MainBackground then return false, "Missing MainBackground color" end
-    if not theme.Colors.TextPrimary then return false, "Missing TextPrimary color" end
-    
-    -- Check Transparency
-    if not theme.Transparency then return false, "Missing Transparency table" end
-    
-    return true, "Theme is valid"
-end
-
--- Get theme description
-function Theme:GetThemeDescription(themeName)
-    local theme = self.Themes[themeName]
-    if theme and theme.Description then
-        return theme.Description
-    end
-    return "No description available"
-end
-
--- Get accent color for theme
+-- Get accent color
 function Theme:GetAccentColor(themeName)
     themeName = themeName or self.CurrentTheme
     local theme = self.Themes[themeName]
-    if theme and theme.Colors then
-        return theme.Colors.AccentBar
-    end
-    return Color3.fromRGB(255, 215, 0) -- Default gold
-end
-
--- Export theme data
-function Theme:ExportTheme(themeName)
-    themeName = themeName or self.CurrentTheme
-    return self.Themes[themeName]
+    return theme and theme.Colors.AccentBar or Color3.fromRGB(255, 215, 0)
 end
 
 -- Print theme info
 function Theme:PrintInfo()
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("🎨 NullHub Theme System v" .. self.Version)
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("Current Theme: " .. self.CurrentTheme)
-    print("Total Themes: " .. self:GetThemeCount())
-    print("Available Themes:")
-    
-    local names = self:GetAllThemeNames()
-    for i, name in ipairs(names) do
-        local desc = self:GetThemeDescription(name)
-        local marker = (name == self.CurrentTheme) and "→" or " "
-        print(string.format("  %s %d. %s - %s", marker, i, name, desc))
-    end
+    print("Current: " .. self.CurrentTheme .. " | Total: " .. self.ThemeCount)
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 end
 
--- Initialize theme count
-Theme:GetThemeCount()
-
-print("[Theme] ✅ Loaded " .. Theme.ThemeCount .. " themes (Current: " .. Theme.CurrentTheme .. ")")
-
+print("[Theme] ✅ Loaded " .. Theme.ThemeCount .. " themes")
 return Theme
