@@ -1,12 +1,12 @@
 -- ============================================
--- NullHub GUI.lua - Interface Module FIXED
+-- NullHub GUI.lua - Interface Module FINAL
 -- Created by Debbhai
--- Version: 1.0.1 HOTFIX
--- Complete working version with button connections
+-- Version: 1.0.2 FINAL
+-- Complete working version with instant theme refresh
 -- ============================================
 
 local GUI = {
-    Version = "1.0.1",
+    Version = "1.0.2",
     Author = "Debbhai",
     Initialized = false
 }
@@ -685,7 +685,7 @@ function GUI:UpdateContentPage(tabName)
             local themeBtn = self:CreateThemeButton(ContentScroll, themeName, i)
             themeBtn.MouseButton1Click:Connect(function()
                 if self.Theme:SetTheme(themeName) then
-                    self:RefreshTheme()
+                    -- Theme will auto-refresh GUI via registered callback
                 end
             end)
         end
@@ -1055,6 +1055,174 @@ function GUI:ConnectKeybinds()
 end
 
 --============================================
+-- REFRESH THEME (COMPLETE - INSTANT UPDATE)
+--============================================
+function GUI:RefreshTheme()
+    if not MainFrame then 
+        warn("[GUI] RefreshTheme called but MainFrame doesn't exist")
+        return 
+    end
+    
+    local currentTheme = self.Theme:GetTheme()
+    print("[GUI] 🎨 Refreshing theme to: " .. self.Theme.CurrentTheme)
+    
+    -- Refresh Main Frame
+    MainFrame.BackgroundColor3 = currentTheme.Colors.MainBackground
+    MainFrame.BackgroundTransparency = currentTheme.Transparency.MainBackground
+    
+    local mainStroke = MainFrame:FindFirstChildOfClass("UIStroke")
+    if mainStroke then
+        mainStroke.Color = currentTheme.Colors.BorderColor
+        mainStroke.Transparency = currentTheme.Transparency.Stroke
+    end
+    
+    -- Refresh Top Bar
+    if TopBar then
+        TopBar.BackgroundColor3 = currentTheme.Colors.HeaderBackground
+        TopBar.BackgroundTransparency = currentTheme.Transparency.Header
+        
+        -- Refresh accent line
+        local accentLine = TopBar:FindFirstChild("AccentLine")
+        if accentLine then
+            accentLine.BackgroundColor3 = currentTheme.Colors.AccentBar
+            accentLine.BackgroundTransparency = currentTheme.Transparency.AccentBar
+        end
+        
+        -- Refresh title text
+        local title = TopBar:FindFirstChild("Title")
+        if title then
+            title.TextColor3 = currentTheme.Colors.TextPrimary
+        end
+        
+        -- Refresh close button
+        local closeBtn = TopBar:FindFirstChild("CloseButton")
+        if closeBtn then
+            closeBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
+            closeBtn.BackgroundTransparency = currentTheme.Transparency.CloseButton
+            closeBtn.TextColor3 = currentTheme.Colors.TextPrimary
+        end
+    end
+    
+    -- Refresh Sidebar
+    if Sidebar then
+        Sidebar.BackgroundColor3 = currentTheme.Colors.SidebarBackground
+        Sidebar.BackgroundTransparency = currentTheme.Transparency.Sidebar
+        
+        local sidebarStroke = Sidebar:FindFirstChildOfClass("UIStroke")
+        if sidebarStroke then
+            sidebarStroke.Color = currentTheme.Colors.BorderColor
+            sidebarStroke.Transparency = currentTheme.Transparency.Stroke
+        end
+        
+        -- ✅ REFRESH ALL TAB BUTTONS (FIX FOR INSTANT UPDATE)
+        if self.TabButtons then
+            for tabName, tabBtn in pairs(self.TabButtons) do
+                if tabBtn and tabBtn.Parent then
+                    -- Check if this tab is currently selected
+                    local isSelected = (CurrentPage == tabName)
+                    tabBtn.BackgroundColor3 = isSelected and 
+                        currentTheme.Colors.TabSelected or 
+                        currentTheme.Colors.TabNormal
+                    tabBtn.BackgroundTransparency = currentTheme.Transparency.Tab
+                    tabBtn.TextColor3 = currentTheme.Colors.TextPrimary
+                    
+                    -- Update stroke
+                    local tabStroke = tabBtn:FindFirstChildOfClass("UIStroke")
+                    if tabStroke then
+                        tabStroke.Color = currentTheme.Colors.BorderColor
+                    end
+                end
+            end
+            print("[GUI] ✅ Sidebar tabs refreshed")
+        end
+    end
+    
+    -- Refresh Page Title
+    if PageTitle then
+        PageTitle.TextColor3 = currentTheme.Colors.TextPrimary
+    end
+    
+    -- Refresh Content Scroll
+    if ContentScroll then
+        ContentScroll.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
+        ContentScroll.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
+    end
+    
+    -- Refresh all action rows and their children
+    if ContentScroll then
+        for _, child in pairs(ContentScroll:GetChildren()) do
+            if child:IsA("Frame") then
+                -- Container
+                child.BackgroundColor3 = currentTheme.Colors.ContainerBackground
+                child.BackgroundTransparency = currentTheme.Transparency.Container
+                
+                local rowStroke = child:FindFirstChildOfClass("UIStroke")
+                if rowStroke then
+                    rowStroke.Color = currentTheme.Colors.BorderColor
+                    rowStroke.Transparency = currentTheme.Transparency.Stroke
+                end
+                
+                -- Update all text labels
+                for _, subChild in pairs(child:GetChildren()) do
+                    if subChild:IsA("TextLabel") or subChild:IsA("TextButton") then
+                        subChild.TextColor3 = currentTheme.Colors.TextPrimary
+                    end
+                    
+                    -- Update inputs
+                    if subChild:IsA("TextBox") then
+                        subChild.BackgroundColor3 = currentTheme.Colors.InputBackground
+                        subChild.BackgroundTransparency = currentTheme.Transparency.Input
+                        subChild.TextColor3 = currentTheme.Colors.TextPrimary
+                        subChild.PlaceholderColor3 = currentTheme.Colors.TextPlaceholder
+                    end
+                    
+                    -- Update dropdowns
+                    if subChild:IsA("ScrollingFrame") then
+                        subChild.BackgroundColor3 = currentTheme.Colors.DropdownBackground
+                        subChild.BackgroundTransparency = currentTheme.Transparency.Dropdown
+                        subChild.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
+                        subChild.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
+                        
+                        -- Update dropdown items
+                        for _, dropdownItem in pairs(subChild:GetChildren()) do
+                            if dropdownItem:IsA("TextButton") then
+                                dropdownItem.BackgroundColor3 = currentTheme.Colors.PlayerButtonBg
+                                dropdownItem.BackgroundTransparency = currentTheme.Transparency.PlayerButton
+                                dropdownItem.TextColor3 = currentTheme.Colors.TextPrimary
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Refresh Toggle Button
+    if ToggleButton then
+        ToggleButton.BackgroundColor3 = currentTheme.Colors.ToggleButton
+        ToggleButton.BackgroundTransparency = currentTheme.Transparency.ToggleButton
+    end
+    
+    -- Refresh Close Prompt if it exists
+    if ClosePrompt then
+        ClosePrompt.BackgroundColor3 = currentTheme.Colors.MainBackground
+        ClosePrompt.BackgroundTransparency = currentTheme.Transparency.MainBackground
+        
+        local promptStroke = ClosePrompt:FindFirstChildOfClass("UIStroke")
+        if promptStroke then
+            promptStroke.Color = currentTheme.Colors.AccentBar
+        end
+    end
+    
+    -- Show notification
+    if self.Modules and self.Modules.Notifications then
+        self.Modules.Notifications:Show("Theme", true, self.Theme.CurrentTheme, 2)
+    end
+    
+    print("[GUI] ✅ Theme refreshed successfully")
+end
+
+--============================================
 -- UTILITY FUNCTIONS
 --============================================
 function GUI:ToggleVisibility(visible)
@@ -1069,24 +1237,6 @@ function GUI:ToggleVisibility(visible)
         UDim2.new(0.5, -self.Theme.Sizes.MainFrameWidth/2, -1, 0)
     
     TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play()
-end
-
-function GUI:RefreshTheme()
-    if not MainFrame then return end
-    
-    -- Refresh all GUI elements with new theme
-    local currentTheme = self.Theme:GetTheme()
-    
-    -- Refresh main frame
-    MainFrame.BackgroundColor3 = currentTheme.Colors.MainBackground
-    MainFrame.BackgroundTransparency = currentTheme.Transparency.MainBackground
-    
-    -- Show notification
-    if self.Modules.Notifications then
-        self.Modules.Notifications:Show("Theme", true, "Theme: " .. self.Theme.CurrentTheme, 2)
-    end
-    
-    print("[GUI] Theme refreshed to: " .. self.Theme.CurrentTheme)
 end
 
 function GUI:Destroy()
