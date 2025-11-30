@@ -1,30 +1,28 @@
 -- ============================================
--- NullHub KillAura.lua - Auto-Attack System
+-- NullHub KillAura.lua - Auto Attack System
 -- Created by Debbhai
--- Version: 1.0.0
--- Automatic target detection and attack
+-- Version: 1.0.0 FINAL
 -- ============================================
 
 local KillAura = {
     Version = "1.0.0",
     Enabled = false,
-    Targets = {},
-    LastAttack = 0
+    Targets = {}
 }
 
 -- Dependencies
-local Players, RunService, ReplicatedStorage
-local Player, Character, Humanoid, RootPart
+local Players, RunService
+local Player, Character
 local Config, AntiDetection, Notifications
 
 -- Internal State
 local Connection = nil
+local LastHit = 0
 
 -- ============================================
 -- INITIALIZATION
 -- ============================================
 function KillAura:Initialize(player, character, config, antiDetection, notifications)
-    -- Store dependencies
     Players = game:GetService("Players")
     RunService = game:GetService("RunService")
     
@@ -34,45 +32,41 @@ function KillAura:Initialize(player, character, config, antiDetection, notificat
     AntiDetection = antiDetection
     Notifications = notifications
     
-    Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
-    
     print("[KillAura] ✅ Initialized")
     return true
 end
 
 -- ============================================
--- FIND ALL TARGETS IN RANGE
+-- FIND ALL TARGETS
 -- ============================================
 function KillAura:FindTargets()
     self.Targets = {}
     
-    if not RootPart then return end
+    local rootPart = Character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
     
-    -- Find Players
+    -- Find players
     if Config.Combat.KILLAURA.ATTACK_PLAYERS then
         for _, otherPlayer in pairs(Players:GetPlayers()) do
-            if otherPlayer == Player then continue end
-            if not otherPlayer.Character then continue end
-            
-            local otherHumanoid = otherPlayer.Character:FindFirstChild("Humanoid")
-            local otherRoot = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
-            
-            if otherHumanoid and otherRoot and otherHumanoid.Health > 0 then
-                -- Team check
-                if Config.Combat.KILLAURA.TEAM_CHECK then
-                    if otherPlayer.Team == Player.Team then continue end
-                end
+            if otherPlayer ~= Player and otherPlayer.Character then
+                local humanoid = otherPlayer.Character:FindFirstChild("Humanoid")
+                local otherRoot = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
                 
-                -- Distance check
-                local distance = (RootPart.Position - otherRoot.Position).Magnitude
-                if distance <= Config.Combat.KILLAURA.RANGE then
-                    table.insert(self.Targets, {
-                        humanoid = otherHumanoid,
-                        root = otherRoot,
-                        character = otherPlayer.Character,
-                        player = otherPlayer
-                    })
+                if humanoid and otherRoot and humanoid.Health > 0 then
+                    -- Team check
+                    if Config.Combat.KILLAURA.TEAM_CHECK and otherPlayer.Team == Player.Team then
+                        continue
+                    end
+                    
+                    local distance = (rootPart.Position - otherRoot.Position).Magnitude
+                    
+                    if distance <= Config.Combat.KILLAURA.RANGE then
+                        table.insert(self.Targets, {
+                            humanoid = humanoid,
+                            root = otherRoot,
+                            character = otherPlayer.Character
+                        })
+                    end
                 end
             end
         end
@@ -83,19 +77,18 @@ function KillAura:FindTargets()
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj:IsA("Humanoid") and obj.Health > 0 then
                 local char = obj.Parent
+                
                 if char and char ~= Character and not Players:GetPlayerFromCharacter(char) then
-                    local root = char:FindFirstChild("HumanoidRootPart") or 
-                                char:FindFirstChild("Torso") or 
-                                char:FindFirstChild("Head")
+                    local npcRoot = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head")
                     
-                    if root and RootPart then
-                        local distance = (RootPart.Position - root.Position).Magnitude
+                    if npcRoot then
+                        local distance = (rootPart.Position - npcRoot.Position).Magnitude
+                        
                         if distance <= Config.Combat.KILLAURA.RANGE then
                             table.insert(self.Targets, {
                                 humanoid = obj,
-                                root = root,
-                                character = char,
-                                player = nil
+                                root = npcRoot,
+                                character = char
                             })
                         end
                     end
@@ -108,18 +101,15 @@ end
 -- ============================================
 -- PERFORM ATTACK
 -- ============================================
-function KillAura:Attack()
-    if not self.Enabled or not Character or not Humanoid or not RootPart then
-        return
-    end
+function KillAura:PerformAttack()
+    if not self.Enabled or not Character then return end
     
-    -- Rate limiting
     local currentTime = tick()
-    if currentTime - self.LastAttack < Config.Combat.KILLAURA.DELAY then
+    if currentTime - LastHit < Config.Combat.KILLAURA.DELAY then
         return
     end
     
-    -- Anti-detection delay
+    -- Add stealth delay
     if AntiDetection then
         AntiDetection:AddRandomDelay(Config.AntiDetection.STEALTH_MODE)
     end
@@ -132,25 +122,20 @@ function KillAura:Attack()
     -- Attack first target
     for _, target in pairs(self.Targets) do
         if target.humanoid and target.humanoid.Health > 0 then
-            -- Face target (if enabled)
+            -- Face target (optional)
             if Config.Combat.KILLAURA.FACE_TARGET then
-                RootPart.CFrame = CFrame.new(
-                    RootPart.Position,
-                    Vector3.new(target.root.Position.X, RootPart.Position.Y, target.root.Position.Z)
-                )
+                local rootPart = Character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    rootPart.CFrame = CFrame.new(rootPart.Position, target.root.Position)
+                end
             end
             
-            -- Method 1: Tool activation
+            -- Activate tool
             local tool = Character:FindFirstChildOfClass("Tool")
             if tool then
                 tool:Activate()
                 
-                -- Anti-detection delay
-                if AntiDetection then
-                    AntiDetection:AddRandomDelay(Config.AntiDetection.STEALTH_MODE)
-                end
-                
-                -- Try to fire remotes
+                -- Fire remotes
                 for _, descendant in pairs(tool:GetDescendants()) do
                     if descendant:IsA("RemoteEvent") then
                         pcall(function()
@@ -166,15 +151,12 @@ function KillAura:Attack()
                 end
             end
             
-            -- Method 2: Direct damage (fallback)
+            -- Damage target (fallback)
             pcall(function()
                 target.humanoid:TakeDamage(target.humanoid.MaxHealth / 10)
             end)
             
-            -- Update last attack time
-            self.LastAttack = currentTime
-            
-            -- Only attack one target per cycle
+            LastHit = currentTime
             break
         end
     end
@@ -192,7 +174,6 @@ function KillAura:Toggle()
         self:Disable()
     end
     
-    -- Notify user
     if Notifications then
         Notifications:Show("KillAura", self.Enabled, nil, 2)
     end
@@ -207,7 +188,7 @@ function KillAura:Enable()
     if Connection then return end
     
     Connection = RunService.Heartbeat:Connect(function()
-        self:Attack()
+        self:PerformAttack()
     end)
     
     print("[KillAura] ⚔️ Enabled")
@@ -227,27 +208,19 @@ function KillAura:Disable()
 end
 
 -- ============================================
--- UPDATE SETTINGS
--- ============================================
-function KillAura:SetRange(range)
-    Config.Combat.KILLAURA.RANGE = math.clamp(range, 5, 100)
-    print("[KillAura] Range set to: " .. range)
-end
-
-function KillAura:SetDelay(delay)
-    Config.Combat.KILLAURA.DELAY = math.clamp(delay, 0.05, 1)
-    print("[KillAura] Delay set to: " .. delay)
-end
-
--- ============================================
 -- CHARACTER RESPAWN
 -- ============================================
 function KillAura:OnRespawn(newCharacter, newHumanoid, newRootPart)
-    Character = newCharacter
-    Humanoid = newHumanoid
-    RootPart = newRootPart
+    local wasEnabled = self.Enabled
     
-    self.Targets = {}
+    self:Disable()
+    Character = newCharacter
+    
+    if wasEnabled then
+        task.wait(0.5)
+        self:Enable()
+    end
+    
     print("[KillAura] 🔄 Character respawned")
 end
 
@@ -256,10 +229,8 @@ end
 -- ============================================
 function KillAura:Destroy()
     self:Disable()
-    self.Targets = {}
     print("[KillAura] ✅ Destroyed")
 end
 
--- Export
 print("[KillAura] Module loaded v" .. KillAura.Version)
 return KillAura
