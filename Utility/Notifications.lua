@@ -1,65 +1,52 @@
--- Utility/Notifications.lua
--- Centralized notification system for NullHub
--- Handles all feature toggle notifications
+-- ============================================
+-- NullHub Notifications.lua - Notification System
+-- Created by Debbhai
+-- Version: 1.0.0 FINAL
+-- Optimized & Enhanced
+-- ============================================
 
 local Notifications = {
     Version = "1.0.0",
-    Author = "Debbhai",
     Queue = {},
     CurrentNotification = nil,
-    Config = {
-        Duration = 3,           -- Default duration in seconds
-        Position = "TopRight",  -- TopRight, TopLeft, BottomRight, BottomLeft, Center
-        AnimationSpeed = 0.5,   -- Slide-in animation speed
-        MaxQueue = 5,           -- Maximum queued notifications
-        ShowIcon = true,        -- Show emoji icons
-        PlaySound = false       -- Future: notification sounds
-    }
+    Initialized = false
 }
 
--- Icons for different notification types
+-- Configuration
+local Config = {
+    Duration = 3,
+    Position = "TopRight",
+    AnimationSpeed = 0.5,
+    MaxQueue = 5,
+    ShowIcon = true
+}
+
+-- Icons
 local Icons = {
-    Enable = "✅",
-    Disable = "❌",
-    Success = "✅",
-    Error = "⚠️",
-    Info = "ℹ️",
-    Warning = "⚠️",
-    Loading = "⏳",
-    Update = "🔄"
+    Enable = "✅", Disable = "❌", Success = "✅", Error = "⚠️",
+    Info = "ℹ️", Warning = "⚠️", Loading = "⏳", Update = "🔄"
 }
 
--- Feature-specific icons
+-- Feature Icons
 local FeatureIcons = {
     -- Combat
-    Aimbot = "🎯",
-    ESP = "👁️",
-    KillAura = "⚔️",
-    FastM1 = "👊",
-    
+    Aimbot = "🎯", ESP = "👁️", KillAura = "⚔️", FastM1 = "👊",
     -- Movement
-    Fly = "🕊️",
-    NoClip = "👻",
-    InfiniteJump = "🦘",
-    Speed = "⚡",
-    WalkOnWater = "🌊",
-    
+    Fly = "🕊️", NoClip = "👻", InfiniteJump = "🦘", Speed = "⚡", WalkOnWater = "🌊",
     -- Visual
-    FullBright = "💡",
-    GodMode = "🛡️",
-    
+    FullBright = "💡", GodMode = "🛡️",
     -- Teleport
     TeleportToPlayer = "🚀",
-    
     -- System
-    Theme = "🎨",
-    Config = "⚙️"
+    Theme = "🎨", Config = "⚙️"
 }
 
--- Initialize notification system
+-- ============================================
+-- INITIALIZATION
+-- ============================================
 function Notifications:Initialize(screenGui, theme)
     if not screenGui then
-        warn("[Notifications] No ScreenGui provided!")
+        warn("[Notifications] No ScreenGui!")
         return false
     end
     
@@ -71,7 +58,7 @@ function Notifications:Initialize(screenGui, theme)
     return true
 end
 
--- Get default theme if Theme module not loaded
+-- Default Theme Fallback
 function Notifications:GetDefaultTheme()
     return {
         Colors = {
@@ -79,26 +66,17 @@ function Notifications:GetDefaultTheme()
             AccentBar = Color3.fromRGB(255, 215, 0),
             TextPrimary = Color3.fromRGB(255, 255, 255)
         },
-        Transparency = {
-            Notification = 0.1
-        },
-        Sizes = {
-            NotificationWidth = 300,
-            NotificationHeight = 60
-        },
-        CornerRadius = {
-            Medium = 10
-        },
-        FontSizes = {
-            Action = 14
-        },
-        Fonts = {
-            Action = Enum.Font.Gotham
-        }
+        Transparency = {Notification = 0.1},
+        Sizes = {NotificationWidth = 300, NotificationHeight = 60},
+        CornerRadius = {Medium = 10},
+        FontSizes = {Action = 14},
+        Fonts = {Action = Enum.Font.Gotham}
     }
 end
 
--- Main notification function
+-- ============================================
+-- SHOW NOTIFICATION
+-- ============================================
 function Notifications:Show(featureName, isEnabled, customMessage, duration)
     if not self.Initialized then
         warn("[Notifications] Not initialized!")
@@ -114,7 +92,7 @@ function Notifications:Show(featureName, isEnabled, customMessage, duration)
         local statusIcon = isEnabled and Icons.Enable or Icons.Disable
         local featureIcon = FeatureIcons[featureName] or "🔧"
         
-        if self.Config.ShowIcon then
+        if Config.ShowIcon then
             message = string.format("%s %s %s", featureIcon, featureName, statusText)
         else
             message = string.format("%s %s", featureName, statusText)
@@ -124,24 +102,26 @@ function Notifications:Show(featureName, isEnabled, customMessage, duration)
     -- Add to queue
     local notificationData = {
         message = message,
-        duration = duration or self.Config.Duration,
+        duration = duration or Config.Duration,
         timestamp = tick()
     }
     
     -- Check queue limit
-    if #self.Queue >= self.Config.MaxQueue then
-        table.remove(self.Queue, 1) -- Remove oldest
+    if #self.Queue >= Config.MaxQueue then
+        table.remove(self.Queue, 1)
     end
     
     table.insert(self.Queue, notificationData)
     
-    -- Process queue if no notification is showing
+    -- Process if no notification showing
     if not self.CurrentNotification then
         self:ProcessQueue()
     end
 end
 
--- Process notification queue
+-- ============================================
+-- PROCESS QUEUE
+-- ============================================
 function Notifications:ProcessQueue()
     if #self.Queue == 0 then
         self.CurrentNotification = nil
@@ -152,11 +132,14 @@ function Notifications:ProcessQueue()
     self:CreateNotification(notifData.message, notifData.duration)
 end
 
--- Create notification UI
+-- ============================================
+-- CREATE NOTIFICATION UI
+-- ============================================
 function Notifications:CreateNotification(message, duration)
     local theme = self.Theme
+    local TweenService = game:GetService("TweenService")
     
-    -- Create notification frame
+    -- Create frame
     local notification = Instance.new("Frame")
     notification.Name = "Notification"
     notification.Size = UDim2.new(0, theme.Sizes.NotificationWidth, 0, theme.Sizes.NotificationHeight)
@@ -166,13 +149,12 @@ function Notifications:CreateNotification(message, duration)
     notification.ZIndex = 10000
     notification.Parent = self.ScreenGui
     
-    -- Position based on config
+    -- Get positions
     local startPos, endPos = self:GetPositions(theme)
     notification.Position = startPos
     
     -- Rounded corners
-    local corner = Instance.new("UICorner", notification)
-    corner.CornerRadius = UDim.new(0, theme.CornerRadius.Medium)
+    Instance.new("UICorner", notification).CornerRadius = UDim.new(0, theme.CornerRadius.Medium)
     
     -- Border stroke
     local stroke = Instance.new("UIStroke", notification)
@@ -180,21 +162,16 @@ function Notifications:CreateNotification(message, duration)
     stroke.Thickness = 2
     stroke.Transparency = 1
     
-    -- Accent bar (left side)
+    -- Accent bar
     local accentBar = Instance.new("Frame", notification)
-    accentBar.Name = "AccentBar"
     accentBar.Size = UDim2.new(0, 4, 1, 0)
-    accentBar.Position = UDim2.new(0, 0, 0, 0)
     accentBar.BackgroundColor3 = theme.Colors.AccentBar
     accentBar.BorderSizePixel = 0
     accentBar.BackgroundTransparency = 1
+    Instance.new("UICorner", accentBar).CornerRadius = UDim.new(0, theme.CornerRadius.Medium)
     
-    local accentCorner = Instance.new("UICorner", accentBar)
-    accentCorner.CornerRadius = UDim.new(0, theme.CornerRadius.Medium)
-    
-    -- Text label
+    -- Text
     local text = Instance.new("TextLabel", notification)
-    text.Name = "Text"
     text.Size = UDim2.new(1, -20, 1, 0)
     text.Position = UDim2.new(0, 10, 0, 0)
     text.BackgroundTransparency = 1
@@ -210,31 +187,47 @@ function Notifications:CreateNotification(message, duration)
     self.CurrentNotification = notification
     
     -- Animate in
-    self:AnimateIn(notification, stroke, text, accentBar, endPos, duration)
+    local speed = Config.AnimationSpeed
+    
+    TweenService:Create(notification, TweenInfo.new(speed, Enum.EasingStyle.Quint), {
+        Position = endPos,
+        BackgroundTransparency = theme.Transparency.Notification
+    }):Play()
+    
+    TweenService:Create(stroke, TweenInfo.new(speed), {Transparency = 0.3}):Play()
+    TweenService:Create(text, TweenInfo.new(speed), {TextTransparency = 0}):Play()
+    TweenService:Create(accentBar, TweenInfo.new(speed), {BackgroundTransparency = 0}):Play()
+    
+    -- Wait then animate out
+    task.delay(duration, function()
+        self:AnimateOut(notification, stroke, text, accentBar, theme)
+    end)
 end
 
--- Get positions based on config
+-- ============================================
+-- GET POSITIONS
+-- ============================================
 function Notifications:GetPositions(theme)
     local w = theme.Sizes.NotificationWidth
     local h = theme.Sizes.NotificationHeight
-    local margin = 10
+    local m = 10 -- margin
     
     local positions = {
         TopRight = {
-            start = UDim2.new(1, w + 20, 0, margin),
-            finish = UDim2.new(1, -w - margin, 0, margin)
+            start = UDim2.new(1, w + 20, 0, m),
+            finish = UDim2.new(1, -w - m, 0, m)
         },
         TopLeft = {
-            start = UDim2.new(0, -w - 20, 0, margin),
-            finish = UDim2.new(0, margin, 0, margin)
+            start = UDim2.new(0, -w - 20, 0, m),
+            finish = UDim2.new(0, m, 0, m)
         },
         BottomRight = {
-            start = UDim2.new(1, w + 20, 1, -h - margin),
-            finish = UDim2.new(1, -w - margin, 1, -h - margin)
+            start = UDim2.new(1, w + 20, 1, -h - m),
+            finish = UDim2.new(1, -w - m, 1, -h - m)
         },
         BottomLeft = {
-            start = UDim2.new(0, -w - 20, 1, -h - margin),
-            finish = UDim2.new(0, margin, 1, -h - margin)
+            start = UDim2.new(0, -w - 20, 1, -h - m),
+            finish = UDim2.new(0, m, 1, -h - m)
         },
         Center = {
             start = UDim2.new(0.5, -w/2, 0.5, -h/2 - 50),
@@ -242,53 +235,26 @@ function Notifications:GetPositions(theme)
         }
     }
     
-    local pos = positions[self.Config.Position] or positions.TopRight
+    local pos = positions[Config.Position] or positions.TopRight
     return pos.start, pos.finish
 end
 
--- Animate notification in
-function Notifications:AnimateIn(notification, stroke, text, accentBar, endPos, duration)
+-- ============================================
+-- ANIMATE OUT
+-- ============================================
+function Notifications:AnimateOut(notification, stroke, text, accentBar, theme)
     local TweenService = game:GetService("TweenService")
-    local speed = self.Config.AnimationSpeed
+    local speed = Config.AnimationSpeed
+    local w = theme.Sizes.NotificationWidth
     
-    -- Slide in
-    TweenService:Create(notification, TweenInfo.new(speed, Enum.EasingStyle.Quint), {
-        Position = endPos,
-        BackgroundTransparency = self.Theme.Transparency.Notification
-    }):Play()
-    
-    TweenService:Create(stroke, TweenInfo.new(speed), {
-        Transparency = 0.3
-    }):Play()
-    
-    TweenService:Create(text, TweenInfo.new(speed), {
-        TextTransparency = 0
-    }):Play()
-    
-    TweenService:Create(accentBar, TweenInfo.new(speed), {
-        BackgroundTransparency = 0
-    }):Play()
-    
-    -- Wait then slide out
-    task.delay(duration, function()
-        self:AnimateOut(notification, stroke, text, accentBar)
-    end)
-end
-
--- Animate notification out
-function Notifications:AnimateOut(notification, stroke, text, accentBar)
-    local TweenService = game:GetService("TweenService")
-    local speed = self.Config.AnimationSpeed
-    local theme = self.Theme
-    
-    -- Get exit position (opposite of entry)
+    -- Calculate exit position
     local exitPos
-    if self.Config.Position == "TopRight" or self.Config.Position == "BottomRight" then
-        exitPos = UDim2.new(1, theme.Sizes.NotificationWidth + 20, notification.Position.Y.Scale, notification.Position.Y.Offset)
-    elseif self.Config.Position == "TopLeft" or self.Config.Position == "BottomLeft" then
-        exitPos = UDim2.new(0, -theme.Sizes.NotificationWidth - 20, notification.Position.Y.Scale, notification.Position.Y.Offset)
+    if Config.Position == "TopRight" or Config.Position == "BottomRight" then
+        exitPos = UDim2.new(1, w + 20, notification.Position.Y.Scale, notification.Position.Y.Offset)
+    elseif Config.Position == "TopLeft" or Config.Position == "BottomLeft" then
+        exitPos = UDim2.new(0, -w - 20, notification.Position.Y.Scale, notification.Position.Y.Offset)
     else
-        exitPos = UDim2.new(0.5, -theme.Sizes.NotificationWidth/2, 0.5, -theme.Sizes.NotificationHeight/2 - 50)
+        exitPos = UDim2.new(0.5, -w/2, 0.5, -theme.Sizes.NotificationHeight/2 - 50)
     end
     
     TweenService:Create(notification, TweenInfo.new(speed, Enum.EasingStyle.Quint), {
@@ -296,26 +262,20 @@ function Notifications:AnimateOut(notification, stroke, text, accentBar)
         BackgroundTransparency = 1
     }):Play()
     
-    TweenService:Create(stroke, TweenInfo.new(speed), {
-        Transparency = 1
-    }):Play()
-    
-    TweenService:Create(text, TweenInfo.new(speed), {
-        TextTransparency = 1
-    }):Play()
-    
-    TweenService:Create(accentBar, TweenInfo.new(speed), {
-        BackgroundTransparency = 1
-    }):Play()
+    TweenService:Create(stroke, TweenInfo.new(speed), {Transparency = 1}):Play()
+    TweenService:Create(text, TweenInfo.new(speed), {TextTransparency = 1}):Play()
+    TweenService:Create(accentBar, TweenInfo.new(speed), {BackgroundTransparency = 1}):Play()
     
     task.delay(speed + 0.1, function()
         notification:Destroy()
         self.CurrentNotification = nil
-        self:ProcessQueue() -- Process next in queue
+        self:ProcessQueue()
     end)
 end
 
--- Quick notification methods
+-- ============================================
+-- QUICK METHODS
+-- ============================================
 function Notifications:Success(message, duration)
     self:Show("Success", true, Icons.Success .. " " .. message, duration)
 end
@@ -332,34 +292,31 @@ function Notifications:Warning(message, duration)
     self:Show("Warning", false, Icons.Warning .. " " .. message, duration)
 end
 
--- Feature toggle notification
-function Notifications:FeatureToggle(featureName, isEnabled)
-    self:Show(featureName, isEnabled)
-end
-
--- Change notification position
+-- ============================================
+-- SETTINGS
+-- ============================================
 function Notifications:SetPosition(position)
-    if position == "TopRight" or position == "TopLeft" or 
-       position == "BottomRight" or position == "BottomLeft" or 
-       position == "Center" then
-        self.Config.Position = position
-        return true
+    local valid = {"TopRight", "TopLeft", "BottomRight", "BottomLeft", "Center"}
+    for _, v in pairs(valid) do
+        if position == v then
+            Config.Position = position
+            return true
+        end
     end
     return false
 end
 
--- Change notification duration
 function Notifications:SetDuration(seconds)
     if seconds > 0 and seconds <= 10 then
-        self.Config.Duration = seconds
+        Config.Duration = seconds
         return true
     end
     return false
 end
 
--- Clear notification queue
 function Notifications:ClearQueue()
     self.Queue = {}
 end
 
+print("[Notifications] Module loaded v" .. Notifications.Version)
 return Notifications
