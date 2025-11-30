@@ -1,4 +1,4 @@
--- NullHub V1 - Core Features (Clean Version)
+-- NullHub V1 - Core Features (Clean Version - FIXED Walk on Water)
 -- Created by Debbhai
 -- Loads Theme.lua + AntiDetection.lua from GitHub
 
@@ -77,6 +77,7 @@ local originalSpeed, originalLightingSettings = 16, {}
 local selectedTeleportPlayer, isTeleporting, currentTeleportTween = nil, false, nil
 local guiVisible, mainFrameRef, guiButtons, contentScroll, pageTitle, screenGuiRef = true, nil, {}, nil, nil, nil
 local waterPlatform = nil
+local lastWaterHeight = nil
 
 local function showNotification(message, duration)
     duration = duration or 3
@@ -139,22 +140,31 @@ local function refreshGUITheme()
     showNotification("Theme changed to " .. Theme.CurrentTheme, 2)
 end
 
+-- ============================================
+-- FIXED WALK ON WATER (NO CONTINUOUS ELEVATION)
+-- ============================================
 local function updateWalkOnWater()
     if not state.walkonwater or not rootPart then return end
+    
     local playerPos = rootPart.Position
-    local detectionHeight = 10
-    local platformHeight = 0.5
+    local detectionHeight = 15
+    local platformHeight = 0.3
     local shouldCreatePlatform = false
-    local rayOrigin = playerPos
-    local rayDirection = Vector3.new(0, -detectionHeight, 0)
+    local waterSurfaceY = nil
+    
+    local rayOrigin = Vector3.new(playerPos.X, playerPos.Y + 2, playerPos.Z)
+    local rayDirection = Vector3.new(0, -detectionHeight - 2, 0)
     local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterDescendantsInstances = {character, waterPlatform}
     raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
     local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    
     if rayResult and rayResult.Instance then
         local hitInstance = rayResult.Instance
         local hitPosition = rayResult.Position
-        local distanceToSurface = (playerPos - hitPosition).Magnitude
+        local distanceToSurface = math.abs(playerPos.Y - hitPosition.Y)
+        
         if hitInstance:IsA("Terrain") then
             local alignedPos = Vector3.new(math.floor(hitPosition.X / 4) * 4, math.floor(hitPosition.Y / 4) * 4, math.floor(hitPosition.Z / 4) * 4)
             local regionSize = Vector3.new(4, 4, 4)
@@ -163,23 +173,66 @@ local function updateWalkOnWater()
             pcall(function()
                 local materials, sizes = workspace.Terrain:ReadVoxels(region, 4)
                 local size = materials.Size
-                for x = 1, size.X do for y = 1, size.Y do for z = 1, size.Z do if materials[x][y][z] == Enum.Material.Water then shouldCreatePlatform = true break end end if shouldCreatePlatform then break end end if shouldCreatePlatform then break end end
+                for x = 1, size.X do for y = 1, size.Y do for z = 1, size.Z do if materials[x][y][z] == Enum.Material.Water then shouldCreatePlatform = true waterSurfaceY = hitPosition.Y break end end if shouldCreatePlatform then break end end if shouldCreatePlatform then break end end
             end)
         end
-        if not shouldCreatePlatform then local partName = hitInstance.Name:lower() local waterKeywords = {"water", "ocean", "sea", "lake", "river", "pool", "liquid"} for _, keyword in pairs(waterKeywords) do if partName:find(keyword) then shouldCreatePlatform = true break end end end
-        if not shouldCreatePlatform and hitInstance:IsA("BasePart") then local partColor = hitInstance.Color if (partColor.B > 0.5 and partColor.R < 0.3 and partColor.G < 0.6) or (partColor.B > 0.6 and partColor.G > 0.5 and partColor.R < 0.3) then shouldCreatePlatform = true end end
-        if not shouldCreatePlatform and hitInstance:IsA("BasePart") then if hitInstance.Material == Enum.Material.Water or hitInstance.Material == Enum.Material.Ice or hitInstance.Material == Enum.Material.Glacier then shouldCreatePlatform = true end end
-        if not shouldCreatePlatform and humanoid then if humanoid:GetState() == Enum.HumanoidStateType.Freefall then if distanceToSurface > 3 and distanceToSurface < detectionHeight then if hitInstance:IsA("BasePart") and (hitInstance.Transparency > 0.3 or hitInstance.CanCollide == false) then shouldCreatePlatform = true end end end end
-        if shouldCreatePlatform then
-            if not waterPlatform then waterPlatform = Instance.new("Part") waterPlatform.Name = "NullHub_WaterPlatform" waterPlatform.Size = Vector3.new(12, platformHeight, 12) waterPlatform.Anchored = true waterPlatform.CanCollide = true waterPlatform.Transparency = 0.7 waterPlatform.Material = Enum.Material.SmoothPlastic waterPlatform.Color = Color3.fromRGB(100, 200, 255) waterPlatform.TopSurface = Enum.SurfaceType.Smooth waterPlatform.BottomSurface = Enum.SurfaceType.Smooth waterPlatform.CastShadow = false waterPlatform.Parent = workspace end
-            local targetY = hitPosition.Y + platformHeight
-            local currentCFrame = waterPlatform.CFrame
-            local targetCFrame = CFrame.new(playerPos.X, targetY, playerPos.Z)
-            waterPlatform.CFrame = currentCFrame:Lerp(targetCFrame, 0.3)
+        
+        if not shouldCreatePlatform then
+            local partName = hitInstance.Name:lower()
+            local waterKeywords = {"water", "ocean", "sea", "lake", "river", "pool", "liquid"}
+            for _, keyword in pairs(waterKeywords) do if partName:find(keyword) then shouldCreatePlatform = true waterSurfaceY = hitPosition.Y break end end
+        end
+        
+        if not shouldCreatePlatform and hitInstance:IsA("BasePart") then
+            local partColor = hitInstance.Color
+            if partColor.B > 0.5 and partColor.R < 0.4 and partColor.G < 0.7 then shouldCreatePlatform = true waterSurfaceY = hitPosition.Y end
+        end
+        
+        if not shouldCreatePlatform and hitInstance:IsA("BasePart") then
+            if hitInstance.Material == Enum.Material.Water or hitInstance.Material == Enum.Material.Ice or hitInstance.Material == Enum.Material.Glacier then shouldCreatePlatform = true waterSurfaceY = hitPosition.Y end
+        end
+        
+        if not shouldCreatePlatform and humanoid then
+            if humanoid:GetState() == Enum.HumanoidStateType.Freefall or humanoid:GetState() == Enum.HumanoidStateType.Swimming then
+                if distanceToSurface > 2 and distanceToSurface < detectionHeight then
+                    if hitInstance:IsA("BasePart") and (hitInstance.Transparency > 0.2 or hitInstance.CanCollide == false) then shouldCreatePlatform = true waterSurfaceY = hitPosition.Y end
+                end
+            end
+        end
+        
+        if shouldCreatePlatform and waterSurfaceY then
+            if not lastWaterHeight then lastWaterHeight = waterSurfaceY
+            else if math.abs(waterSurfaceY - lastWaterHeight) < 5 then lastWaterHeight = waterSurfaceY end end
+            
+            if not waterPlatform then
+                waterPlatform = Instance.new("Part")
+                waterPlatform.Name = "NullHub_WaterPlatform"
+                waterPlatform.Size = Vector3.new(10, platformHeight, 10)
+                waterPlatform.Anchored = true
+                waterPlatform.CanCollide = true
+                waterPlatform.Transparency = 0.6
+                waterPlatform.Material = Enum.Material.SmoothPlastic
+                waterPlatform.Color = Color3.fromRGB(100, 200, 255)
+                waterPlatform.TopSurface = Enum.SurfaceType.Smooth
+                waterPlatform.BottomSurface = Enum.SurfaceType.Smooth
+                waterPlatform.CastShadow = false
+                waterPlatform.Parent = workspace
+                raycastParams.FilterDescendantsInstances = {character, waterPlatform}
+            end
+            
+            local targetY = lastWaterHeight + platformHeight + 0.5
+            local targetPos = Vector3.new(playerPos.X, targetY, playerPos.Z)
+            waterPlatform.CFrame = CFrame.new(targetPos)
+            
+            if playerPos.Y < targetY + 1 then rootPart.CFrame = CFrame.new(playerPos.X, targetY + 3, playerPos.Z) end
             return
         end
     end
-    if waterPlatform then waterPlatform:Destroy() waterPlatform = nil end
+    
+    if waterPlatform then
+        local distanceFromPlatform = (rootPart.Position - waterPlatform.Position).Magnitude
+        if distanceFromPlatform > 15 or not shouldCreatePlatform then waterPlatform:Destroy() waterPlatform = nil lastWaterHeight = nil end
+    end
 end
 
 local function updatePlayerDropdown(dropdown)
@@ -285,7 +338,7 @@ local function toggleInfJump() state.infjump = not state.infjump updateButtonVis
 local function toggleSpeed() state.speed = not state.speed updateSpeed() updateButtonVisual("speed") showNotification("Speed " .. (state.speed and "ON - " .. CONFIG.SPEED_VALUE or "OFF"), 2) end
 local function toggleFullBright() state.fullbright = not state.fullbright if state.fullbright then enableFullBright() else disableFullBright() end updateButtonVisual("fullbright") showNotification("Full Bright " .. (state.fullbright and "ON" or "OFF"), 2) end
 local function toggleGodMode() state.godmode = not state.godmode updateGodMode() updateButtonVisual("godmode") showNotification("God Mode " .. (state.godmode and "ON" or "OFF"), 2) end
-local function toggleWalkOnWater() state.walkonwater = not state.walkonwater if state.walkonwater then if connections.walkonwater then connections.walkonwater:Disconnect() end connections.walkonwater = RunService.Heartbeat:Connect(updateWalkOnWater) showNotification("Walk on Water ON", 2) else if connections.walkonwater then connections.walkonwater:Disconnect() connections.walkonwater = nil end if waterPlatform then waterPlatform:Destroy() waterPlatform = nil end showNotification("Walk on Water OFF", 2) end updateButtonVisual("walkonwater") end
+local function toggleWalkOnWater() state.walkonwater = not state.walkonwater if state.walkonwater then if connections.walkonwater then connections.walkonwater:Disconnect() end connections.walkonwater = RunService.Heartbeat:Connect(updateWalkOnWater) showNotification("Walk on Water ON", 2) else if connections.walkonwater then connections.walkonwater:Disconnect() connections.walkonwater = nil end if waterPlatform then waterPlatform:Destroy() waterPlatform = nil end lastWaterHeight = nil showNotification("Walk on Water OFF", 2) end updateButtonVisual("walkonwater") end
 
 local function createModernGUI()
     local currentTheme = Theme:GetTheme()
