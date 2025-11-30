@@ -111,7 +111,7 @@ Config.Movement = {
     -- Speed Hack
     SPEED = {
         KEY = Enum.KeyCode.X,
-        VALUE = 500000,
+        VALUE = 100,
         MIN_VALUE = 0,
         MAX_VALUE = 1000000,
         DEFAULT_VALUE = 16,
