@@ -1,8 +1,7 @@
 -- ============================================
 -- NullHub NoClip.lua - Walk Through Walls
 -- Created by Debbhai
--- Version: 1.0.0
--- Phase through solid objects
+-- Version: 1.0.0 FINAL
 -- ============================================
 
 local NoClip = {
@@ -22,7 +21,6 @@ local Connection = nil
 -- INITIALIZATION
 -- ============================================
 function NoClip:Initialize(player, character, config, notifications)
-    -- Store dependencies
     RunService = game:GetService("RunService")
     
     Player = player
@@ -40,7 +38,6 @@ end
 function NoClip:Update()
     if not self.Enabled or not Character then return end
     
-    -- Disable collision for all parts
     for _, part in pairs(Character:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
@@ -60,7 +57,6 @@ function NoClip:Toggle()
         self:Disable()
     end
     
-    -- Notify user
     if Notifications then
         Notifications:Show("NoClip", self.Enabled, nil, 2)
     end
@@ -90,7 +86,7 @@ function NoClip:Disable()
         Connection = nil
     end
     
-    -- Re-enable collision
+    -- Restore collision
     if Character then
         for _, part in pairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -108,13 +104,9 @@ end
 function NoClip:OnRespawn(newCharacter, newHumanoid, newRootPart)
     local wasEnabled = self.Enabled
     
-    -- Disable first
     self:Disable()
-    
-    -- Update references
     Character = newCharacter
     
-    -- Re-enable if was enabled
     if wasEnabled then
         task.wait(0.5)
         self:Enable()
@@ -131,6 +123,5 @@ function NoClip:Destroy()
     print("[NoClip] ✅ Destroyed")
 end
 
--- Export
 print("[NoClip] Module loaded v" .. NoClip.Version)
 return NoClip
