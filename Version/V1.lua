@@ -1,7 +1,8 @@
 -- ============================================
--- NullHub V1.lua - Module Loader BULLETPROOF
+-- NullHub V1.lua - Module Loader FINAL
 -- Created by Debbhai
--- Version: 1.0.2 HOTFIX
+-- Version: 1.0.3 FINAL
+-- With Theme-GUI instant refresh integration
 -- ============================================
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -9,7 +10,7 @@ print("⚡ NullHub V1 - Module Loader")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 local BASE_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/"
-local VERSION = "1.0.2"
+local VERSION = "1.0.3"
 
 -- Services
 local Players = game:GetService("Players")
@@ -78,6 +79,7 @@ end
 if not Theme then
     warn("[V1] Theme failed - creating fallback")
     Theme = {
+        CurrentTheme = "Dark",
         Colors = {
             NotificationBg = Color3.fromRGB(15, 15, 18),
             AccentBar = Color3.fromRGB(255, 215, 0),
@@ -87,7 +89,10 @@ if not Theme then
         Sizes = {NotificationWidth = 300, NotificationHeight = 60},
         CornerRadius = {Medium = 10},
         FontSizes = {Action = 14},
-        Fonts = {Action = Enum.Font.Gotham}
+        Fonts = {Action = Enum.Font.Gotham},
+        GetTheme = function(self) return self end,
+        SetTheme = function(self, name) return false end,
+        RegisterGUI = function(self, gui) end
     }
 end
 
@@ -200,12 +205,21 @@ getgenv().NullHub_Combat = Combat
 getgenv().NullHub_Movement = Movement
 getgenv().NullHub_Visual = Visual
 getgenv().NullHub_Teleport = Teleport
+getgenv().NullHub_Theme = Theme
+getgenv().NullHub_GUI = GUI
 
 if GUI then
     local guiSuccess = pcall(function()
+        -- Initialize GUI
         GUI:Initialize(screenGui, Theme, Config)
         
-        -- CRITICAL: Pass modules properly
+        -- ✅ REGISTER GUI WITH THEME FOR INSTANT REFRESH
+        if Theme and Theme.RegisterGUI then
+            Theme:RegisterGUI(GUI)
+            print("[V1] ✅ Theme-GUI connection established")
+        end
+        
+        -- Prepare modules
         local modules = {
             Combat = Combat,
             Movement = Movement,
@@ -220,8 +234,13 @@ if GUI then
         print("  Visual modules: " .. (Visual.FullBright and "✅" or "❌"))
         print("  Teleport modules: " .. (Teleport.TeleportToPlayer and "✅" or "❌"))
         
+        -- Register modules
         GUI:RegisterModules(modules)
+        
+        -- Create GUI
         GUI:Create()
+        
+        -- Connect buttons and keybinds
         GUI:ConnectButtons()
         GUI:ConnectKeybinds()
     end)
@@ -240,15 +259,30 @@ player.CharacterAdded:Connect(function(newChar)
     task.wait(0.5)
     character, humanoid, rootPart = newChar, newChar:WaitForChild("Humanoid"), newChar:WaitForChild("HumanoidRootPart")
     
-    for _, module in pairs({Combat.Aimbot, Combat.ESP, Combat.KillAura, Combat.FastM1, Movement.Fly, Movement.NoClip, Movement.InfiniteJump, Movement.Speed, Movement.WalkOnWater, Visual.GodMode, Teleport.TeleportToPlayer}) do
+    -- Update all feature modules
+    local allModules = {
+        Combat.Aimbot, Combat.ESP, Combat.KillAura, Combat.FastM1,
+        Movement.Fly, Movement.NoClip, Movement.InfiniteJump, Movement.Speed, Movement.WalkOnWater,
+        Visual.GodMode,
+        Teleport.TeleportToPlayer
+    }
+    
+    for _, module in pairs(allModules) do
         if module and module.OnRespawn then
-            pcall(function() module:OnRespawn(character, humanoid, rootPart) end)
+            pcall(function() 
+                module:OnRespawn(character, humanoid, rootPart) 
+            end)
         end
     end
+    
+    print("[V1] 🔄 All modules updated for respawn")
 end)
 
--- Cleanup
+-- Cleanup Function
 local function cleanup()
+    print("[V1] 🧹 Cleaning up...")
+    
+    -- Destroy all modules
     for _, category in pairs({Combat, Movement, Visual, Teleport}) do
         for _, module in pairs(category) do
             if module and module.Destroy then
@@ -257,26 +291,43 @@ local function cleanup()
         end
     end
     
+    -- Destroy GUI
     if screenGui then
         screenGui:Destroy()
     end
+    
+    -- Clear global references
+    getgenv().NullHub_Combat = nil
+    getgenv().NullHub_Movement = nil
+    getgenv().NullHub_Visual = nil
+    getgenv().NullHub_Teleport = nil
+    getgenv().NullHub_Theme = nil
+    getgenv().NullHub_GUI = nil
+    getgenv().NullHubCleanup = nil
+    
+    print("[V1] ✅ Cleanup complete")
 end
 
+-- Print Module Load Report
 ModuleLoader:PrintReport()
 
 print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("🎉 NullHub V1 Loaded!")
 print("⌨️  Press INSERT to toggle GUI")
+print("🎨 Theme-GUI connection: " .. (Theme and Theme.GUI and "✅" or "❌"))
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
+-- Show success notification
 if Notifications then
     pcall(function()
         Notifications:Success("NullHub Loaded!", 3)
     end)
 end
 
+-- Store cleanup function globally
 getgenv().NullHubCleanup = cleanup
 
+-- Return module table
 return {
     Version = VERSION,
     Combat = Combat,
@@ -285,5 +336,6 @@ return {
     Teleport = Teleport,
     Notifications = Notifications,
     GUI = GUI,
+    Theme = Theme,
     Cleanup = cleanup
 }
