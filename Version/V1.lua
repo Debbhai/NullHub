@@ -1,7 +1,7 @@
 -- ============================================
--- NullHub V1.lua - BULLETPROOF VERSION
+-- NullHub V1.lua - FULL DEBUG VERSION
 -- Created by Debbhai
--- Version: 1.0.5 (FAIL-SAFE)
+-- Version: 1.0.6 (Maximum Error Detection)
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -11,7 +11,7 @@ local player = Players.LocalPlayer
 -- ANTI-DUPLICATE CHECK
 -- ============================================
 local function isRunning()
-    local gui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("NullHubGUI")
+    local gui = player.PlayerGui:FindFirstChild("NullHubGUI")
     if gui and gui:FindFirstChild("MainFrame") then
         return true
     end
@@ -29,14 +29,14 @@ getgenv().NullHubCleanup = nil
 getgenv().NullHubLoaded = true
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("⚡ NullHub - Professional Script Hub")
+print("⚡ NullHub V1.0.6 - Debug Mode")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 -- ============================================
 -- CONFIG
 -- ============================================
 local BASE_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/"
-local VERSION = "1.0.5"
+local VERSION = "1.0.6"
 
 -- ============================================
 -- SERVICES
@@ -49,52 +49,91 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
 
 -- ============================================
--- SAFE MODULE LOADER
+-- ADVANCED DEBUG LOADER
 -- ============================================
-local function SafeLoadModule(path, name)
-    print(string.format("📥 Loading %s...", name))
+local function DebugLoadModule(path, name)
+    print(string.format("📥 [DEBUG] Loading %s from %s...", name, path))
     
-    local success, result = pcall(function()
-        local code = game:HttpGet(BASE_URL .. path, true)
-        if not code or #code < 10 then
-            error("Empty or invalid response")
-        end
-        
-        local loadFunc, loadErr = loadstring(code)
-        if not loadFunc then
-            error("Loadstring error: " .. tostring(loadErr))
-        end
-        
-        local module = loadFunc()
-        
-        -- Validate module is a table
-        if type(module) ~= "table" then
-            error("Module didn't return a table")
-        end
-        
-        return module
+    -- Step 1: Download
+    local downloadSuccess, code = pcall(function()
+        return game:HttpGet(BASE_URL .. path, true)
     end)
     
-    if success and result then
-        print(string.format("✅ %s loaded", name))
-        return result
-    else
-        warn(string.format("❌ %s failed: %s", name, tostring(result)))
+    if not downloadSuccess then
+        warn(string.format("❌ [%s] Download failed: %s", name, tostring(code)))
         return nil
     end
+    
+    print(string.format("   [%s] Downloaded %d bytes", name, #code))
+    
+    if not code or #code < 10 then
+        warn(string.format("❌ [%s] File is empty or too small", name))
+        return nil
+    end
+    
+    -- Step 2: Loadstring
+    local loadSuccess, loadResult = pcall(function()
+        return loadstring(code)
+    end)
+    
+    if not loadSuccess or not loadResult then
+        warn(string.format("❌ [%s] Loadstring failed: %s", name, tostring(loadResult)))
+        warn(string.format("   First 200 chars of code: %s", code:sub(1, 200)))
+        return nil
+    end
+    
+    print(string.format("   [%s] Loadstring successful", name))
+    
+    -- Step 3: Execute the loaded function
+    local execSuccess, module = pcall(loadResult)
+    
+    if not execSuccess then
+        warn(string.format("❌ [%s] Execution failed: %s", name, tostring(module)))
+        warn(string.format("   This means the module has a runtime error!"))
+        
+        -- Try to extract error line
+        local errorMsg = tostring(module)
+        local lineNum = errorMsg:match(":(%d+):")
+        if lineNum then
+            warn(string.format("   ERROR AT LINE: %s", lineNum))
+        end
+        
+        return nil
+    end
+    
+    -- Step 4: Validate module
+    if type(module) ~= "table" then
+        warn(string.format("❌ [%s] Module didn't return a table (got %s)", name, type(module)))
+        return nil
+    end
+    
+    print(string.format("✅ [%s] Loaded successfully", name))
+    
+    -- Debug: Print module functions
+    local funcCount = 0
+    for key, value in pairs(module) do
+        if type(value) == "function" then
+            funcCount = funcCount + 1
+        end
+    end
+    print(string.format("   [%s] Has %d functions", name, funcCount))
+    
+    return module
 end
 
 -- ============================================
--- LOAD CORE MODULES (WITH FALLBACKS)
+-- LOAD CORE MODULES WITH DEBUG
 -- ============================================
 print("\n📦 Loading Core Modules...")
 
-local Theme = SafeLoadModule("Core/Theme.lua", "Theme")
-local Config = SafeLoadModule("Core/Config.lua", "Config")
-local AntiDetection = SafeLoadModule("Core/AntiDetection.lua", "AntiDetection")
-local Notifications = SafeLoadModule("Utility/Notifications.lua", "Notifications")
+local Theme = DebugLoadModule("Core/Theme.lua", "Theme")
+local Config = DebugLoadModule("Core/Config.lua", "Config")
+local AntiDetection = DebugLoadModule("Core/AntiDetection.lua", "AntiDetection")
+local Notifications = DebugLoadModule("Utility/Notifications.lua", "Notifications")
 
--- Fallback Theme
+-- ============================================
+-- FALLBACKS
+-- ============================================
 if not Theme then
     warn("⚠️ Using fallback theme")
     Theme = {
@@ -138,7 +177,6 @@ if not Theme then
     }
 end
 
--- Fallback Config
 if not Config then
     warn("⚠️ Using fallback config")
     Config = {
@@ -159,31 +197,29 @@ if not Config then
 end
 
 -- ============================================
--- LOAD FEATURE MODULES (SKIP IF BROKEN)
+-- LOAD FEATURE MODULES WITH DEBUG
 -- ============================================
 print("\n📦 Loading Feature Modules...")
 
 local Combat = {
-    Aimbot = SafeLoadModule("Combat/Aimbot.lua", "Aimbot"),
-    ESP = SafeLoadModule("Combat/ESP.lua", "ESP"),
-    KillAura = SafeLoadModule("Combat/KillAura.lua", "KillAura"),
-    FastM1 = SafeLoadModule("Combat/FastM1.lua", "FastM1")
+    Aimbot = DebugLoadModule("Combat/Aimbot.lua", "Aimbot"),
+    ESP = DebugLoadModule("Combat/ESP.lua", "ESP"),
+    KillAura = DebugLoadModule("Combat/KillAura.lua", "KillAura"),
+    FastM1 = DebugLoadModule("Combat/FastM1.lua", "FastM1")
 }
 
 local Movement = {
-    Fly = SafeLoadModule("Movement/Fly.lua", "Fly"),
-    NoClip = SafeLoadModule("Movement/NoClip.lua", "NoClip"),
-    InfiniteJump = SafeLoadModule("Movement/InfiniteJump.lua", "InfiniteJump"),
-    Speed = SafeLoadModule("Movement/Speed.lua", "Speed"),
-    WalkOnWater = SafeLoadModule("Movement/WalkOnWater.lua", "WalkOnWater")
+    Fly = DebugLoadModule("Movement/Fly.lua", "Fly"),
+    NoClip = DebugLoadModule("Movement/NoClip.lua", "NoClip"),
+    InfiniteJump = DebugLoadModule("Movement/InfiniteJump.lua", "InfiniteJump"),
+    Speed = DebugLoadModule("Movement/Speed.lua", "Speed"),
+    WalkOnWater = DebugLoadModule("Movement/WalkOnWater.lua", "WalkOnWater")
 }
 
 local Visual = {
-    FullBright = SafeLoadModule("Visual/FullBright.lua", "FullBright"),
-    GodMode = SafeLoadModule("Visual/GodMode.lua", "GodMode")
+    FullBright = DebugLoadModule("Visual/FullBright.lua", "FullBright"),
+    GodMode = DebugLoadModule("Visual/GodMode.lua", "GodMode")
 }
-
-print("✅ Modules loaded")
 
 -- ============================================
 -- CREATE GUI
@@ -196,45 +232,51 @@ screenGui.ResetOnSpawn = false
 screenGui.DisplayOrder = 999
 screenGui.Parent = player.PlayerGui
 
--- Initialize Notifications
-if Notifications and Notifications.Initialize then
-    pcall(function() Notifications:Initialize(screenGui, Theme) end)
+-- Initialize modules safely
+local function SafeInit(module, name, ...)
+    if not module then
+        warn(string.format("[%s] Skipped - module is nil", name))
+        return
+    end
+    
+    if type(module.Initialize) ~= "function" then
+        warn(string.format("[%s] Skipped - no Initialize function", name))
+        return
+    end
+    
+    local success, err = pcall(function()
+        module:Initialize(...)
+    end)
+    
+    if success then
+        print(string.format("✅ [%s] Initialized", name))
+    else
+        warn(string.format("❌ [%s] Init failed: %s", name, tostring(err)))
+    end
 end
 
--- Initialize AntiDetection
-if AntiDetection and AntiDetection.Initialize then
-    pcall(function() AntiDetection:Initialize() end)
-end
+print("\n🔧 Initializing Modules...")
 
--- Safe Initialize
-local function SafeInit(module, ...)
-    if not module or type(module.Initialize) ~= "function" then return end
-    local ok, err = pcall(function() module:Initialize(...) end)
-    if not ok then warn("Init failed: " .. tostring(err)) end
-end
-
--- Initialize all modules
-SafeInit(Combat.Aimbot, player, camera, Config, AntiDetection, Notifications)
-SafeInit(Combat.ESP, player, camera, Config, Theme, Notifications)
-SafeInit(Combat.KillAura, player, character, Config, AntiDetection, Notifications)
-SafeInit(Combat.FastM1, player, character, Config, Notifications)
-SafeInit(Movement.Fly, player, character, rootPart, camera, Config, Notifications)
-SafeInit(Movement.NoClip, player, character, Config, Notifications)
-SafeInit(Movement.InfiniteJump, player, humanoid, Config, Notifications)
-SafeInit(Movement.Speed, player, humanoid, Config, AntiDetection, Notifications)
-SafeInit(Movement.WalkOnWater, player, character, rootPart, humanoid, Config, Notifications)
-SafeInit(Visual.FullBright, Config, Notifications)
-SafeInit(Visual.GodMode, player, humanoid, Config, Notifications)
+SafeInit(Notifications, "Notifications", screenGui, Theme)
+SafeInit(AntiDetection, "AntiDetection")
+SafeInit(Combat.Aimbot, "Aimbot", player, camera, Config, AntiDetection, Notifications)
+SafeInit(Combat.ESP, "ESP", player, camera, Config, Theme, Notifications)
+SafeInit(Combat.KillAura, "KillAura", player, character, Config, AntiDetection, Notifications)
+SafeInit(Combat.FastM1, "FastM1", player, character, Config, Notifications)
+SafeInit(Movement.Fly, "Fly", player, character, rootPart, camera, Config, Notifications)
+SafeInit(Movement.NoClip, "NoClip", player, character, Config, Notifications)
+SafeInit(Movement.InfiniteJump, "InfiniteJump", player, humanoid, Config, Notifications)
+SafeInit(Movement.Speed, "Speed", player, humanoid, Config, AntiDetection, Notifications)
+SafeInit(Movement.WalkOnWater, "WalkOnWater", player, character, rootPart, humanoid, Config, Notifications)
+SafeInit(Visual.FullBright, "FullBright", Config, Notifications)
+SafeInit(Visual.GodMode, "GodMode", player, humanoid, Config, Notifications)
 
 -- ============================================
--- BUILD GUI
+-- BUILD SIMPLE GUI
 -- ============================================
 local theme = Theme:GetTheme()
 local sizes = Theme.Sizes
-local GuiButtons = {}
-local IsVisible = true
 
--- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, sizes.MainFrameWidth, 0, sizes.MainFrameHeight)
@@ -244,11 +286,8 @@ MainFrame.BackgroundTransparency = theme.Transparency.MainBackground
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = screenGui
-
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, Theme.CornerRadius.Large)
-Instance.new("UIStroke", MainFrame).Color = theme.Colors.BorderColor
 
--- Top Bar
 local topBar = Instance.new("Frame", MainFrame)
 topBar.Size = UDim2.new(1, 0, 0, sizes.HeaderHeight)
 topBar.BackgroundColor3 = theme.Colors.HeaderBackground
@@ -259,7 +298,7 @@ local title = Instance.new("TextLabel", topBar)
 title.Size = UDim2.new(1, -50, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ NullHub V1.0.5"
+title.Text = "⚡ NullHub V1.0.6 [DEBUG]"
 title.TextColor3 = theme.Colors.TextPrimary
 title.TextSize = Theme.FontSizes.Title
 title.Font = Theme.Fonts.Title
@@ -275,52 +314,42 @@ closeBtn.TextSize = 20
 closeBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
--- Sidebar
-local sidebar = Instance.new("Frame", MainFrame)
-sidebar.Size = UDim2.new(0, sizes.SidebarWidth, 1, -sizes.HeaderHeight - 10)
-sidebar.Position = UDim2.new(0, 5, 0, sizes.HeaderHeight + 5)
-sidebar.BackgroundColor3 = theme.Colors.SidebarBackground
-sidebar.BackgroundTransparency = theme.Transparency.Sidebar
-Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, Theme.CornerRadius.Medium)
-Instance.new("UIListLayout", sidebar).Padding = UDim.new(0, 5)
-local pad = Instance.new("UIPadding", sidebar)
-pad.PaddingTop = UDim.new(0, 8)
-pad.PaddingLeft = UDim.new(0, 8)
-pad.PaddingRight = UDim.new(0, 8)
+local content = Instance.new("ScrollingFrame", MainFrame)
+content.Size = UDim2.new(1, -20, 1, -60)
+content.Position = UDim2.new(0, 10, 0, 50)
+content.BackgroundTransparency = 1
+content.ScrollBarThickness = 4
+content.CanvasSize = UDim2.new(0, 0, 0, 0)
+content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Instance.new("UIListLayout", content).Padding = UDim.new(0, 6)
 
--- Content
-local contentFrame = Instance.new("Frame", MainFrame)
-contentFrame.Size = UDim2.new(1, -sizes.SidebarWidth - 15, 1, -sizes.HeaderHeight - 10)
-contentFrame.Position = UDim2.new(0, sizes.SidebarWidth + 10, 0, sizes.HeaderHeight + 5)
-contentFrame.BackgroundTransparency = 1
+-- Create feature buttons
+local features = {
+    {"Aimbot", "E", "🎯", Combat.Aimbot},
+    {"ESP", "T", "👁️", Combat.ESP},
+    {"KillAura", "K", "⚔️", Combat.KillAura},
+    {"Fast M1", "M", "👊", Combat.FastM1},
+    {"Fly", "F", "🕊️", Movement.Fly},
+    {"NoClip", "N", "👻", Movement.NoClip},
+    {"Inf Jump", "J", "🦘", Movement.InfiniteJump},
+    {"Speed", "X", "⚡", Movement.Speed},
+    {"Walk Water", "U", "🌊", Movement.WalkOnWater},
+    {"FullBright", "B", "💡", Visual.FullBright},
+    {"GodMode", "V", "🛡️", Visual.GodMode}
+}
 
-local contentScroll = Instance.new("ScrollingFrame", contentFrame)
-contentScroll.Size = UDim2.new(1, 0, 1, 0)
-contentScroll.BackgroundTransparency = 1
-contentScroll.ScrollBarThickness = 4
-contentScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-contentScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Instance.new("UIListLayout", contentScroll).Padding = UDim.new(0, 6)
-
--- Feature rows
-local function createRow(parent, name, key, icon, module, index)
-    local row = Instance.new("Frame", parent)
+for i, data in ipairs(features) do
+    local row = Instance.new("Frame", content)
     row.Size = UDim2.new(1, -8, 0, sizes.ActionRowHeight)
     row.BackgroundColor3 = theme.Colors.ContainerBackground
     row.BackgroundTransparency = theme.Transparency.Container
-    row.LayoutOrder = index
     Instance.new("UICorner", row).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-    
-    local btn = Instance.new("TextButton", row)
-    btn.Size = UDim2.new(1, 0, 1, 0)
-    btn.BackgroundTransparency = 1
-    btn.Text = ""
     
     local label = Instance.new("TextLabel", row)
     label.Size = UDim2.new(1, -50, 1, 0)
     label.Position = UDim2.new(0, 10, 0, 0)
     label.BackgroundTransparency = 1
-    label.Text = icon .. " " .. name .. " [" .. key .. "]"
+    label.Text = data[3] .. " " .. data[1] .. " [" .. data[2] .. "]"
     label.TextColor3 = theme.Colors.TextPrimary
     label.TextSize = Theme.FontSizes.Action
     label.Font = Theme.Fonts.Action
@@ -332,129 +361,45 @@ local function createRow(parent, name, key, icon, module, index)
     indicator.BackgroundColor3 = theme.Colors.StatusOff
     Instance.new("UICorner", indicator).CornerRadius = UDim.new(1, 0)
     
-    -- Only create button if module exists
-    if module and type(module.Toggle) == "function" then
-        GuiButtons[name] = {btn = btn, ind = indicator, mod = module}
+    if data[4] and type(data[4].Toggle) == "function" then
+        local btn = Instance.new("TextButton", row)
+        btn.Size = UDim2.new(1, 0, 1, 0)
+        btn.BackgroundTransparency = 1
+        btn.Text = ""
+        
         btn.MouseButton1Click:Connect(function()
-            pcall(function() module:Toggle() end)
-            local enabled = module.Enabled or false
+            pcall(function() data[4]:Toggle() end)
+            local enabled = data[4].Enabled or false
             indicator.BackgroundColor3 = enabled and theme.Colors.StatusOn or theme.Colors.StatusOff
         end)
     else
         label.Text = label.Text .. " [BROKEN]"
         label.TextColor3 = Color3.fromRGB(150, 150, 150)
     end
-    
-    return row
 end
 
--- Features
-local features = {
-    Combat = {
-        {"Aimbot", "E", "🎯", Combat.Aimbot},
-        {"ESP", "T", "👁️", Combat.ESP},
-        {"KillAura", "K", "⚔️", Combat.KillAura},
-        {"Fast M1", "M", "👊", Combat.FastM1}
-    },
-    Movement = {
-        {"Fly", "F", "🕊️", Movement.Fly},
-        {"NoClip", "N", "👻", Movement.NoClip},
-        {"Infinite Jump", "J", "🦘", Movement.InfiniteJump},
-        {"Speed", "X", "⚡", Movement.Speed},
-        {"Walk on Water", "U", "🌊", Movement.WalkOnWater}
-    },
-    Visual = {
-        {"Full Bright", "B", "💡", Visual.FullBright},
-        {"God Mode", "V", "🛡️", Visual.GodMode}
-    }
-}
-
-local function loadTab(tabName)
-    for _, child in pairs(contentScroll:GetChildren()) do
-        if child:IsA("Frame") then child:Destroy() end
-    end
-    
-    local list = features[tabName] or {}
-    for i, data in ipairs(list) do
-        createRow(contentScroll, data[1], data[2], data[3], data[4], i)
-    end
-end
-
--- Tab buttons
-local tabButtons = {}
-for i, tabName in ipairs({"Combat", "Movement", "Visual"}) do
-    local tab = Instance.new("TextButton", sidebar)
-    tab.Size = UDim2.new(1, -16, 0, sizes.TabHeight)
-    tab.BackgroundColor3 = theme.Colors.TabNormal
-    tab.Text = tabName
-    tab.TextColor3 = theme.Colors.TextPrimary
-    tab.TextSize = Theme.FontSizes.Tab
-    tab.Font = Theme.Fonts.Tab
-    tab.LayoutOrder = i
-    Instance.new("UICorner", tab).CornerRadius = UDim.new(0, Theme.CornerRadius.Small)
-    
-    tab.MouseButton1Click:Connect(function()
-        for _, other in pairs(tabButtons) do
-            other.BackgroundColor3 = theme.Colors.TabNormal
-        end
-        tab.BackgroundColor3 = theme.Colors.TabSelected
-        loadTab(tabName)
-    end)
-    
-    tabButtons[tabName] = tab
-end
-
-tabButtons["Combat"].BackgroundColor3 = theme.Colors.TabSelected
-loadTab("Combat")
-
--- Toggle GUI
-local function toggleGUI()
-    IsVisible = not IsVisible
-    local pos = IsVisible and 
-        UDim2.new(0.5, -sizes.MainFrameWidth/2, 0.5, -sizes.MainFrameHeight/2) or
-        UDim2.new(0.5, -sizes.MainFrameWidth/2, -1, 0)
-    TweenService:Create(MainFrame, TweenInfo.new(0.3), {Position = pos}):Play()
-end
-
--- Close
+-- Close button
 closeBtn.MouseButton1Click:Connect(function()
     pcall(function() screenGui:Destroy() end)
     getgenv().NullHubLoaded = nil
     getgenv().NullHubCleanup = nil
-    print("[NullHub] ✅ Destroyed")
 end)
 
--- Keybinds
+-- Toggle GUI
+local IsVisible = true
 UserInputService.InputBegan:Connect(function(input, proc)
     if proc then return end
-    if input.KeyCode == Enum.KeyCode.Insert then toggleGUI() end
-    
-    for _, data in pairs(GuiButtons) do
-        if data.mod and type(data.mod.Toggle) == "function" then
-            -- Check each config key
-            for cfgKey, keyCode in pairs(Config) do
-                if type(keyCode) == "EnumItem" and keyCode == input.KeyCode then
-                    pcall(function() data.mod:Toggle() end)
-                    local enabled = data.mod.Enabled or false
-                    data.ind.BackgroundColor3 = enabled and theme.Colors.StatusOn or theme.Colors.StatusOff
-                end
-            end
-        end
+    if input.KeyCode == Enum.KeyCode.Insert then
+        IsVisible = not IsVisible
+        local pos = IsVisible and 
+            UDim2.new(0.5, -sizes.MainFrameWidth/2, 0.5, -sizes.MainFrameHeight/2) or
+            UDim2.new(0.5, -sizes.MainFrameWidth/2, -1, 0)
+        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Position = pos}):Play()
     end
 end)
 
--- Cleanup
-getgenv().NullHubCleanup = function()
-    pcall(function() screenGui:Destroy() end)
-    getgenv().NullHubLoaded = nil
-    getgenv().NullHubCleanup = nil
-end
-
 print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("🎉 NullHub V1.0.5 Loaded!")
+print("🎉 NullHub V1.0.6 Loaded!")
+print("📋 Check console for module errors")
 print("⌨️ Press [INSERT] to toggle")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-if Notifications and Notifications.Success then
-    pcall(function() Notifications:Success("NullHub Loaded!", 2) end)
-end
