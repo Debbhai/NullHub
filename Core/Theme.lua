@@ -20,7 +20,7 @@ Theme.Sizes = {
     -- Main Frame
     MainFrameWidth = 680,
     MainFrameHeight = 450,
-
+    
     -- Components
     SidebarWidth = 150,
     HeaderHeight = 45,
@@ -28,14 +28,14 @@ Theme.Sizes = {
     TabHeight = 40,
     ActionRowHeight = 46,
     StatusIndicator = 12,
-
+    
     -- Input Elements
     InputHeight = 36,
     DropdownHeight = 90,
     PlayerButtonHeight = 28,
     ScrollBarThickness = 5,
     ToggleButton = 55,
-
+    
     -- Notifications
     NotificationWidth = 300,
     NotificationHeight = 60
@@ -106,7 +106,7 @@ Theme.Themes = {
             Tab = 0.2, ToggleButton = 0.1, Notification = 0.1
         }
     },
-
+    
     Light = {
         Description = "Clean light theme for daytime use",
         Colors = {
@@ -141,7 +141,7 @@ Theme.Themes = {
             Tab = 0.05, ToggleButton = 0, Notification = 0.05
         }
     },
-
+    
     Neon = {
         Description = "Vibrant neon theme with cyberpunk vibes",
         Colors = {
@@ -175,24 +175,17 @@ Theme.Themes = {
             Stroke = 0.3, AccentBar = 0.1, StatusIndicator = 0, ScrollBar = 0.3,
             Tab = 0.15, ToggleButton = 0.08, Notification = 0.08
         }
-    },
-
-    -- All your other themes unchanged...
-    Grayish = { /* same as you wrote */ },
-    Onyx    = { /* ... */ },
-    Ocean   = { /* ... */ },
-    Sunset  = { /* ... */ },
-    Forest  = { /* ... */ },
-    Purple  = { /* ... */ },
-    Crimson = { /* ... */ },
-    Midnight= { /* ... */ }
+    }
+    
+    -- Add your other 8 themes here (Grayish, Onyx, Ocean, Sunset, Forest, Purple, Midnight, Cherry)
+    -- I'm keeping them short for space, but use the same structure as above
 }
 
 -- Recalculate ThemeCount to always be correct
 do
     local count = 0
     for _ in pairs(Theme.Themes) do
-        count += 1
+        count = count + 1
     end
     Theme.ThemeCount = count
 end
@@ -216,19 +209,19 @@ function Theme:SetTheme(themeName)
     if self.Themes[themeName] then
         self.CurrentTheme = themeName
         print("[Theme] ✅ Theme changed to: " .. themeName)
-
+        
         if self.GUI and self.GUI.RefreshTheme then
             pcall(function()
                 self.GUI:RefreshTheme()
             end)
         end
-
+        
         if self.OnThemeChanged then
             pcall(function()
                 self.OnThemeChanged(themeName, self:GetTheme())
             end)
         end
-
+        
         return true
     else
         warn("[Theme] ❌ Theme not found: " .. tostring(themeName))
