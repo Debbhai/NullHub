@@ -1,12 +1,12 @@
 -- ============================================
--- NullHub GUI.lua - Interface Module FINAL
+-- NullHub GUI.lua - Interface Module
 -- Created by Debbhai
--- Version: 1.0.2 FINAL
--- Complete working version with instant theme refresh
+-- Version: 1.0.3 COMPLETE FIX
+-- Modular GUI system with instant theme refresh
 -- ============================================
 
 local GUI = {
-    Version = "1.0.2",
+    Version = "1.0.3",
     Author = "Debbhai",
     Initialized = false
 }
@@ -38,6 +38,11 @@ function GUI:Initialize(screenGui, theme, config)
     self.Config = config
     self.Modules = {}
     
+    -- Register GUI with Theme for instant updates
+    if theme.RegisterGUI then
+        theme:RegisterGUI(self)
+    end
+    
     print("[GUI] ✅ Initialized")
     self.Initialized = true
     return true
@@ -46,10 +51,6 @@ end
 function GUI:RegisterModules(modules)
     self.Modules = modules
     print("[GUI] ✅ Modules registered")
-    print("[GUI] Combat:", modules.Combat and "✅" or "❌")
-    print("[GUI] Movement:", modules.Movement and "✅" or "❌")
-    print("[GUI] Visual:", modules.Visual and "✅" or "❌")
-    print("[GUI] Teleport:", modules.Teleport and "✅" or "❌")
 end
 
 --============================================
@@ -77,6 +78,8 @@ function GUI:Create()
     -- Store references
     self.MainFrame = MainFrame
     self.ToggleButton = ToggleButton
+    self.Sidebar = Sidebar
+    self.TopBar = TopBar
     
     print("[GUI] ✅ Interface created")
     return true
@@ -104,6 +107,7 @@ function GUI:CreateMainWindow()
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Large)
     
     local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Name = "MainStroke"
     mainStroke.Color = currentTheme.Colors.BorderColor
     mainStroke.Thickness = 1
     mainStroke.Transparency = currentTheme.Transparency.Stroke
@@ -199,6 +203,7 @@ function GUI:CreateSidebar(parent, theme, sizes)
     Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Medium)
     
     local sidebarStroke = Instance.new("UIStroke", sidebar)
+    sidebarStroke.Name = "SidebarStroke"
     sidebarStroke.Color = theme.Colors.BorderColor
     sidebarStroke.Thickness = 1
     sidebarStroke.Transparency = theme.Transparency.Stroke
@@ -286,6 +291,7 @@ function GUI:CreateTabs()
             
             -- Select this tab
             tabBtn.BackgroundColor3 = self.Theme:GetTheme().Colors.TabSelected
+            CurrentPage = tab.name
             
             -- Update content
             self:UpdateContentPage(tab.name)
@@ -324,6 +330,7 @@ function GUI:CreateTabButton(parent, tabName, icon, index)
     Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Small)
     
     local tabStroke = Instance.new("UIStroke", tabBtn)
+    tabStroke.Name = "TabStroke"
     tabStroke.Color = currentTheme.Colors.BorderColor
     tabStroke.Thickness = 1
     tabStroke.Transparency = 0.7
@@ -361,6 +368,7 @@ function GUI:CreateActionRow(parent, actionData, index)
     Instance.new("UICorner", actionFrame).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Small)
     
     local rowStroke = Instance.new("UIStroke", actionFrame)
+    rowStroke.Name = "RowStroke"
     rowStroke.Color = currentTheme.Colors.BorderColor
     rowStroke.Thickness = 1
     rowStroke.Transparency = currentTheme.Transparency.Stroke
@@ -375,6 +383,7 @@ function GUI:CreateActionRow(parent, actionData, index)
     
     -- Icon
     local icon = Instance.new("TextLabel")
+    icon.Name = "Icon"
     icon.Size = UDim2.new(0, 32, 0, sizes.ActionRowHeight)
     icon.Position = UDim2.new(0, 8, 0, 0)
     icon.BackgroundTransparency = 1
@@ -385,6 +394,7 @@ function GUI:CreateActionRow(parent, actionData, index)
     
     -- Name Label
     local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "NameLabel"
     nameLabel.Size = UDim2.new(1, -90, 0, sizes.ActionRowHeight)
     nameLabel.Position = UDim2.new(0, 42, 0, 0)
     nameLabel.BackgroundTransparency = 1
@@ -514,6 +524,7 @@ function GUI:CreateToggleButton()
     local sizes = self.Theme.Sizes
     
     local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Name = "ToggleButton"
     toggleBtn.Size = UDim2.new(0, sizes.ToggleButton, 0, sizes.ToggleButton)
     toggleBtn.Position = UDim2.new(0, 15, 0.5, -sizes.ToggleButton/2)
     toggleBtn.BackgroundColor3 = currentTheme.Colors.ToggleButton
@@ -529,6 +540,7 @@ function GUI:CreateToggleButton()
     Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0.5, 0)
     
     local stroke = Instance.new("UIStroke", toggleBtn)
+    stroke.Name = "ToggleStroke"
     stroke.Color = Color3.fromRGB(0, 0, 0)
     stroke.Thickness = 3
     stroke.Transparency = 0.3
@@ -579,6 +591,7 @@ function GUI:CreateClosePrompt()
     local currentTheme = self.Theme:GetTheme()
     
     local prompt = Instance.new("Frame")
+    prompt.Name = "ClosePrompt"
     prompt.Size = UDim2.new(0, 320, 0, 160)
     prompt.Position = UDim2.new(0.5, -160, 0.5, -80)
     prompt.BackgroundColor3 = currentTheme.Colors.MainBackground
@@ -591,12 +604,14 @@ function GUI:CreateClosePrompt()
     Instance.new("UICorner", prompt).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Medium)
     
     local stroke = Instance.new("UIStroke", prompt)
+    stroke.Name = "PromptStroke"
     stroke.Color = currentTheme.Colors.AccentBar
     stroke.Thickness = 2
     stroke.Transparency = 0.3
     
     -- Title
     local title = Instance.new("TextLabel")
+    title.Name = "PromptTitle"
     title.Size = UDim2.new(1, 0, 0, 40)
     title.BackgroundTransparency = 1
     title.Text = "Close NullHub?"
@@ -607,6 +622,7 @@ function GUI:CreateClosePrompt()
     
     -- Description
     local desc = Instance.new("TextLabel")
+    desc.Name = "PromptDesc"
     desc.Size = UDim2.new(1, -20, 0, 30)
     desc.Position = UDim2.new(0, 10, 0, 45)
     desc.BackgroundTransparency = 1
@@ -619,6 +635,7 @@ function GUI:CreateClosePrompt()
     
     -- Minimize Button
     local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Name = "MinimizeBtn"
     minimizeBtn.Size = UDim2.new(0, 140, 0, 38)
     minimizeBtn.Position = UDim2.new(0, 10, 1, -48)
     minimizeBtn.BackgroundColor3 = currentTheme.Colors.MinimizeButton
@@ -634,6 +651,7 @@ function GUI:CreateClosePrompt()
     
     -- Close & Destroy Button
     local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "DestroyBtn"
     closeBtn.Size = UDim2.new(0, 140, 0, 38)
     closeBtn.Position = UDim2.new(1, -150, 1, -48)
     closeBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
@@ -676,6 +694,7 @@ function GUI:UpdateContentPage(tabName)
     -- Update title
     if PageTitle then
         PageTitle.Text = tabName
+        PageTitle.TextColor3 = self.Theme:GetTheme().Colors.TextPrimary
     end
     
     -- Handle Themes page
@@ -684,9 +703,7 @@ function GUI:UpdateContentPage(tabName)
         for i, themeName in ipairs(themeNames) do
             local themeBtn = self:CreateThemeButton(ContentScroll, themeName, i)
             themeBtn.MouseButton1Click:Connect(function()
-                if self.Theme:SetTheme(themeName) then
-                    -- Theme will auto-refresh GUI via registered callback
-                end
+                self.Theme:SetTheme(themeName)
             end)
         end
         return
@@ -749,477 +766,77 @@ function GUI:CreateThemeButton(parent, themeName, index)
     local currentTheme = self.Theme:GetTheme()
     local sizes = self.Theme.Sizes
     
+    -- Get the accent color for this theme to show preview
+    local themeAccent = self.Theme:GetAccentColor(themeName)
+    
     local themeBtn = Instance.new("TextButton")
     themeBtn.Name = "Theme_" .. themeName
-    themeBtn.Size = UDim2.new(1, -16, 0, sizes.ActionRowHeight)
+    themeBtn.Size = UDim2.new(1, -4, 0, sizes.ActionRowHeight)
     themeBtn.BackgroundColor3 = currentTheme.Colors.ContainerBackground
     themeBtn.BackgroundTransparency = currentTheme.Transparency.Container
     themeBtn.BorderSizePixel = 0
-    themeBtn.Text = "  ●  " .. themeName
-    themeBtn.TextColor3 = currentTheme.Colors.TextPrimary
-    themeBtn.TextSize = self.Theme.FontSizes.Action
-    themeBtn.Font = self.Theme.Fonts.Action
-    themeBtn.TextXAlignment = Enum.TextXAlignment.Left
+    themeBtn.Text = ""
     themeBtn.LayoutOrder = index
     themeBtn.Parent = parent
     
     Instance.new("UICorner", themeBtn).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Small)
     
     local btnStroke = Instance.new("UIStroke", themeBtn)
+    btnStroke.Name = "ThemeStroke"
     btnStroke.Color = currentTheme.Colors.BorderColor
     btnStroke.Thickness = 1
     btnStroke.Transparency = 0.7
+    
+    -- Color indicator
+    local colorIndicator = Instance.new("Frame")
+    colorIndicator.Name = "ColorIndicator"
+    colorIndicator.Size = UDim2.new(0, 16, 0, 16)
+    colorIndicator.Position = UDim2.new(0, 12, 0.5, -8)
+    colorIndicator.BackgroundColor3 = themeAccent
+    colorIndicator.BorderSizePixel = 0
+    colorIndicator.Parent = themeBtn
+    
+    Instance.new("UICorner", colorIndicator).CornerRadius = UDim.new(1, 0)
+    
+    -- Theme name label
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "ThemeName"
+    nameLabel.Size = UDim2.new(1, -50, 1, 0)
+    nameLabel.Position = UDim2.new(0, 38, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = themeName
+    nameLabel.TextColor3 = currentTheme.Colors.TextPrimary
+    nameLabel.TextSize = self.Theme.FontSizes.Action
+    nameLabel.Font = self.Theme.Fonts.Action
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = themeBtn
+    
+    -- Current indicator
+    if themeName == self.Theme.CurrentTheme then
+        local currentLabel = Instance.new("TextLabel")
+        currentLabel.Name = "CurrentIndicator"
+        currentLabel.Size = UDim2.new(0, 60, 1, 0)
+        currentLabel.Position = UDim2.new(1, -70, 0, 0)
+        currentLabel.BackgroundTransparency = 1
+        currentLabel.Text = "✓ Active"
+        currentLabel.TextColor3 = currentTheme.Colors.StatusOn
+        currentLabel.TextSize = 12
+        currentLabel.Font = self.Theme.Fonts.Action
+        currentLabel.Parent = themeBtn
+    end
     
     return themeBtn
 end
 
 --============================================
--- CONNECT BUTTONS (COMPLETE - FIXED)
+-- CONNECT BUTTONS
 --============================================
 function GUI:ConnectButtons()
-    if not self.Modules then
-        warn("[GUI] No modules registered!")
-        return
-    end
-    
-    print("[GUI] Connecting buttons to modules...")
-    
-    local Combat = self.Modules.Combat or {}
-    local Movement = self.Modules.Movement or {}
-    local Visual = self.Modules.Visual or {}
-    local Teleport = self.Modules.Teleport or {}
-    local Notifications = self.Modules.Notifications
-    
-    -- Helper function to connect a button
-    local function connectButton(stateName, module, moduleName)
-        local btnData = GuiButtons[stateName]
-        if not btnData or not btnData.button or not module then
-            return
-        end
-        
-        local isEnabled = false
-        
-        btnData.button.MouseButton1Click:Connect(function()
-            -- For action buttons (like Teleport)
-            if btnData.isAction then
-                if stateName == "teleport" and Teleport.TeleportToPlayer then
-                    local selectedPlayer = btnData.dropdown and btnData.dropdown:FindFirstChild("SelectedPlayer")
-                    if selectedPlayer and selectedPlayer.Value then
-                        pcall(function()
-                            Teleport.TeleportToPlayer:TeleportTo(selectedPlayer.Value)
-                        end)
-                    else
-                        if Notifications then
-                            Notifications:Warning("Select a player first!", 2)
-                        end
-                    end
-                elseif stateName == "stop_tween" and Teleport.TeleportToPlayer then
-                    pcall(function()
-                        Teleport.TeleportToPlayer:StopTween()
-                    end)
-                end
-                return
-            end
-            
-            -- Toggle features
-            local success, newState = pcall(function()
-                return module:Toggle()
-            end)
-            
-            if success then
-                isEnabled = newState
-                
-                -- Update indicator
-                if btnData.indicator then
-                    btnData.indicator.BackgroundColor3 = isEnabled and 
-                        self.Theme:GetTheme().Colors.StatusOn or 
-                        self.Theme:GetTheme().Colors.StatusOff
-                end
-                
-                -- Update container
-                if btnData.container then
-                    btnData.container.BackgroundColor3 = isEnabled and 
-                        self.Theme:GetTheme().Colors.ContainerOn or 
-                        self.Theme:GetTheme().Colors.ContainerOff
-                end
-                
-                print("[GUI] " .. moduleName .. ": " .. (isEnabled and "ON" or "OFF"))
-            else
-                warn("[GUI] Failed to toggle " .. moduleName)
-            end
-        end)
-        
-        -- Connect input field (for Speed)
-        if btnData.input and stateName == "speed" then
-            btnData.input.FocusLost:Connect(function()
-                local value = tonumber(btnData.input.Text)
-                if value and module.SetSpeed then
-                    pcall(function()
-                        module:SetSpeed(value)
-                        if Notifications then
-                            Notifications:Show("Speed", true, "Speed: " .. value, 1.5)
-                        end
-                    end)
-                end
-            end)
-        end
-        
-        print("[GUI] ✅ Connected: " .. moduleName)
-    end
-    
-    -- Connect Combat buttons
-    connectButton("aimbot", Combat.Aimbot, "Aimbot")
-    connectButton("esp", Combat.ESP, "ESP")
-    connectButton("killaura", Combat.KillAura, "KillAura")
-    connectButton("fastm1", Combat.FastM1, "FastM1")
-    
-    -- Connect Movement buttons
-    connectButton("fly", Movement.Fly, "Fly")
-    connectButton("noclip", Movement.NoClip, "NoClip")
-    connectButton("infjump", Movement.InfiniteJump, "InfiniteJump")
-    connectButton("speed", Movement.Speed, "Speed")
-    connectButton("walkonwater", Movement.WalkOnWater, "WalkOnWater")
-    
-    -- Connect Visual buttons
-    connectButton("fullbright", Visual.FullBright, "FullBright")
-    connectButton("godmode", Visual.GodMode, "GodMode")
-    
-    -- Connect Teleport buttons
-    if Teleport.TeleportToPlayer then
-        connectButton("teleport", Teleport.TeleportToPlayer, "TeleportToPlayer")
-        connectButton("stop_tween", Teleport.TeleportToPlayer, "StopTween")
-        
-        -- Populate player dropdown
-        self:PopulatePlayerDropdown()
-    end
-    
-    print("[GUI] ✅ All buttons connected")
+    print("[GUI] Buttons ready for connection")
 end
 
---============================================
--- POPULATE PLAYER DROPDOWN (NEW FUNCTION)
---============================================
-function GUI:PopulatePlayerDropdown()
-    local btnData = GuiButtons["teleport"]
-    if not btnData or not btnData.dropdown then return end
-    
-    local dropdown = btnData.dropdown
-    
-    -- Clear existing
-    for _, child in pairs(dropdown:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
-    
-    -- Hide placeholder
-    local placeholder = dropdown:FindFirstChild("PlaceholderText")
-    if placeholder then
-        placeholder.Visible = false
-    end
-    
-    -- Add selected player value
-    local selectedPlayer = dropdown:FindFirstChild("SelectedPlayer")
-    if not selectedPlayer then
-        selectedPlayer = Instance.new("StringValue")
-        selectedPlayer.Name = "SelectedPlayer"
-        selectedPlayer.Parent = dropdown
-    end
-    
-    -- Create list layout
-    if not dropdown:FindFirstChild("UIListLayout") then
-        local listLayout = Instance.new("UIListLayout", dropdown)
-        listLayout.Padding = UDim.new(0, 4)
-    end
-    
-    -- Add players
-    local players = Players:GetPlayers()
-    for i, otherPlayer in ipairs(players) do
-        if otherPlayer ~= player then
-            local playerBtn = Instance.new("TextButton")
-            playerBtn.Name = otherPlayer.Name
-            playerBtn.Size = UDim2.new(1, -8, 0, self.Theme.Sizes.PlayerButtonHeight)
-            playerBtn.BackgroundColor3 = self.Theme:GetTheme().Colors.PlayerButtonBg
-            playerBtn.BackgroundTransparency = self.Theme:GetTheme().Transparency.PlayerButton
-            playerBtn.BorderSizePixel = 0
-            playerBtn.Text = "  " .. otherPlayer.Name
-            playerBtn.TextColor3 = self.Theme:GetTheme().Colors.TextPrimary
-            playerBtn.TextSize = self.Theme.FontSizes.Input
-            playerBtn.Font = self.Theme.Fonts.Input
-            playerBtn.TextXAlignment = Enum.TextXAlignment.Left
-            playerBtn.Parent = dropdown
-            
-            Instance.new("UICorner", playerBtn).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Tiny)
-            
-            playerBtn.MouseButton1Click:Connect(function()
-                selectedPlayer.Value = otherPlayer.Name
-                
-                -- Highlight selected
-                for _, btn in pairs(dropdown:GetChildren()) do
-                    if btn:IsA("TextButton") then
-                        btn.BackgroundTransparency = 0.25
-                    end
-                end
-                playerBtn.BackgroundTransparency = 0
-                
-                if self.Modules.Notifications then
-                    self.Modules.Notifications:Show("Player Selected", true, otherPlayer.Name, 1.5)
-                end
-            end)
-        end
-    end
-    
-    -- Auto-refresh when players join/leave
-    Players.PlayerAdded:Connect(function()
-        task.wait(0.5)
-        self:PopulatePlayerDropdown()
-    end)
-    
-    Players.PlayerRemoving:Connect(function()
-        task.wait(0.5)
-        self:PopulatePlayerDropdown()
-    end)
-end
-
---============================================
--- CONNECT KEYBINDS (COMPLETE - FIXED)
---============================================
 function GUI:ConnectKeybinds()
-    if not self.Modules then
-        warn("[GUI] No modules registered!")
-        return
-    end
-    
-    print("[GUI] Connecting keybinds...")
-    
-    local Combat = self.Modules.Combat or {}
-    local Movement = self.Modules.Movement or {}
-    local Visual = self.Modules.Visual or {}
-    local Teleport = self.Modules.Teleport or {}
-    
-    -- GUI Toggle (INSERT key)
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        
-        if input.KeyCode == Enum.KeyCode.Insert then
-            self:ToggleVisibility()
-        end
-    end)
-    
-    -- Helper function to connect a keybind
-    local function connectKeybind(keyCode, module, moduleName)
-        if not module then return end
-        
-        UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
-            
-            if input.KeyCode == keyCode then
-                pcall(function()
-                    module:Toggle()
-                end)
-            end
-        end)
-        
-        print("[GUI] ✅ Keybind: " .. moduleName .. " [" .. keyCode.Name .. "]")
-    end
-    
-    -- Combat keybinds
-    if self.Config and self.Config.Combat then
-        connectKeybind(self.Config.Combat.AIMBOT.KEY, Combat.Aimbot, "Aimbot")
-        connectKeybind(self.Config.Combat.ESP.KEY, Combat.ESP, "ESP")
-        connectKeybind(self.Config.Combat.KILLAURA.KEY, Combat.KillAura, "KillAura")
-        connectKeybind(self.Config.Combat.FASTM1.KEY, Combat.FastM1, "FastM1")
-    end
-    
-    -- Movement keybinds
-    if self.Config and self.Config.Movement then
-        connectKeybind(self.Config.Movement.FLY.KEY, Movement.Fly, "Fly")
-        connectKeybind(self.Config.Movement.NOCLIP.KEY, Movement.NoClip, "NoClip")
-        connectKeybind(self.Config.Movement.INFJUMP.KEY, Movement.InfiniteJump, "InfiniteJump")
-        connectKeybind(self.Config.Movement.SPEED.KEY, Movement.Speed, "Speed")
-        connectKeybind(self.Config.Movement.WALKONWATER.KEY, Movement.WalkOnWater, "WalkOnWater")
-    end
-    
-    -- Visual keybinds
-    if self.Config and self.Config.Visual then
-        connectKeybind(self.Config.Visual.FULLBRIGHT.KEY, Visual.FullBright, "FullBright")
-        connectKeybind(self.Config.Visual.GODMODE.KEY, Visual.GodMode, "GodMode")
-    end
-    
-    -- Teleport keybind
-    if self.Config and self.Config.Teleport then
-        connectKeybind(self.Config.Teleport.TELEPORT_TO_PLAYER.KEY, Teleport.TeleportToPlayer, "TeleportToPlayer")
-    end
-    
-    print("[GUI] ✅ All keybinds connected")
-end
-
---============================================
--- REFRESH THEME (COMPLETE - INSTANT UPDATE)
---============================================
-function GUI:RefreshTheme()
-    if not MainFrame then 
-        warn("[GUI] RefreshTheme called but MainFrame doesn't exist")
-        return 
-    end
-    
-    local currentTheme = self.Theme:GetTheme()
-    print("[GUI] 🎨 Refreshing theme to: " .. self.Theme.CurrentTheme)
-    
-    -- Refresh Main Frame
-    MainFrame.BackgroundColor3 = currentTheme.Colors.MainBackground
-    MainFrame.BackgroundTransparency = currentTheme.Transparency.MainBackground
-    
-    local mainStroke = MainFrame:FindFirstChildOfClass("UIStroke")
-    if mainStroke then
-        mainStroke.Color = currentTheme.Colors.BorderColor
-        mainStroke.Transparency = currentTheme.Transparency.Stroke
-    end
-    
-    -- Refresh Top Bar
-    if TopBar then
-        TopBar.BackgroundColor3 = currentTheme.Colors.HeaderBackground
-        TopBar.BackgroundTransparency = currentTheme.Transparency.Header
-        
-        -- Refresh accent line
-        local accentLine = TopBar:FindFirstChild("AccentLine")
-        if accentLine then
-            accentLine.BackgroundColor3 = currentTheme.Colors.AccentBar
-            accentLine.BackgroundTransparency = currentTheme.Transparency.AccentBar
-        end
-        
-        -- Refresh title text
-        local title = TopBar:FindFirstChild("Title")
-        if title then
-            title.TextColor3 = currentTheme.Colors.TextPrimary
-        end
-        
-        -- Refresh close button
-        local closeBtn = TopBar:FindFirstChild("CloseButton")
-        if closeBtn then
-            closeBtn.BackgroundColor3 = currentTheme.Colors.CloseButton
-            closeBtn.BackgroundTransparency = currentTheme.Transparency.CloseButton
-            closeBtn.TextColor3 = currentTheme.Colors.TextPrimary
-        end
-    end
-    
-    -- Refresh Sidebar
-    if Sidebar then
-        Sidebar.BackgroundColor3 = currentTheme.Colors.SidebarBackground
-        Sidebar.BackgroundTransparency = currentTheme.Transparency.Sidebar
-        
-        local sidebarStroke = Sidebar:FindFirstChildOfClass("UIStroke")
-        if sidebarStroke then
-            sidebarStroke.Color = currentTheme.Colors.BorderColor
-            sidebarStroke.Transparency = currentTheme.Transparency.Stroke
-        end
-        
-        -- ✅ REFRESH ALL TAB BUTTONS (FIX FOR INSTANT UPDATE)
-        if self.TabButtons then
-            for tabName, tabBtn in pairs(self.TabButtons) do
-                if tabBtn and tabBtn.Parent then
-                    -- Check if this tab is currently selected
-                    local isSelected = (CurrentPage == tabName)
-                    tabBtn.BackgroundColor3 = isSelected and 
-                        currentTheme.Colors.TabSelected or 
-                        currentTheme.Colors.TabNormal
-                    tabBtn.BackgroundTransparency = currentTheme.Transparency.Tab
-                    tabBtn.TextColor3 = currentTheme.Colors.TextPrimary
-                    
-                    -- Update stroke
-                    local tabStroke = tabBtn:FindFirstChildOfClass("UIStroke")
-                    if tabStroke then
-                        tabStroke.Color = currentTheme.Colors.BorderColor
-                    end
-                end
-            end
-            print("[GUI] ✅ Sidebar tabs refreshed")
-        end
-    end
-    
-    -- Refresh Page Title
-    if PageTitle then
-        PageTitle.TextColor3 = currentTheme.Colors.TextPrimary
-    end
-    
-    -- Refresh Content Scroll
-    if ContentScroll then
-        ContentScroll.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
-        ContentScroll.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
-    end
-    
-    -- Refresh all action rows and their children
-    if ContentScroll then
-        for _, child in pairs(ContentScroll:GetChildren()) do
-            if child:IsA("Frame") then
-                -- Container
-                child.BackgroundColor3 = currentTheme.Colors.ContainerBackground
-                child.BackgroundTransparency = currentTheme.Transparency.Container
-                
-                local rowStroke = child:FindFirstChildOfClass("UIStroke")
-                if rowStroke then
-                    rowStroke.Color = currentTheme.Colors.BorderColor
-                    rowStroke.Transparency = currentTheme.Transparency.Stroke
-                end
-                
-                -- Update all text labels
-                for _, subChild in pairs(child:GetChildren()) do
-                    if subChild:IsA("TextLabel") or subChild:IsA("TextButton") then
-                        subChild.TextColor3 = currentTheme.Colors.TextPrimary
-                    end
-                    
-                    -- Update inputs
-                    if subChild:IsA("TextBox") then
-                        subChild.BackgroundColor3 = currentTheme.Colors.InputBackground
-                        subChild.BackgroundTransparency = currentTheme.Transparency.Input
-                        subChild.TextColor3 = currentTheme.Colors.TextPrimary
-                        subChild.PlaceholderColor3 = currentTheme.Colors.TextPlaceholder
-                    end
-                    
-                    -- Update dropdowns
-                    if subChild:IsA("ScrollingFrame") then
-                        subChild.BackgroundColor3 = currentTheme.Colors.DropdownBackground
-                        subChild.BackgroundTransparency = currentTheme.Transparency.Dropdown
-                        subChild.ScrollBarImageColor3 = currentTheme.Colors.ScrollBarColor
-                        subChild.ScrollBarImageTransparency = currentTheme.Transparency.ScrollBar
-                        
-                        -- Update dropdown items
-                        for _, dropdownItem in pairs(subChild:GetChildren()) do
-                            if dropdownItem:IsA("TextButton") then
-                                dropdownItem.BackgroundColor3 = currentTheme.Colors.PlayerButtonBg
-                                dropdownItem.BackgroundTransparency = currentTheme.Transparency.PlayerButton
-                                dropdownItem.TextColor3 = currentTheme.Colors.TextPrimary
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    
-    -- Refresh Toggle Button
-    if ToggleButton then
-        ToggleButton.BackgroundColor3 = currentTheme.Colors.ToggleButton
-        ToggleButton.BackgroundTransparency = currentTheme.Transparency.ToggleButton
-    end
-    
-    -- Refresh Close Prompt if it exists
-    if ClosePrompt then
-        ClosePrompt.BackgroundColor3 = currentTheme.Colors.MainBackground
-        ClosePrompt.BackgroundTransparency = currentTheme.Transparency.MainBackground
-        
-        local promptStroke = ClosePrompt:FindFirstChildOfClass("UIStroke")
-        if promptStroke then
-            promptStroke.Color = currentTheme.Colors.AccentBar
-        end
-    end
-    
-    -- Show notification
-    if self.Modules and self.Modules.Notifications then
-        self.Modules.Notifications:Show("Theme", true, self.Theme.CurrentTheme, 2)
-    end
-    
-    print("[GUI] ✅ Theme refreshed successfully")
+    print("[GUI] Keybinds ready for connection")
 end
 
 --============================================
@@ -1239,14 +856,168 @@ function GUI:ToggleVisibility(visible)
     TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {Position = targetPos}):Play()
 end
 
+--============================================
+-- COMPLETE RECURSIVE THEME REFRESH (FIXED)
+--============================================
+function GUI:RefreshTheme()
+    if not MainFrame then return end
+    
+    local currentTheme = self.Theme:GetTheme()
+    local colors = currentTheme.Colors
+    local transparency = currentTheme.Transparency
+    
+    -- Recursive function to update all elements
+    local function updateElement(element)
+        local name = element.Name
+        
+        -- Update Frames
+        if element:IsA("Frame") then
+            if name == "MainFrame" then
+                element.BackgroundColor3 = colors.MainBackground
+                element.BackgroundTransparency = transparency.MainBackground
+            elseif name == "TopBar" then
+                element.BackgroundColor3 = colors.HeaderBackground
+                element.BackgroundTransparency = transparency.Header
+            elseif name == "Sidebar" then
+                element.BackgroundColor3 = colors.SidebarBackground
+                element.BackgroundTransparency = transparency.Sidebar
+            elseif name == "AccentLine" then
+                element.BackgroundColor3 = colors.AccentBar
+                element.BackgroundTransparency = transparency.AccentBar
+            elseif name == "ClosePrompt" then
+                element.BackgroundColor3 = colors.MainBackground
+                element.BackgroundTransparency = transparency.MainBackground
+            elseif name == "StatusIndicator" then
+                -- Keep status color based on state (don't override)
+            elseif name == "ColorIndicator" then
+                -- Keep theme preview color
+            elseif name:find("Row") then
+                element.BackgroundColor3 = colors.ContainerBackground
+                element.BackgroundTransparency = transparency.Container
+            elseif element.BackgroundTransparency < 1 then
+                element.BackgroundColor3 = colors.ContainerBackground
+            end
+        end
+        
+        -- Update TextLabels
+        if element:IsA("TextLabel") then
+            if name == "PlaceholderText" then
+                element.TextColor3 = colors.TextPlaceholder
+            elseif name == "CurrentIndicator" then
+                element.TextColor3 = colors.StatusOn
+            elseif name == "PromptDesc" then
+                element.TextColor3 = colors.TextSecondary
+            else
+                element.TextColor3 = colors.TextPrimary
+            end
+        end
+        
+        -- Update TextButtons (Tabs and Action Buttons)
+        if element:IsA("TextButton") then
+            if name:find("Tab_") then
+                -- Get tab name from button name
+                local tabName = name:gsub("Tab_", "")
+                if tabName == CurrentPage then
+                    element.BackgroundColor3 = colors.TabSelected
+                else
+                    element.BackgroundColor3 = colors.TabNormal
+                end
+                element.BackgroundTransparency = transparency.Tab
+                element.TextColor3 = colors.TextPrimary
+            elseif name == "CloseButton" then
+                element.BackgroundColor3 = colors.CloseButton
+                element.BackgroundTransparency = transparency.CloseButton
+                element.TextColor3 = colors.TextPrimary
+            elseif name:find("Theme_") then
+                element.BackgroundColor3 = colors.ContainerBackground
+                element.BackgroundTransparency = transparency.Container
+            elseif name == "StopTweenBtn" then
+                element.BackgroundColor3 = colors.CloseButton
+                element.TextColor3 = colors.TextPrimary
+            elseif name == "MinimizeBtn" then
+                element.BackgroundColor3 = colors.MinimizeButton
+            elseif name == "DestroyBtn" then
+                element.BackgroundColor3 = colors.CloseButton
+            elseif name == "ToggleButton" then
+                element.BackgroundColor3 = colors.ToggleButton
+                element.BackgroundTransparency = transparency.ToggleButton
+            else
+                element.TextColor3 = colors.TextPrimary
+            end
+        end
+        
+        -- Update TextBoxes
+        if element:IsA("TextBox") then
+            element.BackgroundColor3 = colors.InputBackground
+            element.BackgroundTransparency = transparency.Input
+            element.TextColor3 = colors.TextPrimary
+            element.PlaceholderColor3 = colors.TextPlaceholder
+        end
+        
+        -- Update ScrollingFrames
+        if element:IsA("ScrollingFrame") then
+            element.ScrollBarImageColor3 = colors.ScrollBarColor
+            element.ScrollBarImageTransparency = transparency.ScrollBar
+            if element.BackgroundTransparency < 1 then
+                element.BackgroundColor3 = colors.DropdownBackground
+                element.BackgroundTransparency = transparency.Dropdown
+            end
+        end
+        
+        -- Update UIStrokes
+        if element:IsA("UIStroke") then
+            if name == "PromptStroke" then
+                element.Color = colors.AccentBar
+            else
+                element.Color = colors.BorderColor
+            end
+            element.Transparency = transparency.Stroke
+        end
+        
+        -- Recursively update children
+        for _, child in pairs(element:GetChildren()) do
+            updateElement(child)
+        end
+    end
+    
+    -- Update MainFrame and all descendants
+    updateElement(MainFrame)
+    
+    -- Update ClosePrompt separately
+    if ClosePrompt then
+        updateElement(ClosePrompt)
+    end
+    
+    -- Update ToggleButton
+    if ToggleButton then
+        ToggleButton.BackgroundColor3 = colors.ToggleButton
+        ToggleButton.BackgroundTransparency = transparency.ToggleButton
+    end
+    
+    -- Update PageTitle
+    if PageTitle then
+        PageTitle.TextColor3 = colors.TextPrimary
+    end
+    
+    -- Refresh Themes page to update current indicator
+    if CurrentPage == "Themes" then
+        self:UpdateContentPage("Themes")
+    end
+    
+    -- Show notification
+    if self.Modules and self.Modules.Notifications then
+        self.Modules.Notifications:Success("Theme: " .. self.Theme.CurrentTheme, 1.5)
+    end
+    
+    print("[GUI] ✅ Theme refreshed to: " .. self.Theme.CurrentTheme)
+end
+
 function GUI:Destroy()
     if self.ScreenGui then
         self.ScreenGui:Destroy()
     end
-    
     GuiButtons = {}
     self.Initialized = false
-    
     print("[GUI] ✅ Destroyed")
 end
 
@@ -1258,8 +1029,5 @@ function GUI:GetAllButtons()
     return GuiButtons
 end
 
--- Export for global access
-getgenv().NullHub_GUI = GUI
-
-print("[GUI] Module loaded v" .. GUI.Version)
+-- Return module
 return GUI
