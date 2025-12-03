@@ -1,12 +1,12 @@
 -- ============================================
 -- NullHub GUI.lua - Interface Module
 -- Created by Debbhai
--- Version: 1.0.3 COMPLETE FIX
+-- Version: 1.0.4 COMPLETE WORKING
 -- Modular GUI system with instant theme refresh
 -- ============================================
 
 local GUI = {
-    Version = "1.0.3",
+    Version = "1.0.4",
     Author = "Debbhai",
     Initialized = false
 }
@@ -51,6 +51,10 @@ end
 function GUI:RegisterModules(modules)
     self.Modules = modules
     print("[GUI] ✅ Modules registered")
+    print("[GUI] Combat:", modules.Combat and "✅" or "❌")
+    print("[GUI] Movement:", modules.Movement and "✅" or "❌")
+    print("[GUI] Visual:", modules.Visual and "✅" or "❌")
+    print("[GUI] Teleport:", modules.Teleport and "✅" or "❌")
 end
 
 --============================================
@@ -295,7 +299,11 @@ function GUI:CreateTabs()
             
             -- Update content
             self:UpdateContentPage(tab.name)
-            self:ConnectButtons()
+            
+            -- Connect buttons after content is created
+            if tab.name ~= "Themes" then
+                self:ConnectButtons()
+            end
         end)
     end
     
@@ -479,17 +487,15 @@ function GUI:CreatePlayerDropdown(parent, theme, sizes)
     
     Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Tiny)
     
-    local placeholderLabel = Instance.new("TextLabel")
-    placeholderLabel.Name = "PlaceholderText"
-    placeholderLabel.Size = UDim2.new(1, -16, 0, 30)
-    placeholderLabel.Position = UDim2.new(0, 8, 0, 8)
-    placeholderLabel.BackgroundTransparency = 1
-    placeholderLabel.Text = "Select a player..."
-    placeholderLabel.TextColor3 = theme.Colors.TextPlaceholder
-    placeholderLabel.TextSize = self.Theme.FontSizes.Input
-    placeholderLabel.Font = self.Theme.Fonts.Input
-    placeholderLabel.TextXAlignment = Enum.TextXAlignment.Left
-    placeholderLabel.Parent = dropdown
+    -- Add UIListLayout for player buttons
+    local listLayout = Instance.new("UIListLayout", dropdown)
+    listLayout.Padding = UDim.new(0, 4)
+    listLayout.SortOrder = Enum.SortOrder.Name
+    
+    local padding = Instance.new("UIPadding", dropdown)
+    padding.PaddingTop = UDim.new(0, 4)
+    padding.PaddingLeft = UDim.new(0, 4)
+    padding.PaddingRight = UDim.new(0, 4)
     
     return dropdown
 end
@@ -691,6 +697,9 @@ function GUI:UpdateContentPage(tabName)
         end
     end
     
+    -- Clear button references for this page
+    GuiButtons = {}
+    
     -- Update title
     if PageTitle then
         PageTitle.Text = tabName
@@ -719,9 +728,14 @@ function GUI:UpdateContentPage(tabName)
             indicator = indicator,
             container = frame,
             isAction = feature.isAction or false,
+            hasInput = feature.hasInput or false,
+            hasDropdown = feature.hasDropdown or false,
+            hasStopButton = feature.hasStopButton or false,
             input = input,
             dropdown = dropdown,
-            stopBtn = stopBtn
+            stopBtn = stopBtn,
+            moduleName = feature.moduleName or feature.state,
+            category = feature.category or tabName
         }
     end
     
@@ -734,25 +748,25 @@ end
 function GUI:GetFeaturesForTab(tabName)
     local featuresByTab = {
         Combat = {
-            {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯"},
-            {name = "ESP", key = "T", state = "esp", icon = "👁️"},
-            {name = "KillAura", key = "K", state = "killaura", icon = "⚔️"},
-            {name = "Fast M1", key = "M", state = "fastm1", icon = "👊"}
+            {name = "Aimbot", key = "E", state = "aimbot", icon = "🎯", moduleName = "Aimbot", category = "Combat"},
+            {name = "ESP", key = "T", state = "esp", icon = "👁️", moduleName = "ESP", category = "Combat"},
+            {name = "KillAura", key = "K", state = "killaura", icon = "⚔️", moduleName = "KillAura", category = "Combat"},
+            {name = "Fast M1", key = "M", state = "fastm1", icon = "👊", moduleName = "FastM1", category = "Combat"}
         },
         Movement = {
-            {name = "Fly", key = "F", state = "fly", icon = "🕊️"},
-            {name = "NoClip", key = "N", state = "noclip", icon = "👻"},
-            {name = "Infinite Jump", key = "J", state = "infjump", icon = "🦘"},
-            {name = "Speed Hack", key = "X", state = "speed", icon = "⚡", hasInput = true},
-            {name = "Walk on Water", key = "U", state = "walkonwater", icon = "🌊"}
+            {name = "Fly", key = "F", state = "fly", icon = "🕊️", moduleName = "Fly", category = "Movement"},
+            {name = "NoClip", key = "N", state = "noclip", icon = "👻", moduleName = "NoClip", category = "Movement"},
+            {name = "Infinite Jump", key = "J", state = "infjump", icon = "🦘", moduleName = "InfiniteJump", category = "Movement"},
+            {name = "Speed Hack", key = "X", state = "speed", icon = "⚡", hasInput = true, moduleName = "Speed", category = "Movement"},
+            {name = "Walk on Water", key = "U", state = "walkonwater", icon = "🌊", moduleName = "WalkOnWater", category = "Movement"}
         },
         Visual = {
-            {name = "Full Bright", key = "B", state = "fullbright", icon = "💡"},
-            {name = "God Mode", key = "V", state = "godmode", icon = "🛡️"}
+            {name = "Full Bright", key = "B", state = "fullbright", icon = "💡", moduleName = "FullBright", category = "Visual"},
+            {name = "God Mode", key = "V", state = "godmode", icon = "🛡️", moduleName = "GodMode", category = "Visual"}
         },
         Teleport = {
-            {name = "Teleport To Player", key = "Z", state = "teleport", icon = "🚀", isAction = true, hasDropdown = true},
-            {name = "Stop Teleport", key = "", state = "stop_tween", icon = "⏹", isAction = true, hasStopButton = true}
+            {name = "Teleport To Player", key = "Z", state = "teleport", icon = "🚀", isAction = true, hasDropdown = true, moduleName = "TeleportToPlayer", category = "Teleport"},
+            {name = "Stop Teleport", key = "", state = "stop_tween", icon = "⏹", isAction = true, hasStopButton = true, moduleName = "TeleportToPlayer", category = "Teleport"}
         }
     }
     
@@ -829,14 +843,228 @@ function GUI:CreateThemeButton(parent, themeName, index)
 end
 
 --============================================
--- CONNECT BUTTONS
+-- CONNECT BUTTONS (COMPLETE WORKING VERSION)
 --============================================
 function GUI:ConnectButtons()
-    print("[GUI] Buttons ready for connection")
+    if not self.Modules then
+        warn("[GUI] No modules registered!")
+        return
+    end
+    
+    local Combat = self.Modules.Combat or {}
+    local Movement = self.Modules.Movement or {}
+    local Visual = self.Modules.Visual or {}
+    local Teleport = self.Modules.Teleport or {}
+    local Notifications = self.Modules.Notifications
+    
+    -- Module mapping
+    local moduleMap = {
+        -- Combat
+        aimbot = Combat.Aimbot,
+        esp = Combat.ESP,
+        killaura = Combat.KillAura,
+        fastm1 = Combat.FastM1,
+        -- Movement
+        fly = Movement.Fly,
+        noclip = Movement.NoClip,
+        infjump = Movement.InfiniteJump,
+        speed = Movement.Speed,
+        walkonwater = Movement.WalkOnWater,
+        -- Visual
+        fullbright = Visual.FullBright,
+        godmode = Visual.GodMode,
+        -- Teleport
+        teleport = Teleport.TeleportToPlayer,
+        stop_tween = Teleport.TeleportToPlayer
+    }
+    
+    for stateName, btnData in pairs(GuiButtons) do
+        local module = moduleMap[stateName]
+        
+        if btnData.button and module then
+            -- Disconnect any existing connections (prevent duplicates)
+            btnData.button.MouseButton1Click:Connect(function()
+                -- Handle action buttons (Teleport, Stop)
+                if btnData.isAction then
+                    if stateName == "teleport" then
+                        -- Get selected player from dropdown
+                        if btnData.dropdown then
+                            local selectedPlayer = btnData.dropdown:GetAttribute("SelectedPlayer")
+                            if selectedPlayer and selectedPlayer ~= "" then
+                                pcall(function()
+                                    module:TeleportTo(selectedPlayer)
+                                end)
+                                if Notifications then
+                                    Notifications:Show("Teleport", true, "Teleporting to " .. selectedPlayer, 2)
+                                end
+                            else
+                                if Notifications then
+                                    Notifications:Warning("Select a player first!", 2)
+                                end
+                            end
+                        end
+                    elseif stateName == "stop_tween" then
+                        pcall(function()
+                            module:StopTween()
+                        end)
+                        if Notifications then
+                            Notifications:Show("Teleport", false, "Tween stopped", 1.5)
+                        end
+                    end
+                    return
+                end
+                
+                -- Toggle features
+                local success, newState = pcall(function()
+                    return module:Toggle()
+                end)
+                
+                if success then
+                    local isEnabled = newState
+                    
+                    -- Update indicator
+                    if btnData.indicator then
+                        btnData.indicator.BackgroundColor3 = isEnabled and 
+                            self.Theme:GetTheme().Colors.StatusOn or 
+                            self.Theme:GetTheme().Colors.StatusOff
+                    end
+                    
+                    -- Update container background
+                    if btnData.container then
+                        btnData.container.BackgroundColor3 = isEnabled and 
+                            self.Theme:GetTheme().Colors.ContainerOn or 
+                            self.Theme:GetTheme().Colors.ContainerOff
+                    end
+                    
+                    -- Show notification
+                    if Notifications then
+                        local featureName = stateName:gsub("^%l", string.upper)
+                        Notifications:Show(featureName, isEnabled, nil, 1.5)
+                    end
+                    
+                    print("[GUI] " .. stateName .. ": " .. (isEnabled and "ON" or "OFF"))
+                else
+                    warn("[GUI] Failed to toggle " .. stateName)
+                end
+            end)
+        end
+        
+        -- Connect speed input
+        if btnData.hasInput and btnData.input and stateName == "speed" then
+            btnData.input.FocusLost:Connect(function()
+                local value = tonumber(btnData.input.Text)
+                if value and moduleMap.speed and moduleMap.speed.SetSpeed then
+                    pcall(function()
+                        moduleMap.speed:SetSpeed(value)
+                    end)
+                    if Notifications then
+                        Notifications:Show("Speed", true, "Speed: " .. value, 1.5)
+                    end
+                end
+            end)
+        end
+        
+        -- Connect stop button
+        if btnData.hasStopButton and btnData.stopBtn then
+            btnData.stopBtn.MouseButton1Click:Connect(function()
+                if Teleport.TeleportToPlayer then
+                    pcall(function()
+                        Teleport.TeleportToPlayer:StopTween()
+                    end)
+                    if Notifications then
+                        Notifications:Show("Teleport", false, "Tween stopped", 1.5)
+                    end
+                end
+            end)
+        end
+        
+        -- Populate player dropdown
+        if btnData.hasDropdown and btnData.dropdown then
+            self:PopulatePlayerDropdown(btnData.dropdown)
+        end
+    end
+    
+    print("[GUI] ✅ All buttons connected")
 end
 
+--============================================
+-- POPULATE PLAYER DROPDOWN
+--============================================
+function GUI:PopulatePlayerDropdown(dropdown)
+    if not dropdown then return end
+    
+    -- Clear existing player buttons
+    for _, child in pairs(dropdown:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    local currentTheme = self.Theme:GetTheme()
+    local sizes = self.Theme.Sizes
+    
+    -- Add players
+    local players = Players:GetPlayers()
+    for _, otherPlayer in ipairs(players) do
+        if otherPlayer ~= player then
+            local playerBtn = Instance.new("TextButton")
+            playerBtn.Name = "Player_" .. otherPlayer.Name
+            playerBtn.Size = UDim2.new(1, -8, 0, sizes.PlayerButtonHeight)
+            playerBtn.BackgroundColor3 = currentTheme.Colors.PlayerButtonBg
+            playerBtn.BackgroundTransparency = currentTheme.Transparency.PlayerButton
+            playerBtn.BorderSizePixel = 0
+            playerBtn.Text = "  " .. otherPlayer.Name
+            playerBtn.TextColor3 = currentTheme.Colors.TextPrimary
+            playerBtn.TextSize = self.Theme.FontSizes.Input
+            playerBtn.Font = self.Theme.Fonts.Input
+            playerBtn.TextXAlignment = Enum.TextXAlignment.Left
+            playerBtn.Parent = dropdown
+            
+            Instance.new("UICorner", playerBtn).CornerRadius = UDim.new(0, self.Theme.CornerRadius.Tiny)
+            
+            playerBtn.MouseButton1Click:Connect(function()
+                -- Store selected player
+                dropdown:SetAttribute("SelectedPlayer", otherPlayer.Name)
+                
+                -- Highlight selected
+                for _, btn in pairs(dropdown:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        btn.BackgroundTransparency = currentTheme.Transparency.PlayerButton
+                    end
+                end
+                playerBtn.BackgroundTransparency = 0
+                
+                if self.Modules.Notifications then
+                    self.Modules.Notifications:Show("Player Selected", true, otherPlayer.Name, 1.5)
+                end
+            end)
+        end
+    end
+end
+
+--============================================
+-- CONNECT KEYBINDS
+--============================================
 function GUI:ConnectKeybinds()
-    print("[GUI] Keybinds ready for connection")
+    if not self.Modules then
+        warn("[GUI] No modules registered!")
+        return
+    end
+    
+    local Combat = self.Modules.Combat or {}
+    local Movement = self.Modules.Movement or {}
+    local Visual = self.Modules.Visual or {}
+    
+    -- GUI Toggle (INSERT key)
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == Enum.KeyCode.Insert then
+            self:ToggleVisibility()
+        end
+    end)
+    
+    print("[GUI] ✅ Keybinds connected")
 end
 
 --============================================
@@ -857,7 +1085,7 @@ function GUI:ToggleVisibility(visible)
 end
 
 --============================================
--- COMPLETE RECURSIVE THEME REFRESH (FIXED)
+-- COMPLETE RECURSIVE THEME REFRESH
 --============================================
 function GUI:RefreshTheme()
     if not MainFrame then return end
@@ -888,7 +1116,7 @@ function GUI:RefreshTheme()
                 element.BackgroundColor3 = colors.MainBackground
                 element.BackgroundTransparency = transparency.MainBackground
             elseif name == "StatusIndicator" then
-                -- Keep status color based on state (don't override)
+                -- Keep status color based on state
             elseif name == "ColorIndicator" then
                 -- Keep theme preview color
             elseif name:find("Row") then
@@ -912,10 +1140,9 @@ function GUI:RefreshTheme()
             end
         end
         
-        -- Update TextButtons (Tabs and Action Buttons)
+        -- Update TextButtons
         if element:IsA("TextButton") then
             if name:find("Tab_") then
-                -- Get tab name from button name
                 local tabName = name:gsub("Tab_", "")
                 if tabName == CurrentPage then
                     element.BackgroundColor3 = colors.TabSelected
@@ -941,6 +1168,9 @@ function GUI:RefreshTheme()
             elseif name == "ToggleButton" then
                 element.BackgroundColor3 = colors.ToggleButton
                 element.BackgroundTransparency = transparency.ToggleButton
+            elseif name:find("Player_") then
+                element.BackgroundColor3 = colors.PlayerButtonBg
+                element.TextColor3 = colors.TextPrimary
             else
                 element.TextColor3 = colors.TextPrimary
             end
@@ -1027,6 +1257,22 @@ end
 
 function GUI:GetAllButtons()
     return GuiButtons
+end
+
+function GUI:UpdateButtonState(stateName, isEnabled)
+    local btnData = GuiButtons[stateName]
+    if btnData then
+        if btnData.indicator then
+            btnData.indicator.BackgroundColor3 = isEnabled and 
+                self.Theme:GetTheme().Colors.StatusOn or 
+                self.Theme:GetTheme().Colors.StatusOff
+        end
+        if btnData.container then
+            btnData.container.BackgroundColor3 = isEnabled and 
+                self.Theme:GetTheme().Colors.ContainerOn or 
+                self.Theme:GetTheme().Colors.ContainerOff
+        end
+    end
 end
 
 -- Return module
