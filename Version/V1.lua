@@ -1,7 +1,7 @@
 -- ============================================
 -- NullHub V1.lua - Module Loader & Orchestrator
 -- Created by Debbhai
--- Version: 1.0.1
+-- Version: 1.0.2
 -- This file loads and connects all NullHub modules
 -- ============================================
 
@@ -11,31 +11,36 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
+-- Check if already running
 if getgenv().NullHubLoaded then
-    local oldGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("NullHubGUI")
+    -- Verify if GUI actually exists
+    local playerGui = player:FindFirstChild("PlayerGui")
+    local oldGui = playerGui and playerGui:FindFirstChild("NullHubGUI")
     
     if oldGui then
         warn("[NullHub] ⚠️ NullHub is already running!")
         return
     else
-        getgenv().NullHubLoaded = false
+        -- GUI was destroyed but flag wasn't cleared - reset everything
+        getgenv().NullHubLoaded = nil
         getgenv().NullHubCleanup = nil
-        print("[NullHub] 🔄 Previous instance was destroyed, starting fresh...")
+        print("[NullHub] 🔄 Previous instance was destroyed, restarting...")
     end
 end
 
+-- Set loaded flag
 getgenv().NullHubLoaded = true
 
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("⚡ NullHub V1 - Module Loader")
-print("🔧 Initializing modular architecture...")
+print("⚡ NullHub - Professional Script Hub")
+print("🔧 Loading modules...")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 -- ============================================
 -- CONFIGURATION
 -- ============================================
 local BASE_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/"
-local VERSION = "1.0.1"
+local VERSION = "1.0.2"
 
 -- ============================================
 -- SERVICES
@@ -122,13 +127,12 @@ local AntiDetection = ModuleLoader:Load("Core/AntiDetection.lua", "AntiDetection
 local Config = ModuleLoader:Load("Core/Config.lua", "Config")
 local GUI = ModuleLoader:Load("Core/GUI.lua", "GUI")
 
--- Initialize AntiDetection if loaded
 if AntiDetection then
     AntiDetection:Initialize()
 end
 
--- Fallback if core modules fail
 if not Theme then
+    getgenv().NullHubLoaded = nil
     error("[NullHub] ❌ Critical: Theme.lua failed to load!")
 end
 
@@ -170,14 +174,12 @@ print("✅ Utility modules loaded")
 -- ============================================
 print("\n[Stage 3/5] Loading Feature Modules...")
 
--- Combat modules
 local Combat = {}
 Combat.Aimbot = ModuleLoader:Load("Combat/Aimbot.lua", "Aimbot")
 Combat.ESP = ModuleLoader:Load("Combat/ESP.lua", "ESP")
 Combat.KillAura = ModuleLoader:Load("Combat/KillAura.lua", "KillAura")
 Combat.FastM1 = ModuleLoader:Load("Combat/FastM1.lua", "FastM1")
 
--- Movement modules
 local Movement = {}
 Movement.Fly = ModuleLoader:Load("Movement/Fly.lua", "Fly")
 Movement.NoClip = ModuleLoader:Load("Movement/NoClip.lua", "NoClip")
@@ -185,12 +187,10 @@ Movement.InfiniteJump = ModuleLoader:Load("Movement/InfiniteJump.lua", "Infinite
 Movement.Speed = ModuleLoader:Load("Movement/Speed.lua", "Speed")
 Movement.WalkOnWater = ModuleLoader:Load("Movement/WalkOnWater.lua", "WalkOnWater")
 
--- Visual modules
 local Visual = {}
 Visual.FullBright = ModuleLoader:Load("Visual/FullBright.lua", "FullBright")
 Visual.GodMode = ModuleLoader:Load("Visual/GodMode.lua", "GodMode")
 
--- Teleport modules
 local Teleport = {}
 Teleport.TeleportToPlayer = ModuleLoader:Load("Teleport/TeleportToPlayer.lua", "TeleportToPlayer")
 
@@ -201,7 +201,6 @@ print("✅ Feature modules loaded")
 -- ============================================
 print("\n[Stage 4/5] Initializing Modules...")
 
--- Create ScreenGui for GUI and Notifications
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NullHubGUI"
 screenGui.ResetOnSpawn = false
@@ -209,77 +208,26 @@ screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.DisplayOrder = 999
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Initialize Notifications
 if Notifications then
     Notifications:Initialize(screenGui, Theme)
     print("✅ Notifications initialized")
-else
-    warn("⚠️ Notifications not available")
 end
 
--- Initialize Combat modules
-if Combat.Aimbot then
-    Combat.Aimbot:Initialize(player, camera, Config, AntiDetection, Notifications)
-    print("✅ Aimbot initialized")
-end
+if Combat.Aimbot then Combat.Aimbot:Initialize(player, camera, Config, AntiDetection, Notifications) end
+if Combat.ESP then Combat.ESP:Initialize(player, camera, Config, Theme, Notifications) end
+if Combat.KillAura then Combat.KillAura:Initialize(player, character, Config, AntiDetection, Notifications) end
+if Combat.FastM1 then Combat.FastM1:Initialize(player, character, Config, Notifications) end
 
-if Combat.ESP then
-    Combat.ESP:Initialize(player, camera, Config, Theme, Notifications)
-    print("✅ ESP initialized")
-end
+if Movement.Fly then Movement.Fly:Initialize(player, character, rootPart, camera, Config, Notifications) end
+if Movement.NoClip then Movement.NoClip:Initialize(player, character, Config, Notifications) end
+if Movement.InfiniteJump then Movement.InfiniteJump:Initialize(player, humanoid, Config, Notifications) end
+if Movement.Speed then Movement.Speed:Initialize(player, humanoid, Config, AntiDetection, Notifications) end
+if Movement.WalkOnWater then Movement.WalkOnWater:Initialize(player, character, rootPart, humanoid, Config, Notifications) end
 
-if Combat.KillAura then
-    Combat.KillAura:Initialize(player, character, Config, AntiDetection, Notifications)
-    print("✅ KillAura initialized")
-end
+if Visual.FullBright then Visual.FullBright:Initialize(Config, Notifications) end
+if Visual.GodMode then Visual.GodMode:Initialize(player, humanoid, Config, Notifications) end
 
-if Combat.FastM1 then
-    Combat.FastM1:Initialize(player, character, Config, Notifications)
-    print("✅ FastM1 initialized")
-end
-
--- Initialize Movement modules
-if Movement.Fly then
-    Movement.Fly:Initialize(player, character, rootPart, camera, Config, Notifications)
-    print("✅ Fly initialized")
-end
-
-if Movement.NoClip then
-    Movement.NoClip:Initialize(player, character, Config, Notifications)
-    print("✅ NoClip initialized")
-end
-
-if Movement.InfiniteJump then
-    Movement.InfiniteJump:Initialize(player, humanoid, Config, Notifications)
-    print("✅ InfiniteJump initialized")
-end
-
-if Movement.Speed then
-    Movement.Speed:Initialize(player, humanoid, Config, AntiDetection, Notifications)
-    print("✅ Speed initialized")
-end
-
-if Movement.WalkOnWater then
-    Movement.WalkOnWater:Initialize(player, character, rootPart, humanoid, Config, Notifications)
-    print("✅ WalkOnWater initialized")
-end
-
--- Initialize Visual modules
-if Visual.FullBright then
-    Visual.FullBright:Initialize(Config, Notifications)
-    print("✅ FullBright initialized")
-end
-
-if Visual.GodMode then
-    Visual.GodMode:Initialize(player, humanoid, Config, Notifications)
-    print("✅ GodMode initialized")
-end
-
--- Initialize Teleport modules
-if Teleport.TeleportToPlayer then
-    Teleport.TeleportToPlayer:Initialize(player, rootPart, Config, Notifications)
-    print("✅ TeleportToPlayer initialized")
-end
+if Teleport.TeleportToPlayer then Teleport.TeleportToPlayer:Initialize(player, rootPart, Config, Notifications) end
 
 print("✅ All modules initialized")
 
@@ -289,10 +237,7 @@ print("✅ All modules initialized")
 print("\n[Stage 5/5] Creating GUI...")
 
 if GUI then
-    -- Create the main GUI
     GUI:Initialize(screenGui, Theme, Config)
-    
-    -- Register all modules with GUI
     GUI:RegisterModules({
         Combat = Combat,
         Movement = Movement,
@@ -300,51 +245,35 @@ if GUI then
         Teleport = Teleport,
         Notifications = Notifications
     })
-    
-    -- Create the interface
     GUI:Create()
-    
-    -- Connect all buttons and keybinds
     GUI:ConnectButtons()
     GUI:ConnectKeybinds()
-    
     print("✅ GUI created and connected")
 else
-    warn("❌ GUI module failed to load - No interface available")
-    warn("Features can still be toggled via keybinds")
+    warn("❌ GUI module failed to load")
 end
 
 -- ============================================
--- KEYBIND FALLBACK (If GUI fails)
+-- KEYBIND FALLBACK
 -- ============================================
 if not GUI then
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
-        
-        -- Combat keybinds
         if input.KeyCode == Config.AIMBOT_KEY and Combat.Aimbot then Combat.Aimbot:Toggle() end
         if input.KeyCode == Config.ESP_KEY and Combat.ESP then Combat.ESP:Toggle() end
         if input.KeyCode == Config.KILLAURA_KEY and Combat.KillAura then Combat.KillAura:Toggle() end
         if input.KeyCode == Config.FASTM1_KEY and Combat.FastM1 then Combat.FastM1:Toggle() end
-        
-        -- Movement keybinds
         if input.KeyCode == Config.FLY_KEY and Movement.Fly then Movement.Fly:Toggle() end
         if input.KeyCode == Config.NOCLIP_KEY and Movement.NoClip then Movement.NoClip:Toggle() end
         if input.KeyCode == Config.INFJUMP_KEY and Movement.InfiniteJump then Movement.InfiniteJump:Toggle() end
         if input.KeyCode == Config.SPEED_KEY and Movement.Speed then Movement.Speed:Toggle() end
         if input.KeyCode == Config.WALKONWATER_KEY and Movement.WalkOnWater then Movement.WalkOnWater:Toggle() end
-        
-        -- Visual keybinds
         if input.KeyCode == Config.FULLBRIGHT_KEY and Visual.FullBright then Visual.FullBright:Toggle() end
         if input.KeyCode == Config.GODMODE_KEY and Visual.GodMode then Visual.GodMode:Toggle() end
-        
-        -- Infinite Jump special handling
         if input.KeyCode == Enum.KeyCode.Space and Movement.InfiniteJump and Movement.InfiniteJump.Enabled then
             humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end)
-    
-    print("✅ Keybind fallback active")
 end
 
 -- ============================================
@@ -356,90 +285,70 @@ player.CharacterAdded:Connect(function(newChar)
     humanoid = character:WaitForChild("Humanoid")
     rootPart = character:WaitForChild("HumanoidRootPart")
     
-    print("[NullHub] Character respawned - Reinitializing features...")
-    
-    -- Reinitialize all modules with new character
     if Combat.Aimbot and Combat.Aimbot.OnRespawn then Combat.Aimbot:OnRespawn(character, humanoid, rootPart) end
     if Combat.ESP and Combat.ESP.OnRespawn then Combat.ESP:OnRespawn(character, humanoid, rootPart) end
     if Combat.KillAura and Combat.KillAura.OnRespawn then Combat.KillAura:OnRespawn(character, humanoid, rootPart) end
     if Combat.FastM1 and Combat.FastM1.OnRespawn then Combat.FastM1:OnRespawn(character, humanoid, rootPart) end
-    
     if Movement.Fly and Movement.Fly.OnRespawn then Movement.Fly:OnRespawn(character, humanoid, rootPart) end
     if Movement.NoClip and Movement.NoClip.OnRespawn then Movement.NoClip:OnRespawn(character, humanoid, rootPart) end
     if Movement.InfiniteJump and Movement.InfiniteJump.OnRespawn then Movement.InfiniteJump:OnRespawn(character, humanoid, rootPart) end
     if Movement.Speed and Movement.Speed.OnRespawn then Movement.Speed:OnRespawn(character, humanoid, rootPart) end
     if Movement.WalkOnWater and Movement.WalkOnWater.OnRespawn then Movement.WalkOnWater:OnRespawn(character, humanoid, rootPart) end
-    
     if Visual.GodMode and Visual.GodMode.OnRespawn then Visual.GodMode:OnRespawn(character, humanoid, rootPart) end
     if Teleport.TeleportToPlayer and Teleport.TeleportToPlayer.OnRespawn then Teleport.TeleportToPlayer:OnRespawn(character, humanoid, rootPart) end
     
-    if Notifications then
-        Notifications:Info("Respawned - Features reinitialized", 2)
-    end
+    if Notifications then Notifications:Info("Respawned - Features reinitialized", 2) end
 end)
 
 -- ============================================
--- CLEANUP ON SCRIPT UNLOAD (FIXED)
+-- CLEANUP FUNCTION (FIXED - CLEARS FLAGS)
 -- ============================================
 local function cleanup()
-    print("[NullHub] Cleaning up...")
+    print("[NullHub] 🧹 Cleaning up...")
     
-    -- Disconnect all modules safely
-    if Combat.Aimbot and Combat.Aimbot.Destroy then pcall(function() Combat.Aimbot:Destroy() end) end
-    if Combat.ESP and Combat.ESP.Destroy then pcall(function() Combat.ESP:Destroy() end) end
-    if Combat.KillAura and Combat.KillAura.Destroy then pcall(function() Combat.KillAura:Destroy() end) end
-    if Combat.FastM1 and Combat.FastM1.Destroy then pcall(function() Combat.FastM1:Destroy() end) end
+    pcall(function() if Combat.Aimbot and Combat.Aimbot.Destroy then Combat.Aimbot:Destroy() end end)
+    pcall(function() if Combat.ESP and Combat.ESP.Destroy then Combat.ESP:Destroy() end end)
+    pcall(function() if Combat.KillAura and Combat.KillAura.Destroy then Combat.KillAura:Destroy() end end)
+    pcall(function() if Combat.FastM1 and Combat.FastM1.Destroy then Combat.FastM1:Destroy() end end)
+    pcall(function() if Movement.Fly and Movement.Fly.Destroy then Movement.Fly:Destroy() end end)
+    pcall(function() if Movement.NoClip and Movement.NoClip.Destroy then Movement.NoClip:Destroy() end end)
+    pcall(function() if Movement.InfiniteJump and Movement.InfiniteJump.Destroy then Movement.InfiniteJump:Destroy() end end)
+    pcall(function() if Movement.Speed and Movement.Speed.Destroy then Movement.Speed:Destroy() end end)
+    pcall(function() if Movement.WalkOnWater and Movement.WalkOnWater.Destroy then Movement.WalkOnWater:Destroy() end end)
+    pcall(function() if Visual.FullBright and Visual.FullBright.Destroy then Visual.FullBright:Destroy() end end)
+    pcall(function() if Visual.GodMode and Visual.GodMode.Destroy then Visual.GodMode:Destroy() end end)
+    pcall(function() if Teleport.TeleportToPlayer and Teleport.TeleportToPlayer.Destroy then Teleport.TeleportToPlayer:Destroy() end end)
+    pcall(function() if GUI and GUI.Destroy then GUI:Destroy() end end)
     
-    if Movement.Fly and Movement.Fly.Destroy then pcall(function() Movement.Fly:Destroy() end) end
-    if Movement.NoClip and Movement.NoClip.Destroy then pcall(function() Movement.NoClip:Destroy() end) end
-    if Movement.InfiniteJump and Movement.InfiniteJump.Destroy then pcall(function() Movement.InfiniteJump:Destroy() end) end
-    if Movement.Speed and Movement.Speed.Destroy then pcall(function() Movement.Speed:Destroy() end) end
-    if Movement.WalkOnWater and Movement.WalkOnWater.Destroy then pcall(function() Movement.WalkOnWater:Destroy() end) end
-    
-    if Visual.FullBright and Visual.FullBright.Destroy then pcall(function() Visual.FullBright:Destroy() end) end
-    if Visual.GodMode and Visual.GodMode.Destroy then pcall(function() Visual.GodMode:Destroy() end) end
-    
-    if Teleport.TeleportToPlayer and Teleport.TeleportToPlayer.Destroy then pcall(function() Teleport.TeleportToPlayer:Destroy() end) end
-    
-    -- Destroy GUI
-    if GUI and GUI.Destroy then
-        pcall(function() GUI:Destroy() end)
-    end
-    
-    -- Destroy ScreenGui
     if screenGui then
         screenGui:Destroy()
     end
     
-    -- IMPORTANT: Clear global flags so script can be executed again
-    getgenv().NullHubLoaded = false
+    -- CRITICAL: Clear global flags so script can run again
+    getgenv().NullHubLoaded = nil
     getgenv().NullHubCleanup = nil
     
-    print("[NullHub] ✅ Cleanup complete - You can now re-execute the script")
+    print("[NullHub] ✅ Cleanup complete - You can re-execute the script now")
 end
 
 -- ============================================
--- FINAL REPORT & COMPLETION
+-- FINAL REPORT
 -- ============================================
 ModuleLoader:PrintReport()
 
 local stats = ModuleLoader:GetStats()
-
 print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 print("🎉 NullHub V1 Loaded Successfully!")
 print(string.format("📊 %d/%d modules loaded (%d%%)", stats.Success, stats.Total, stats.Percentage))
 print("⌨️ Press [" .. (Config.GUI_TOGGLE_KEY and Config.GUI_TOGGLE_KEY.Name or "INSERT") .. "] to toggle GUI")
-print("📖 Check keybinds in the GUI settings")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 if Notifications then
     Notifications:Success("NullHub V1 Loaded!", 3)
 end
 
--- Store cleanup function globally
 getgenv().NullHubCleanup = cleanup
 
--- Return module loader for external access
 return {
     Version = VERSION,
     Combat = Combat,
