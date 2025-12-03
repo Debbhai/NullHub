@@ -58,7 +58,7 @@ function Speed:ApplySpeed()
                 Humanoid.WalkSpeed,
                 0.2,
                 Config.AntiDetection.STEALTH_MODE
-            )
+            )  -- ✅ FIXED: Added missing closing parenthesis here
         else
             Humanoid.WalkSpeed = self.CurrentSpeed
         end
