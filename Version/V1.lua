@@ -1,46 +1,21 @@
 -- ============================================
--- NullHub V1.lua - FULL DEBUG VERSION
--- Created by Debbhai
--- Version: 1.0.6 (Maximum Error Detection)
+-- NullHub V1.lua - COMPLETE STANDALONE
+-- No GUI.lua dependency
 -- ============================================
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- ============================================
--- ANTI-DUPLICATE CHECK
--- ============================================
-local function isRunning()
-    local gui = player.PlayerGui:FindFirstChild("NullHubGUI")
-    if gui and gui:FindFirstChild("MainFrame") then
-        return true
-    end
-    if gui then pcall(function() gui:Destroy() end) end
-    return false
-end
-
-if isRunning() then
-    warn("[NullHub] ⚠️ Already running!")
+if player.PlayerGui:FindFirstChild("NullHubGUI") then
+    warn("[NullHub] Already running!")
     return
 end
 
-getgenv().NullHubLoaded = nil
-getgenv().NullHubCleanup = nil
-getgenv().NullHubLoaded = true
-
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("⚡ NullHub V1.0.6 - Debug Mode")
+print("⚡ NullHub - Professional Script Hub")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
--- ============================================
--- CONFIG
--- ============================================
 local BASE_URL = "https://raw.githubusercontent.com/Debbhai/NullHub/main/"
-local VERSION = "1.0.6"
-
--- ============================================
--- SERVICES
--- ============================================
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local character = player.Character or player.CharacterAdded:Wait()
@@ -48,235 +23,91 @@ local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
 
--- ============================================
--- ADVANCED DEBUG LOADER
--- ============================================
-local function DebugLoadModule(path, name)
-    print(string.format("📥 [DEBUG] Loading %s from %s...", name, path))
-    
-    -- Step 1: Download
-    local downloadSuccess, code = pcall(function()
-        return game:HttpGet(BASE_URL .. path, true)
+-- Module Loader
+local function LoadModule(path, name)
+    print(string.format("📥 Loading %s...", name))
+    local ok, result = pcall(function()
+        local code = game:HttpGet(BASE_URL .. path, true)
+        if #code < 10 then error("Empty file") end
+        local fn = loadstring(code)
+        if not fn then error("Loadstring failed") end
+        return fn()
     end)
-    
-    if not downloadSuccess then
-        warn(string.format("❌ [%s] Download failed: %s", name, tostring(code)))
+    if ok and result then
+        print(string.format("✅ %s loaded", name))
+        return result
+    else
+        warn(string.format("❌ %s failed: %s", name, tostring(result)))
         return nil
     end
-    
-    print(string.format("   [%s] Downloaded %d bytes", name, #code))
-    
-    if not code or #code < 10 then
-        warn(string.format("❌ [%s] File is empty or too small", name))
-        return nil
-    end
-    
-    -- Step 2: Loadstring
-    local loadSuccess, loadResult = pcall(function()
-        return loadstring(code)
-    end)
-    
-    if not loadSuccess or not loadResult then
-        warn(string.format("❌ [%s] Loadstring failed: %s", name, tostring(loadResult)))
-        warn(string.format("   First 200 chars of code: %s", code:sub(1, 200)))
-        return nil
-    end
-    
-    print(string.format("   [%s] Loadstring successful", name))
-    
-    -- Step 3: Execute the loaded function
-    local execSuccess, module = pcall(loadResult)
-    
-    if not execSuccess then
-        warn(string.format("❌ [%s] Execution failed: %s", name, tostring(module)))
-        warn(string.format("   This means the module has a runtime error!"))
-        
-        -- Try to extract error line
-        local errorMsg = tostring(module)
-        local lineNum = errorMsg:match(":(%d+):")
-        if lineNum then
-            warn(string.format("   ERROR AT LINE: %s", lineNum))
-        end
-        
-        return nil
-    end
-    
-    -- Step 4: Validate module
-    if type(module) ~= "table" then
-        warn(string.format("❌ [%s] Module didn't return a table (got %s)", name, type(module)))
-        return nil
-    end
-    
-    print(string.format("✅ [%s] Loaded successfully", name))
-    
-    -- Debug: Print module functions
-    local funcCount = 0
-    for key, value in pairs(module) do
-        if type(value) == "function" then
-            funcCount = funcCount + 1
-        end
-    end
-    print(string.format("   [%s] Has %d functions", name, funcCount))
-    
-    return module
 end
 
--- ============================================
--- LOAD CORE MODULES WITH DEBUG
--- ============================================
-print("\n📦 Loading Core Modules...")
+-- Load modules
+print("\n📦 Loading Modules...")
+local Theme = LoadModule("Core/Theme.lua", "Theme")
+local Config = LoadModule("Core/Config.lua", "Config")
+local Notifications = LoadModule("Utility/Notifications.lua", "Notifications")
+local Combat = {
+    Aimbot = LoadModule("Combat/Aimbot.lua", "Aimbot"),
+    ESP = LoadModule("Combat/ESP.lua", "ESP"),
+    KillAura = LoadModule("Combat/KillAura.lua", "KillAura"),
+    FastM1 = LoadModule("Combat/FastM1.lua", "FastM1")
+}
+local Movement = {
+    Fly = LoadModule("Movement/Fly.lua", "Fly"),
+    NoClip = LoadModule("Movement/NoClip.lua", "NoClip"),
+    InfiniteJump = LoadModule("Movement/InfiniteJump.lua", "InfiniteJump"),
+    Speed = LoadModule("Movement/Speed.lua", "Speed"),
+    WalkOnWater = LoadModule("Movement/WalkOnWater.lua", "WalkOnWater")
+}
+local Visual = {
+    FullBright = LoadModule("Visual/FullBright.lua", "FullBright"),
+    GodMode = LoadModule("Visual/GodMode.lua", "GodMode")
+}
 
-local Theme = DebugLoadModule("Core/Theme.lua", "Theme")
-local Config = DebugLoadModule("Core/Config.lua", "Config")
-local AntiDetection = DebugLoadModule("Core/AntiDetection.lua", "AntiDetection")
-local Notifications = DebugLoadModule("Utility/Notifications.lua", "Notifications")
-
--- ============================================
--- FALLBACKS
--- ============================================
+-- Fallback theme/config
 if not Theme then
-    warn("⚠️ Using fallback theme")
     Theme = {
         CurrentTheme = "Dark",
-        Themes = {
-            Dark = {
-                Colors = {
-                    MainBackground = Color3.fromRGB(15, 15, 20),
-                    HeaderBackground = Color3.fromRGB(20, 20, 25),
-                    SidebarBackground = Color3.fromRGB(18, 18, 22),
-                    ContainerBackground = Color3.fromRGB(25, 25, 30),
-                    TextPrimary = Color3.fromRGB(255, 255, 255),
-                    StatusOff = Color3.fromRGB(200, 60, 60),
-                    StatusOn = Color3.fromRGB(60, 200, 100),
-                    BorderColor = Color3.fromRGB(50, 50, 60),
-                    CloseButton = Color3.fromRGB(200, 60, 70),
-                    TabNormal = Color3.fromRGB(22, 22, 28),
-                    TabSelected = Color3.fromRGB(35, 35, 45)
-                },
-                Transparency = {
-                    MainBackground = 0.05,
-                    Header = 0.05,
-                    Sidebar = 0.1,
-                    Container = 0.1
-                }
-            }
-        },
-        Sizes = {
-            MainFrameWidth = 650,
-            MainFrameHeight = 420,
-            SidebarWidth = 140,
-            HeaderHeight = 42,
-            TabHeight = 36,
-            ActionRowHeight = 42,
-            StatusIndicator = 12
-        },
-        CornerRadius = { Large = 12, Medium = 8, Small = 6 },
-        Fonts = { Title = Enum.Font.GothamBold, Tab = Enum.Font.GothamMedium, Action = Enum.Font.Gotham },
-        FontSizes = { Title = 18, Tab = 14, Action = 13 },
+        Themes = {Dark = {Colors = {MainBackground = Color3.fromRGB(15,15,20), HeaderBackground = Color3.fromRGB(20,20,25), SidebarBackground = Color3.fromRGB(18,18,22), ContainerBackground = Color3.fromRGB(25,25,30), TextPrimary = Color3.fromRGB(255,255,255), StatusOff = Color3.fromRGB(200,60,60), StatusOn = Color3.fromRGB(60,200,100), BorderColor = Color3.fromRGB(50,50,60), CloseButton = Color3.fromRGB(200,60,70), TabNormal = Color3.fromRGB(22,22,28), TabSelected = Color3.fromRGB(35,35,45)}, Transparency = {MainBackground = 0.05, Header = 0.05, Sidebar = 0.1, Container = 0.1}}},
+        Sizes = {MainFrameWidth = 650, MainFrameHeight = 420, SidebarWidth = 140, HeaderHeight = 42, TabHeight = 36, ActionRowHeight = 42, StatusIndicator = 12},
+        CornerRadius = {Large = 12, Medium = 8, Small = 6},
+        Fonts = {Title = Enum.Font.GothamBold, Tab = Enum.Font.GothamMedium, Action = Enum.Font.Gotham},
+        FontSizes = {Title = 18, Tab = 14, Action = 13},
         GetTheme = function(self) return self.Themes[self.CurrentTheme] end
     }
 end
-
 if not Config then
-    warn("⚠️ Using fallback config")
-    Config = {
-        GUI_TOGGLE_KEY = Enum.KeyCode.Insert,
-        AIMBOT_KEY = Enum.KeyCode.E,
-        ESP_KEY = Enum.KeyCode.T,
-        KILLAURA_KEY = Enum.KeyCode.K,
-        FASTM1_KEY = Enum.KeyCode.M,
-        FLY_KEY = Enum.KeyCode.F,
-        NOCLIP_KEY = Enum.KeyCode.N,
-        INFJUMP_KEY = Enum.KeyCode.J,
-        SPEED_KEY = Enum.KeyCode.X,
-        FULLBRIGHT_KEY = Enum.KeyCode.B,
-        GODMODE_KEY = Enum.KeyCode.V,
-        TELEPORT_KEY = Enum.KeyCode.Z,
-        WALKONWATER_KEY = Enum.KeyCode.U
-    }
+    Config = {GUI_TOGGLE_KEY=Enum.KeyCode.Insert,AIMBOT_KEY=Enum.KeyCode.E,ESP_KEY=Enum.KeyCode.T,KILLAURA_KEY=Enum.KeyCode.K,FASTM1_KEY=Enum.KeyCode.M,FLY_KEY=Enum.KeyCode.F,NOCLIP_KEY=Enum.KeyCode.N,INFJUMP_KEY=Enum.KeyCode.J,SPEED_KEY=Enum.KeyCode.X,FULLBRIGHT_KEY=Enum.KeyCode.B,GODMODE_KEY=Enum.KeyCode.V}
 end
 
--- ============================================
--- LOAD FEATURE MODULES WITH DEBUG
--- ============================================
-print("\n📦 Loading Feature Modules...")
-
-local Combat = {
-    Aimbot = DebugLoadModule("Combat/Aimbot.lua", "Aimbot"),
-    ESP = DebugLoadModule("Combat/ESP.lua", "ESP"),
-    KillAura = DebugLoadModule("Combat/KillAura.lua", "KillAura"),
-    FastM1 = DebugLoadModule("Combat/FastM1.lua", "FastM1")
-}
-
-local Movement = {
-    Fly = DebugLoadModule("Movement/Fly.lua", "Fly"),
-    NoClip = DebugLoadModule("Movement/NoClip.lua", "NoClip"),
-    InfiniteJump = DebugLoadModule("Movement/InfiniteJump.lua", "InfiniteJump"),
-    Speed = DebugLoadModule("Movement/Speed.lua", "Speed"),
-    WalkOnWater = DebugLoadModule("Movement/WalkOnWater.lua", "WalkOnWater")
-}
-
-local Visual = {
-    FullBright = DebugLoadModule("Visual/FullBright.lua", "FullBright"),
-    GodMode = DebugLoadModule("Visual/GodMode.lua", "GodMode")
-}
-
--- ============================================
--- CREATE GUI
--- ============================================
-print("\n🎨 Creating GUI...")
-
+-- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NullHubGUI"
 screenGui.ResetOnSpawn = false
 screenGui.DisplayOrder = 999
 screenGui.Parent = player.PlayerGui
 
--- Initialize modules safely
-local function SafeInit(module, name, ...)
-    if not module then
-        warn(string.format("[%s] Skipped - module is nil", name))
-        return
-    end
-    
-    if type(module.Initialize) ~= "function" then
-        warn(string.format("[%s] Skipped - no Initialize function", name))
-        return
-    end
-    
-    local success, err = pcall(function()
-        module:Initialize(...)
-    end)
-    
-    if success then
-        print(string.format("✅ [%s] Initialized", name))
-    else
-        warn(string.format("❌ [%s] Init failed: %s", name, tostring(err)))
-    end
+-- Initialize modules
+local function Init(mod, ...)
+    if mod and mod.Initialize then pcall(function() mod:Initialize(...) end) end
 end
+Init(Notifications, screenGui, Theme)
+Init(Combat.Aimbot, player, camera, Config, nil, Notifications)
+Init(Combat.ESP, player, camera, Config, Theme, Notifications)
+Init(Combat.KillAura, player, character, Config, nil, Notifications)
+Init(Combat.FastM1, player, character, Config, Notifications)
+Init(Movement.Fly, player, character, rootPart, camera, Config, Notifications)
+Init(Movement.NoClip, player, character, Config, Notifications)
+Init(Movement.InfiniteJump, player, humanoid, Config, Notifications)
+Init(Movement.Speed, player, humanoid, Config, nil, Notifications)
+Init(Movement.WalkOnWater, player, character, rootPart, humanoid, Config, Notifications)
+Init(Visual.FullBright, Config, Notifications)
+Init(Visual.GodMode, player, humanoid, Config, Notifications)
 
-print("\n🔧 Initializing Modules...")
-
-SafeInit(Notifications, "Notifications", screenGui, Theme)
-SafeInit(AntiDetection, "AntiDetection")
-SafeInit(Combat.Aimbot, "Aimbot", player, camera, Config, AntiDetection, Notifications)
-SafeInit(Combat.ESP, "ESP", player, camera, Config, Theme, Notifications)
-SafeInit(Combat.KillAura, "KillAura", player, character, Config, AntiDetection, Notifications)
-SafeInit(Combat.FastM1, "FastM1", player, character, Config, Notifications)
-SafeInit(Movement.Fly, "Fly", player, character, rootPart, camera, Config, Notifications)
-SafeInit(Movement.NoClip, "NoClip", player, character, Config, Notifications)
-SafeInit(Movement.InfiniteJump, "InfiniteJump", player, humanoid, Config, Notifications)
-SafeInit(Movement.Speed, "Speed", player, humanoid, Config, AntiDetection, Notifications)
-SafeInit(Movement.WalkOnWater, "WalkOnWater", player, character, rootPart, humanoid, Config, Notifications)
-SafeInit(Visual.FullBright, "FullBright", Config, Notifications)
-SafeInit(Visual.GodMode, "GodMode", player, humanoid, Config, Notifications)
-
--- ============================================
--- BUILD SIMPLE GUI
--- ============================================
+-- Build GUI
 local theme = Theme:GetTheme()
 local sizes = Theme.Sizes
-
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, sizes.MainFrameWidth, 0, sizes.MainFrameHeight)
@@ -298,7 +129,7 @@ local title = Instance.new("TextLabel", topBar)
 title.Size = UDim2.new(1, -50, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ NullHub V1.0.6 [DEBUG]"
+title.Text = "⚡ NullHub V1"
 title.TextColor3 = theme.Colors.TextPrimary
 title.TextSize = Theme.FontSizes.Title
 title.Font = Theme.Fonts.Title
@@ -323,7 +154,7 @@ content.CanvasSize = UDim2.new(0, 0, 0, 0)
 content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 Instance.new("UIListLayout", content).Padding = UDim.new(0, 6)
 
--- Create feature buttons
+-- Features
 local features = {
     {"Aimbot", "E", "🎯", Combat.Aimbot},
     {"ESP", "T", "👁️", Combat.ESP},
@@ -331,11 +162,11 @@ local features = {
     {"Fast M1", "M", "👊", Combat.FastM1},
     {"Fly", "F", "🕊️", Movement.Fly},
     {"NoClip", "N", "👻", Movement.NoClip},
-    {"Inf Jump", "J", "🦘", Movement.InfiniteJump},
+    {"Infinite Jump", "J", "🦘", Movement.InfiniteJump},
     {"Speed", "X", "⚡", Movement.Speed},
-    {"Walk Water", "U", "🌊", Movement.WalkOnWater},
-    {"FullBright", "B", "💡", Visual.FullBright},
-    {"GodMode", "V", "🛡️", Visual.GodMode}
+    {"Walk on Water", "U", "🌊", Movement.WalkOnWater},
+    {"Full Bright", "B", "💡", Visual.FullBright},
+    {"God Mode", "V", "🛡️", Visual.GodMode}
 }
 
 for i, data in ipairs(features) do
@@ -366,40 +197,33 @@ for i, data in ipairs(features) do
         btn.Size = UDim2.new(1, 0, 1, 0)
         btn.BackgroundTransparency = 1
         btn.Text = ""
-        
         btn.MouseButton1Click:Connect(function()
             pcall(function() data[4]:Toggle() end)
-            local enabled = data[4].Enabled or false
-            indicator.BackgroundColor3 = enabled and theme.Colors.StatusOn or theme.Colors.StatusOff
+            local on = data[4].Enabled or false
+            indicator.BackgroundColor3 = on and theme.Colors.StatusOn or theme.Colors.StatusOff
         end)
     else
         label.Text = label.Text .. " [BROKEN]"
-        label.TextColor3 = Color3.fromRGB(150, 150, 150)
     end
 end
 
 -- Close button
 closeBtn.MouseButton1Click:Connect(function()
-    pcall(function() screenGui:Destroy() end)
-    getgenv().NullHubLoaded = nil
-    getgenv().NullHubCleanup = nil
+    screenGui:Destroy()
 end)
 
 -- Toggle GUI
-local IsVisible = true
+local vis = true
 UserInputService.InputBegan:Connect(function(input, proc)
     if proc then return end
     if input.KeyCode == Enum.KeyCode.Insert then
-        IsVisible = not IsVisible
-        local pos = IsVisible and 
-            UDim2.new(0.5, -sizes.MainFrameWidth/2, 0.5, -sizes.MainFrameHeight/2) or
-            UDim2.new(0.5, -sizes.MainFrameWidth/2, -1, 0)
+        vis = not vis
+        local pos = vis and UDim2.new(0.5, -sizes.MainFrameWidth/2, 0.5, -sizes.MainFrameHeight/2) or UDim2.new(0.5, -sizes.MainFrameWidth/2, -1, 0)
         TweenService:Create(MainFrame, TweenInfo.new(0.3), {Position = pos}):Play()
     end
 end)
 
 print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-print("🎉 NullHub V1.0.6 Loaded!")
-print("📋 Check console for module errors")
+print("🎉 NullHub V1 Loaded!")
 print("⌨️ Press [INSERT] to toggle")
 print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
